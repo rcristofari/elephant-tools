@@ -165,6 +165,7 @@ class elephant:
                     print("Alias name appended to database")
  
 ############ Sex
+                    
             if self.sex == self.__db_sex:
                 self.__xsex = 1
                 print("Sexes match.")
@@ -463,11 +464,19 @@ class pedigree:
         self.__db_id2=None
         self.__db_eleph_1=None
         self.__db_eleph_2=None
-        self.__db_rel=None
-        self.__db_coef=None
+        self.__db_rel_1=None
+        self.__db_rel_2=None
+        self.__db_coef_1=None
+        self.__db_coef_2=None
         self.__db_rel_id=None
         self.__rel_1=None
         self.__rel_2=None
+
+# These variables pass the state of each operation to the next
+        self.__sourced=0
+        self.__checked=0
+        self.status=None #Result of the check() function
+        self.statement=None #SQL statement issued by the write() function
 
 # __x variables describe state of the comparison db/input
         self.__x1=0
@@ -480,28 +489,29 @@ class pedigree:
 ################################################################################
 
     def source(self):
+        #In the standard workflow, elephants will have already been checked using elephant.source() and elephant.check()
         db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
         cursor = db.cursor()
-        sql_0 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_1)
-        sql_1 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_2)
+        sql_1 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_1)
+        sql_2 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_2)
 
         try:
-            cursor.execute(sql_0)
-            self.__db_eleph_1 = cursor.fetchall()[0]
             cursor.execute(sql_1)
+            self.__db_eleph_1 = cursor.fetchall()[0]
+            cursor.execute(sql_2)
             self.__db_eleph_2 = cursor.fetchall()[0]
             print(self.__db_eleph_1, '\n', self.__db_eleph_2)
         except:
             print ("Error: unable to fetch elephant data")
         self.__db_id1 = self.__db_eleph_1[0]
         self.__db_id2 = self.__db_eleph_2[0]
-        sql_0 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id1, self.__db_id2)
-        sql_1 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id2, self.__db_id1)
+        sql_1 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id1, self.__db_id2) #__rel_1 : eleph 1 first
+        sql_2 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id2, self.__db_id1) #__rel_2 : eleph 2 first
         
         try:
-            cursor.execute(sql_0)
-            self.__rel_1 = cursor.fetchall()[0]
             cursor.execute(sql_1)
+            self.__rel_1 = cursor.fetchall()[0]
+            cursor.execute(sql_2)
             self.__rel_2 = cursor.fetchall()[0]
         except:
             print ("Error: unable to fetch pedigree data")            
@@ -510,6 +520,80 @@ class pedigree:
 #        print("Requests:\n", sql_0, '\n', sql_1)
 
         db.close()
+
+        if self.__rel_1 !=None and self.__rel_2!= None:
+            #Check basic exact consistency of the entry
+            #Age difference:
+            delta = (self.__db_eleph_1[2] - self.__db_eleph_2[2]).days / 365.25
+
+            if (self.__rel_1[1] == self.__rel_2[1]
+                and self.__rel_1[2] == self.__rel_2[3]
+                and self.__rel_1[3] == self.__rel_2[2]
+                and ((self.__rel_1[4] == 'mother' and self.__rel_2[4] == 'offspring')
+                     or (self.__rel_1[4] == 'offspring' and self.__rel_2[4] == 'mother')
+                     or (self.__rel_1[4] == 'father' and self.__rel_2[4] == 'offspring')
+                     or (self.__rel_1[4] == 'offspring' and self.__rel_2[4] == 'father')
+                     or (self.__rel_1[4] == 'unknown' or self.__rel_2[4] == 'unknown'))):
+
+                    self._sourced = 1  
+                    #Testing that the age difference is at least 7 years (should be tuned better).
+                    #In case of problem, self.__sourced reverts to 0.
+                    #There's probably a more elegant way to do that.
+                
+                    if self.__rel_1[4] == 'mother':
+                        if delta > -7:
+                            self._sourced = 0
+                            print("Mother too young (", round(abs(delta)), " years old)", sep="")
+                        else:
+                            pass
+                    if self.__rel_2[4] == 'mother':
+                        if delta < 7:
+                            self._sourced = 0
+                            print("Mother too young (", round(abs(delta)), " years old)", sep="")
+                        else:
+                            pass
+                    elif self.__rel_1[4] == 'father':
+                        if delta > -7:
+                            self._sourced = 0
+                            print("Father too young (", round(abs(delta)), " years old)", sep="")
+                        else:
+                            pass
+                    elif self.__rel_2[4] == 'father':
+                        if delta < 7:
+                            self._sourced = 0
+                            print("Father too young (", round(abs(delta)), " years old)", sep="")
+                        else:
+                            pass
+                    elif self.__rel_1[4] == 'offspring':
+                        if delta < 7:
+                            self._sourced = 0
+                            print("Parent too young (", round(abs(delta)), " years old)", sep="")
+                        else:
+                            pass
+                    elif self.__rel_2[4] == 'offspring':
+                        if delta > -7:
+                            self._sourced = 0
+                            print("Parent too young (", round(abs(delta)), " years old)", sep="")
+                        else:
+                            pass
+                        
+
+            if self._sourced == 1:
+                print("This relationship is already correctly entered in the database")
+                
+            else:
+                print("This relationship is present but incorreclty entered in the database.\nCheck it manually (relationship id: ",
+                      self.__rel_1[1], ", elephants ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
+
+
+################################################################################
+## 'check' function, checks consistency between database and new data         ##
+################################################################################
+        
+ #   def check(self):
+
+
+
 
 
 

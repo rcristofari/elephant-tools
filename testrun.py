@@ -18,4 +18,5 @@ from elephant_classes import *
 
 
 p = pedigree(eleph_1='9071', eleph_2='3748', mysql_usr='robin', mysql_pwd='12345')
-p.source()
+a = p.source()
+#print(a)
