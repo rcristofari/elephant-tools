@@ -466,6 +466,8 @@ class pedigree:
         self.__db_rel=None
         self.__db_coef=None
         self.__db_rel_id=None
+        self.__rel_1=None
+        self.__rel_2=None
 
 # __x variables describe state of the comparison db/input
         self.__x1=0
@@ -479,38 +481,36 @@ class pedigree:
 
     def source(self):
         db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
-        cursor_0 = db.cursor()
-        cursor_1 = db.cursor()
-        sql_0 = "SELECT id FROM elephants WHERE num = %s;" % (self.eleph_1)
-        sql_1 = "SELECT id FROM elephants WHERE num = %s;" % (self.eleph_2)
+        cursor = db.cursor()
+        sql_0 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_1)
+        sql_1 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_2)
 
         try:
-            cursor_0.execute(sql_0)
-            self.__db_id1 = cursor_0.fetchall()[0][0]
-            cursor_1.execute(sql_1)
-            self.__db_id2 = cursor_1.fetchall()[0][0]
-            
+            cursor.execute(sql_0)
+            self.__db_eleph_1 = cursor.fetchall()[0]
+            cursor.execute(sql_1)
+            self.__db_eleph_2 = cursor.fetchall()[0]
+            print(self.__db_eleph_1, '\n', self.__db_eleph_2)
         except:
             print ("Error: unable to fetch elephant data")
-
-        cursor_3 <- db.cursor()
-        cursor_4 <- db.cursor()
+        self.__db_id1 = self.__db_eleph_1[0]
+        self.__db_id2 = self.__db_eleph_2[0]
         sql_0 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id1, self.__db_id2)
         sql_1 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id2, self.__db_id1)
         
         try:
             cursor.execute(sql_0)
-            out_1 = cursor.fetchall()[0]
+            self.__rel_1 = cursor.fetchall()[0]
             cursor.execute(sql_1)
-            out_2 = cursor.fetchall()[0]
-            print(out_1)
-            print(out_2)
+            self.__rel_2 = cursor.fetchall()[0]
         except:
             print ("Error: unable to fetch pedigree data")            
-        
-        print("Requests:\n", sql_0, '\n', sql_1)
+
+        print(self.__rel_1, self.__rel_2)
+#        print("Requests:\n", sql_0, '\n', sql_1)
 
         db.close()
+
 
 
 #Critères de véracité : (1) cohérence des deux déclarations dans la table pedigree
