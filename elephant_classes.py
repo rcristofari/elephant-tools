@@ -489,7 +489,9 @@ class pedigree:
 ################################################################################
 
     def source(self):
+        
         #In the standard workflow, elephants will have already been checked using elephant.source() and elephant.check()
+        
         db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
         cursor = db.cursor()
         sql_1 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_1)
@@ -503,6 +505,7 @@ class pedigree:
             print(self.__db_eleph_1, '\n', self.__db_eleph_2)
         except:
             print ("Error: unable to fetch elephant data")
+            
         self.__db_id1 = self.__db_eleph_1[0]
         self.__db_id2 = self.__db_eleph_2[0]
         sql_1 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id1, self.__db_id2) #__rel_1 : eleph 1 first
@@ -516,14 +519,13 @@ class pedigree:
         except:
             print ("Error: unable to fetch pedigree data")            
 
-        print(self.__rel_1, self.__rel_2)
-#        print("Requests:\n", sql_0, '\n', sql_1)
-
         db.close()
 
-        if self.__rel_1 !=None and self.__rel_2!= None:
-            #Check basic exact consistency of the entry
-            #Age difference:
+
+        #If the relationship already exists, check exact consistency of the entry:
+            
+        if self.__rel_1 != None and self.__rel_2 != None:
+
             delta = (self.__db_eleph_1[2] - self.__db_eleph_2[2]).days / 365.25
 
             if (self.__rel_1[1] == self.__rel_2[1]
@@ -579,12 +581,17 @@ class pedigree:
                         
 
             if self._sourced == 1:
-                print("This relationship is already correctly entered in the database")
+                print("This relationship is already correctly entered in the database, nothing to do.")
                 
             else:
                 print("This relationship is present but incorreclty entered in the database.\nCheck it manually (relationship id: ",
                       self.__rel_1[1], ", elephants ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
 
+        elif self.__rel_1 == None and self.__rel_2 == None:
+            self.__sourced == 1
+            print("This relationship is not in the database yet. You can proceed to check()")
+
+#add a way to state that the relationship doesn't exist, but the elephants do.
 
 ################################################################################
 ## 'check' function, checks consistency between database and new data         ##
@@ -601,4 +608,7 @@ class pedigree:
 #(2) unicité de la filiation
 #(3) cohérence des dates (mère > offspring) et mère < 80 ans, si alive == F vérifier les dates
 #(4) cohérence des sexes (mother doit être F)
-        
+
+
+
+#Write a "crawler" function to work the pedigrees up and down from one individual
