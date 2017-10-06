@@ -128,7 +128,9 @@ class elephant:
 
     def check(self):
         if self.__sourced == 0:
-            print("\nCheck: You must source this elephant first using elephant.source().\nIf it is not in the database, you can proceed to write() directly.")
+            print("\nCheck: You must source this elephant first using elephant.source().")
+        elif self.__sourced == 2:
+            print("This elephant is not in the database, you can proceed to write() directly.")
         elif self.__sourced == 1:
             print("\nCONSISTENCY CHECK:")
             print ("This elephant is specified here as:\nNumber:\t\t", self.__num, "\nName:\t\t",  self.name, "\nSex:\t\t",  self.sex, "\nBirth date:\t",  self.birth, ", ",  self.cw, "\nAge at capture:\t",  self.caught, "\nCamp:\t\t", self.camp,"\nAlive:\t\t", self.alive, sep='')
@@ -479,10 +481,12 @@ class pedigree:
         self.statement=None #SQL statement issued by the write() function
 
 # __x variables describe state of the comparison db/input
-        self.__x1=0
-        self.__x2=0
-        self.__xrel=0
-        self.__xcoef=0
+        self.__x1=None
+        self.__x2=None
+        self.__xrel=None
+        self.__xcoef=None
+        self.__xsex=None
+        self.__xbirth=None
 
 ################################################################################
 ## 'source' function reads the pedigree from the database if it exists        ##
@@ -502,9 +506,9 @@ class pedigree:
             self.__db_eleph_1 = cursor.fetchall()[0]
             cursor.execute(sql_2)
             self.__db_eleph_2 = cursor.fetchall()[0]
-            print(self.__db_eleph_1, '\n', self.__db_eleph_2)
+            
         except:
-            print ("Error: unable to fetch elephant data")
+            print ("Error: unable to fetch elephant data, check that both elephants are in the database.")
             
         self.__db_id1 = self.__db_eleph_1[0]
         self.__db_id2 = self.__db_eleph_2[0]
@@ -517,7 +521,7 @@ class pedigree:
             cursor.execute(sql_2)
             self.__rel_2 = cursor.fetchall()[0]
         except:
-            print ("Error: unable to fetch pedigree data")            
+            pass            
 
         db.close()
 
@@ -546,39 +550,56 @@ class pedigree:
                         if delta > -7:
                             self._sourced = 0
                             print("Mother too young (", round(abs(delta)), " years old)", sep="")
+                        elif delta < -90:
+                            self._sourced = 0
+                            print("Mother too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     if self.__rel_2[4] == 'mother':
                         if delta < 7:
                             self._sourced = 0
                             print("Mother too young (", round(abs(delta)), " years old)", sep="")
+                        elif delta > 90:
+                            self._sourced = 0
+                            print("Mother too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_1[4] == 'father':
                         if delta > -7:
                             self._sourced = 0
                             print("Father too young (", round(abs(delta)), " years old)", sep="")
+                        elif delta < -90:
+                            self._sourced = 0
+                            print("Father too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_2[4] == 'father':
                         if delta < 7:
                             self._sourced = 0
                             print("Father too young (", round(abs(delta)), " years old)", sep="")
+                        elif delta > 90:
+                            self._sourced = 0
+                            print("Father too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_1[4] == 'offspring':
                         if delta < 7:
                             self._sourced = 0
                             print("Parent too young (", round(abs(delta)), " years old)", sep="")
+                        elif delta > 90:
+                            self._sourced = 0
+                            print("Parent too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_2[4] == 'offspring':
                         if delta > -7:
                             self._sourced = 0
                             print("Parent too young (", round(abs(delta)), " years old)", sep="")
+                        elif delta < -90:
+                            self._sourced = 0
+                            print("Parent too old (", round(abs(delta)), " years old)", sep="")
                         else:
-                            pass
-                        
+                            pass      
 
             if self._sourced == 1:
                 print("This relationship is already correctly entered in the database, nothing to do.")
@@ -596,18 +617,80 @@ class pedigree:
 ################################################################################
 ## 'check' function, checks consistency between database and new data         ##
 ################################################################################
+
+    def check(self):
         
- #   def check(self):
+        delta = (self.__db_eleph_1[2] - self.__db_eleph_2[2]).days / 365.25
+        
+        if self.__sourced == 0:
+            print("\nCheck: You must source this relationship first using pedigree.source().")
 
+        elif self.__sourced == 1:
+            print("\nCheck: This relationship is already correctly entered in the database, nothing to do.")
 
+        elif self.__sourced == 2:
+            self.__checked = 1
+            self.__xsex = 1
+            self.__xbirth = 1
+            
+            if rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 7 and 90 years age difference)
+                if self.__db_eleph_1[1] != 'F':
+                    self.__xsex = 0
+                    self.__checked = 0
+                    print("Not registered as female in the database, you cannot declare it as 'mother' here.")
+                elif delta < 7:
+                    self.__xbirth = 0
+                    self.__checked = 0
+                    print("Mother too young (", round(abs(delta)), " years old)", sep="")
+                elif delta > 90:
+                    self.__xbirth = 0
+                    self.__checked = 0
+                    print("Mother too old (", round(abs(delta)), " years old)", sep="")
+                else:
+                    pass
+            
+            elif rel == 'father': #eleph_1 must be a male, and older than self.eleph_2 (between 7 and 90 years age difference)
+                if self.__db_eleph_1[1] != 'M':
+                    self.__xsex = 0
+                    self.__checked = 0
+                    print("Not registered as male in the database, you cannot declare it as 'father' here.")
+                elif delta < 7:
+                    self.__xbirth = 0
+                    self.__checked = 0
+                    print("Father too young (", round(abs(delta)), " years old)", sep="")
+                elif delta > 90:
+                    self.__xbirth = 0
+                    self.__checked = 0
+                    print("Father too old (", round(abs(delta)), " years old)", sep="")
+                else:
+                    pass
 
+            elif rel == 'offspring': #eleph_2 must be younger than self.eleph_1 (between 7 and 90 years age difference)
+                if delta >- 7:
+                    self.__xbirth = 0
+                    self.__checked = 0
+                    print("Parent too young (", round(abs(delta)), " years old)", sep="")
+                elif delta < -90:
+                    self.__xbirth = 0
+                    self.__checked = 0
+                    print("Parent too old (", round(abs(delta)), " years old)", sep="")
+                else:
+                    pass
 
+            else:
+                pass
 
+            if self.__checked == 1:
+                Print("The proposed relationship is consistent. You can proceed to pedigree.write().")
+            else:
+                Print("There are inconsistencies in the proposed relationship. Check your input.")
+                return(self.__xsex, self.__xbirth)
+                #The actual writing of error will be done by write()
+                    
+                
+                
 
-#Critères de véracité : (1) cohérence des deux déclarations dans la table pedigree
-#(2) unicité de la filiation
-#(3) cohérence des dates (mère > offspring) et mère < 80 ans, si alive == F vérifier les dates
-#(4) cohérence des sexes (mother doit être F)
+#### si alive == F vérifier les dates
 
 
 
