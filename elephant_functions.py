@@ -94,19 +94,16 @@ def read_eleph(elefile, sep):
     # Check data types
     reject = 0
     warnings = []
-    
-#Change NA, na, N/A to None
-#try to fix case and easy developments
 
     ########## Num
     for i,n in enumerate(num):
         if re.search(r"^[0-9]+$", n):
             pass
         elif n == '':
-            warnings.append("Missing number at line " + str(i) +". You need one.")
+            warnings.append("Missing number at line " + str(i+1) + ". You need one.")
             reject = 1
         else:
-            warnings.append("Format problem with number: " + str(n) + " at line " + str(i))
+            warnings.append("Format problem with number: " + str(n) + " at line " + str(i+1))
             reject = 1
 
     ########## Name
@@ -114,9 +111,9 @@ def read_eleph(elefile, sep):
         if re.search(r"^[a-zA-Z ]+$", n):
             pass
         elif n =='':
-            warnings.append("Missing name at line " + str(i))
+            warnings.append("Missing name at line " + str(i+1))
         else:
-            warnings.append("Format problem with name: " + str(n) + " at line " + str(i))
+            warnings.append("Format problem with name: " + str(n) + " at line " + str(i+1))
             reject = 1
             
     ########## Sex
@@ -124,9 +121,9 @@ def read_eleph(elefile, sep):
         if s in ('M','F','UKN'):
             pass
         elif sex == None:
-            warnings.append("Missing sex at line " + str(i))
+            warnings.append("Missing sex at line " + str(i+1))
         else:
-            warnings.append("Sex must be M, F or UKN at line " + str(i) +" (here: " + str(s) + ")")
+            warnings.append("Sex must be M, F or UKN at line " + str(i+1) +" (here: " + str(s) + ")")
             reject = 1
         
     ########## Birth
@@ -134,10 +131,10 @@ def read_eleph(elefile, sep):
         if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", b):
             pass
         elif b == '':
-            warnings.append("Missing birth date at line " + str(i))
+            warnings.append("Missing birth date at line " + str(i+1))
             reject = 1
         else:
-            warnings.append("Format problem with birth date: " + str(b) + " at line " + str(i))
+            warnings.append("Format problem with birth date: " + str(b) + " at line " + str(i+1))
             reject = 1
 
     ########## CW
@@ -145,9 +142,9 @@ def read_eleph(elefile, sep):
         if c in ('captive','wild','UKN'):
             pass
         elif c == '':
-            warnings.append("Missing origin at line " + str(i))
+            warnings.append("Missing origin at line " + str(i+1))
         else:
-            warnings.append("Origin pust be captive, wild or UKN at line " + str(i) +" (here: " + str(c) + ")")
+            warnings.append("Origin pust be captive, wild or UKN at line " + str(i+1) +" (here: " + str(c) + ")")
             reject = 1
             
     ########## Caught
@@ -155,10 +152,10 @@ def read_eleph(elefile, sep):
         if re.search(r"^[0-9]+$", c):
             pass
         elif c =='':
-            warnings.append("Missing age at capture at line" + str(i))
+            warnings.append("Missing age at capture at line" + str(i+1))
             pass
         else:
-            warnings.append("Format problem with age at capture:", c, "at line" + str(i))
+            warnings.append("Format problem with age at capture:", c, "at line" + str(i+1))
             reject = 1
 
     ########## Camp
@@ -167,9 +164,9 @@ def read_eleph(elefile, sep):
         if re.search(r"^[a-zA-Z ]+$", c):
             pass
         elif c =='':
-            warnings.append("Missing camp at line " + str(i))
+            warnings.append("Missing camp at line " + str(i+1))
         else:
-            warnings.append("Format problem with camp: " + str(c) + " at line " + str(i))
+            warnings.append("Format problem with camp: " + str(c) + " at line " + str(i+1))
             reject = 1
   
     ########## Alive
@@ -177,16 +174,16 @@ def read_eleph(elefile, sep):
         if a in ('Y','N','UKN'):
             pass
         elif a =='':
-            warnings.append("Missing information whether alive or not at line " + str(i))
+            warnings.append("Missing information whether alive or not at line " + str(i+1))
         else:
-            warnings.append("Format problem with living status: " + str(a) + " at line " + str(i))
+            warnings.append("Format problem with living status: " + str(a) + " at line " + str(i+1))
             reject = 1
 
     for w in warnings:
         print(w)
 
     if reject == 0:
-        return(fields,num,name,sex)
+        return(fields,num,name,sex,birth,cw,caught,camp,alive)
     else:
         return(warnings)
 
@@ -211,7 +208,81 @@ def read_pedigree(elefile, sep):
             rel.append(row[2])
             coef.append(row[3])
             
-    print(rel)
+    # Try to guess the rel and coef fields (the latter, only if it's been assigned "NA" or the like)
+    rx = []
+    cx = []
+    for x in rel:
+        if x.casefold() in ('mother','m'):
+            rx.append('mother')
+        elif x.casefold() in ('father','f'):
+            rx.append('father')
+        elif x.casefold() in ('offspring','o'):
+            rx.append('offspring')
+        elif x.casefold() in ('none','na','null','unknown','ukn','n/a'):
+            rx.append('unknown')
+        else:
+            rx.append(x)
+    for x in coef:
+        if x.casefold() in ('none','na','null','unknown','ukn','n/a'):
+            cx.append('')
+        else:
+            cx.append(x)
+    rel = rx
+    coef = cx
+    del rx
+    del cx
+
+    # Check data types
+    reject = 0
+    warnings = []
+
+    ########## elephant_1_id
+    for i,x in enumerate(elephant_1_id):
+        if re.search(r"^[0-9]+$", x):
+            pass
+        elif x == '':
+            warnings.append("Missing elephant ID-1 at line " + str(i+1) + ". You need one.")
+            reject = 1
+        else:
+            warnings.append("Format problem with elephant ID-1: " + str(x) + " at line " + str(i+1))
+            reject = 1
+
+    for i,x in enumerate(elephant_2_id):
+        if re.search(r"^[0-9]+$", x):
+            pass
+        elif x == '':
+            warnings.append("Missing elephant ID-2 at line " + str(i+1) + ". You need one.")
+            reject = 1
+        else:
+            warnings.append("Format problem with elephant ID-2: " + str(x) + " at line " + str(i+1))
+            reject = 1
+
+    for i,x in enumerate(rel):
+        if x in ('mother','father','offspring','unknown'):
+            pass
+        elif x == '':
+            warnings.append("Missing relationship definition at line " + str(i+1) + ". You need one.")
+            reject = 1
+        else:
+            warnings.append("Format problem with relationship at line " + str(i+1))
+            reject = 1
+
+    for i,x in enumerate(coef):
+        if re.search(r"^[0-9]+.[0-9]+$",x):
+            pass
+        elif x== '':
+            warnings.append("Missing kinship coefficient at line " + str(i+1))
+        else:
+            warnings.append("Format problem with kinship coefficient at line " + str(i+1))
+            reject = 1
+
+    for w in warnings:
+        print(w)
+
+    if reject == 0:
+        return(fields,elephant_1_id,elephant_2_id,rel,coef)
+    else:
+        return(warnings)
 
 ####################################################################################
 ##  read_event() READ EVENT LIST FILE                                             ##                             
