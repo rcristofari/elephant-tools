@@ -473,7 +473,9 @@ class pedigree:
         self.__db_rel_id=None
         self.__rel_1=None
         self.__rel_2=None
-
+        self.__rel_fwd=None
+        self.__rel_rev=None
+        
 # These variables pass the state of each operation to the next
         self.__sourced=0
         self.__checked=0
@@ -609,10 +611,8 @@ class pedigree:
                       self.__rel_1[1], ", elephants ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
 
         elif self.__rel_1 == None and self.__rel_2 == None:
-            self.__sourced == 1
+            self.__sourced = 2
             print("This relationship is not in the database yet. You can proceed to check()")
-
-#add a way to state that the relationship doesn't exist, but the elephants do.
 
 ################################################################################
 ## 'check' function, checks consistency between database and new data         ##
@@ -620,7 +620,10 @@ class pedigree:
 
     def check(self):
         
-        delta = (self.__db_eleph_1[2] - self.__db_eleph_2[2]).days / 365.25
+        delta = (self.__db_eleph_2[2] - self.__db_eleph_1[2]).days / 365.25
+
+        print("\nThe new relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1], "), born on ", self.__db_eleph_1[2],
+              ", is the ", self.rel, " of elephant ", self.eleph_2, " (", self.__db_eleph_2[1], "), born on ", self.__db_eleph_2[2], ".\n", sep="")
         
         if self.__sourced == 0:
             print("\nCheck: You must source this relationship first using pedigree.source().")
@@ -633,7 +636,7 @@ class pedigree:
             self.__xsex = 1
             self.__xbirth = 1
             
-            if rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 7 and 90 years age difference)
+            if self.rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 7 and 90 years age difference)
                 if self.__db_eleph_1[1] != 'F':
                     self.__xsex = 0
                     self.__checked = 0
@@ -641,7 +644,7 @@ class pedigree:
                 elif delta < 7:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Mother too young (", round(abs(delta)), " years old)", sep="")
+                    print("Mother too young (", round(delta), " years old)", sep="")
                 elif delta > 90:
                     self.__xbirth = 0
                     self.__checked = 0
@@ -649,7 +652,7 @@ class pedigree:
                 else:
                     pass
             
-            elif rel == 'father': #eleph_1 must be a male, and older than self.eleph_2 (between 7 and 90 years age difference)
+            elif self.rel == 'father': #eleph_1 must be a male, and older than self.eleph_2 (between 7 and 90 years age difference)
                 if self.__db_eleph_1[1] != 'M':
                     self.__xsex = 0
                     self.__checked = 0
@@ -657,7 +660,7 @@ class pedigree:
                 elif delta < 7:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Father too young (", round(abs(delta)), " years old)", sep="")
+                    print("Father too young (", round(delta), " years old)", sep="")
                 elif delta > 90:
                     self.__xbirth = 0
                     self.__checked = 0
@@ -665,8 +668,8 @@ class pedigree:
                 else:
                     pass
 
-            elif rel == 'offspring': #eleph_2 must be younger than self.eleph_1 (between 7 and 90 years age difference)
-                if delta >- 7:
+            elif self.rel == 'offspring': #eleph_1 must be younger than self.eleph_2 (between 7 and 90 years age difference)
+                if delta > -7:
                     self.__xbirth = 0
                     self.__checked = 0
                     print("Parent too young (", round(abs(delta)), " years old)", sep="")
@@ -681,17 +684,82 @@ class pedigree:
                 pass
 
             if self.__checked == 1:
-                Print("The proposed relationship is consistent. You can proceed to pedigree.write().")
+                print("The proposed relationship is consistent. You can proceed to pedigree.write().")
             else:
-                Print("There are inconsistencies in the proposed relationship. Check your input.")
-                return(self.__xsex, self.__xbirth)
+                print("There are inconsistencies in the proposed relationship. Check your input.")
+                self.status = (self.__xsex, self.__xbirth)
                 #The actual writing of error will be done by write()
                     
-                
-                
 
-#### si alive == F vérifier les dates
+                #### si alive == F vérifier les dates ####
+
+################################################################################
+## 'write' function writes out two sql instert statements or an error         ##
+################################################################################
+
+    def write(self):
+
+        db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
+        cursor = db.cursor()
+        sql = "SELECT max(rel_id) FROM pedigree;"
+        try:
+            cursor.execute(sql)
+            self.__last_id = cursor.fetchall()[0][0]+1
+        except:
+            Print("Unable to connect to database")
+        q = "'"    
+        if self.rel == "mother":
+            self.__rel_fwd = q+"mother"+q
+            self.__rel_rev = q+"offspring"+q
+        elif self.rel == "father":
+            self.__rel_fwd = q+"father"+q
+            self.__rel_rev = q+"offspring"+q
+        elif self.rel == "unknown":
+            self.__rel_fwd = q+"unknown"+q
+            self.__rel_rev = q+"unknown"+q
+        elif self.rel == "offspring":
+            if self.__db_eleph_2[1] == 'F':
+                self.__rel_fwd = q+"offspring"+q
+                self.__rel_rev = q+"mother"+q
+            elif self.__db_eleph_2[1] == 'M':
+                self.__rel_fwd = q+"offspring"+q
+                self.__rel_rev = q+"father"+q
+            else:
+                self.__rel_fwd = q+"offspring"+q
+                self.__rel_rev = q+"unknown"+q
+            
+        self.statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s);" % (self.__last_id, self.__db_id1, self.__db_id2, self.__rel_fwd)
+        self.statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s);" % (self.__last_id, self.__db_id2, self.__db_id1, self.__rel_rev)
+
+        if self.__checked == 1:
+            return(self.statement_1, self.statement_2)
+
+        elif self.__checked == 0:
+            status_array = np.array(self.status)
+            conflicts_array = np.where(status_array == 0)
+            i = tuple(map(tuple, conflicts_array))[0]
+            f = ('sex','birth date')
+            conflicts = str()
+            for x in i:
+                conflicts = conflicts+f[x]
+            print("\nYou need to solve conflicts for:", conflicts, "\n")
+
+            return(self.eleph_1, self.__db_eleph_1[1], self.__db_eleph_1[2], self.eleph_2, self.__db_eleph_2[1], self.__db_eleph_2[2])
 
 
+   ##########################################################################
+ ##############################################################################
+###                                                                          ###
+##                              CLASS "EVENT"                                 ##
+###                                                                          ###
+ ##############################################################################
+   ##########################################################################
 
-#Write a "crawler" function to work the pedigrees up and down from one individual
+
+    ##########################################################################
+ ##############################################################################
+###                                                                          ###
+##                             CLASS "MEASURE"                                ##
+###                                                                          ###
+ ##############################################################################
+   ##########################################################################

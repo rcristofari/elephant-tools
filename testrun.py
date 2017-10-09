@@ -17,6 +17,9 @@ from elephant_classes import *
 #Function "find_grandmother" to crawl up the database
 
 
-p = pedigree(eleph_1='7071', eleph_2='3748', mysql_usr='robin', mysql_pwd='12345')
-a = p.source()
-#print(a)
+p = pedigree(eleph_1='7071', eleph_2='3748', rel="father", mysql_usr='robin', mysql_pwd='12345')
+p.source()
+
+p.check()
+
+p.write()

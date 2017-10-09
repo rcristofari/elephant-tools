@@ -15,7 +15,7 @@ from datetime import datetime
 # num, name, sex, birth, cw, caught, camp, alive
 # field names irrelevant, but order necessary
 
-def read_eleph(elefile):
+def read_eleph(elefile, sep):
     num = []
     name = []
     sex = []
@@ -25,8 +25,8 @@ def read_eleph(elefile):
     camp = []
     alive = []
 
-    with open("../elephants_gap.csv") as elefile:
-        eleread = csv.reader(elefile, delimiter = ",", quotechar="'")
+    with open(elefile) as elefile:
+        eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
         fields = next(eleread)[0:8]
         for row in eleread:
             num.append(row[0])
@@ -74,7 +74,7 @@ def read_eleph(elefile):
         else:
             cwx.append(x)
 
-    for x in ax:
+    for x in alive:
         if x.casefold() in ('y','yes','alive'):
             ax.append('Y')
         elif x.casefold() in ('n','no','dead'):
@@ -83,6 +83,7 @@ def read_eleph(elefile):
             ax.append('UKN')
         else:
             ax.append(x)
+
     sex = sx
     cw = cwx
     alive = ax
@@ -90,96 +91,127 @@ def read_eleph(elefile):
     del cwx
     del ax
 
-    print(alive[0:10])
-
     # Check data types
     reject = 0
+    warnings = []
     
 #Change NA, na, N/A to None
 #try to fix case and easy developments
 
     ########## Num
-    for n in num:
+    for i,n in enumerate(num):
         if re.search(r"^[0-9]+$", n):
             pass
         elif n == '':
-            print("Missing number at line", num.index(n), ". You need one.")
+            warnings.append("Missing number at line " + str(i) +". You need one.")
             reject = 1
         else:
-            print("Format problem with number:", n, "at line", num.index(n))
+            warnings.append("Format problem with number: " + str(n) + " at line " + str(i))
             reject = 1
 
     ########## Name
-    for n in name:
+    for i,n in enumerate(name):
         if re.search(r"^[a-zA-Z ]+$", n):
             pass
         elif n =='':
-            print("Missing name at line", name.index(n))
+            warnings.append("Missing name at line " + str(i))
         else:
-            print("Format problem with name:", n, "at line", name.index(n))
+            warnings.append("Format problem with name: " + str(n) + " at line " + str(i))
+            reject = 1
             
     ########## Sex
-    for s in sex:
+    for i,s in enumerate(sex):
         if s in ('M','F','UKN'):
             pass
         elif sex == None:
-            print("Missing sex at line", sex.index(s))
+            warnings.append("Missing sex at line " + str(i))
         else:
-            print("Sex must be M, F or UKN at line ", sex.index(s), " (here: ", s, ")", sep="")
+            warnings.append("Sex must be M, F or UKN at line " + str(i) +" (here: " + str(s) + ")")
             reject = 1
         
     ########## Birth
-    for b in birth:
+    for i,b in enumerate(birth):
         if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", b):
             pass
         elif b == '':
-            print("Missing date at line", birth.index(b))
+            warnings.append("Missing birth date at line " + str(i))
+            reject = 1
         else:
-            print("Format problem with date:", b, "at line", birth.index(b))
+            warnings.append("Format problem with birth date: " + str(b) + " at line " + str(i))
             reject = 1
 
     ########## CW
-    for c in cw:
+    for i,c in enumerate(cw):
         if c in ('captive','wild','UKN'):
             pass
         elif c == '':
-            print("Missing origin at line", cw.index(c))
+            warnings.append("Missing origin at line " + str(i))
         else:
-            print("Origin pust be captive, wild or UKN at line ", cw.index(c), " (here: ", c, ")", sep="")
+            warnings.append("Origin pust be captive, wild or UKN at line " + str(i) +" (here: " + str(c) + ")")
             reject = 1
             
     ########## Caught
-    for c in caught:
+    for i,c in enumerate(caught):
         if re.search(r"^[0-9]+$", c):
             pass
         elif c =='':
-            print("Missing age at capture at line", caught.index(c))
+            warnings.append("Missing age at capture at line" + str(i))
+            pass
         else:
-            print("Format problem with age at capture:", c, "at line", caught.index(c))
+            warnings.append("Format problem with age at capture:", c, "at line" + str(i))
             reject = 1
 
     ########## Camp
-    for c in camp:
+            
+    for i,c in enumerate(camp):
         if re.search(r"^[a-zA-Z ]+$", c):
             pass
         elif c =='':
-            print("Missing camp at line", camp.index(c))
+            warnings.append("Missing camp at line " + str(i))
         else:
-            print("Format problem with camp:", c, "at line", camp.index(c))
-            
+            warnings.append("Format problem with camp: " + str(c) + " at line " + str(i))
+            reject = 1
+  
     ########## Alive
-    for a in alive:
+    for i,a in enumerate(alive):
         if a in ('Y','N','UKN'):
             pass
         elif a =='':
-            print("Missing information whether alive or not at line", alive.index(a))
+            warnings.append("Missing information whether alive or not at line " + str(i))
         else:
-            print("Format problem with living status:", a, "at line", alive.index(a))
+            warnings.append("Format problem with living status: " + str(a) + " at line " + str(i))
+            reject = 1
+
+    for w in warnings:
+        print(w)
+
+    if reject == 0:
+        return(fields,num,name,sex)
+    else:
+        return(warnings)
 
 ####################################################################################
 ##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##                             
 ####################################################################################
+# A pedigree file is made of four columns:
+# elephant_1_id, elephant_2_id, rel, coef
 
+def read_pedigree(elefile, sep):
+    elephant_1_id = []
+    elephant_2_id = []
+    rel = []
+    coef = []
+    
+    with open(elefile) as elefile:
+        eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
+        fields = next(eleread)[0:4]
+        for row in eleread:
+            elephant_1_id.append(row[0])
+            elephant_2_id.append(row[1])
+            rel.append(row[2])
+            coef.append(row[3])
+            
+    print(rel)
 
 ####################################################################################
 ##  read_event() READ EVENT LIST FILE                                             ##                             
