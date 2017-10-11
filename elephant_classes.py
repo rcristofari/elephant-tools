@@ -6,6 +6,74 @@ import numpy as np
    ##########################################################################
  ##############################################################################
 ###                                                                          ###
+##                               CLASS "MYSQLCONNECT                          ##
+###                                                                          ###
+ ##############################################################################
+   ##########################################################################
+
+class mysqlconnect:
+
+    def __init__(self, usr, pwd, host, db):
+        self.__usr=usr
+        self.__pwd=pwd
+        self.__host=host
+        self.__db=db    
+        self.__db = pms.connect(self.__host, self.__usr, self.__pwd, self.__db)
+        self.__cursor = self.__db.cursor()
+
+    def fulleleph(self, num):
+        self.__num=num
+        sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
+        try:
+            self.__cursor.execute(sql)
+            results = self.__cursor.fetchall()
+            return(results[0])
+        except:
+            print ("Error: unable to fetch data")
+
+
+    def coreleph(self, num):
+        self.__num=num
+        sql = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.__num)
+        try:
+            self.__cursor.execute(sql)
+            return(self.__cursor.fetchall()[0])
+        except:
+            print ("Error: unable to fetch elephant data.")
+
+
+    def pedigree(self, id_1, id_2):     
+        self.__db_id1 = id_1
+        self.__db_id2 = id_2
+        sql_1 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id1, self.__db_id2) #__rel_1 : eleph 1 first
+        sql_2 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id2, self.__db_id1) #__rel_2 : eleph 2 first
+        
+        try:
+            self.__cursor.execute(sql_1)
+            self.__rel_1 = self.__cursor.fetchall()[0]
+            self.__cursor.execute(sql_2)
+            self.__rel_2 = self.__cursor.fetchall()[0]
+            return(self.__rel_1, self.__rel_2)
+        except:
+            pass  
+
+
+    def mother(self, num):
+        self.__num=num
+        sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
+        self.__cursor.execute(sql)
+        id1 = self.__cursor.fetchall()[0][0]
+        sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_2_id WHERE pedigree.elephant_1_id = %s AND rel = 'mother';" % (id1)
+        self.__cursor.execute(sql)
+        return(self.__cursor.fetchall()[0][0])
+        
+    #Here, look at the destructor function thing          
+    #db.close()
+        
+
+   ##########################################################################
+ ##############################################################################
+###                                                                          ###
 ##                              CLASS "ELEPHANT"                              ##
 ###                                                                          ###
  ##############################################################################
@@ -13,13 +81,13 @@ import numpy as np
 
 class elephant:
 
-    def __init__(self, num, mysql_usr, mysql_pwd, mysql_host="localhost", mysql_db="MTE", name=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, solved='N'):
+    def __init__(self, num, name=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, solved='N'):
 
 # MySQL server connexion parameters
-        self.__mysql_usr=mysql_usr
-        self.__mysql_pwd=mysql_pwd
-        self.__mysql_host=mysql_host
-        self.__mysql_db=mysql_db
+#        self.__mysql_usr=mysql_usr
+#        self.__mysql_pwd=mysql_pwd
+#        self.__mysql_host=mysql_host
+#        self.__mysql_db=mysql_db
 
 # Some execution parameters
         #Is the input file a conflict resolution (Y/N)? If Y, name and camp will be appended.
@@ -38,7 +106,10 @@ class elephant:
         else:
             self.birth=birth
         self.cw=cw
-        self.caught=caught
+        if caught == '':
+            self.caught = None
+        else:
+            self.caught=caught
         if camp != None:
             self.camp=string.capwords(camp)
         else:
@@ -78,46 +149,48 @@ class elephant:
         return(self.__mysql_host)
     def get_db(self):
         return(self.__mysql_db)
+    def get_solved(self):
+        return(self.__solved)
+    def set_solved(solved):
+        self.__solved=solved
 
 ################################################################################
 ## 'source' function reads the elephant from the database if it exists        ##
 ################################################################################
 
-    def source(self):
-        db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
-        cursor = db.cursor()
-        sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
-        print("Request:\n",sql)
-        try:
-            cursor.execute(sql)
-            results = cursor.fetchall()
+    def source(self, db):
+        self.__db=db #db is a database connection object of class elephant.mysqlconnect()
+#        db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
+#        cursor = db.cursor()
+#        sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
+#        print("Request:\n",sql)
+#        try:
+#            cursor.execute(sql)
+        self.__sourced = 0
+        results = self.__db.fulleleph(self.__num)
+        print(results)
             
-            if cursor.execute(sql)==0:
-                self.__sourced = 2
-                print("Elephant number", self.__num, "is absent from the database.")
+        if results == None:
+            self.__sourced = 2
+            print("Elephant number", self.__num, "is absent from the database.")
 
-            elif cursor.execute(sql)==1:
-                self.__sourced = 1
+        else:
+            self.__sourced = 1
 
-                self.__db_id = results[0][0]
-                self.__db_num = results[0][1]
-                if results[0][2] != None:
-                    self.__db_name = string.capwords(results[0][2])
-                self.__db_sex = results[0][3]
-                self.__db_birth = results[0][4]
-                self.__db_cw = results[0][5]
-                self.__db_caught = results[0][6]
-                if results[0][7] != None:
-                    self.__db_camp = string.capwords(results[0][7])
-                self.__db_alive = results[0][8]
+            self.__db_id = results[0]
+            self.__db_num = results[1]
+            if results[2] != None:
+                self.__db_name = string.capwords(results[2])
+            self.__db_sex = results[3]
+            self.__db_birth = results[4]
+            self.__db_cw = results[5]
+            self.__db_caught = results[6]
+            if results[7] != None:
+                self.__db_camp = string.capwords(results[7])
+            self.__db_alive = results[8]
 
-                print ("\nThis elephant is present in the database as:\nIndex:\t\t", self.__db_id, "\nNumber:\t\t", self.__db_num, "\nName:\t\t",  self.__db_name, "\nSex:\t\t",  self.__db_sex, "\nBirth date:\t",  self.__db_birth, ", ",  self.__db_cw, "\nAge at capture:\t",  self.__db_caught, "\nCamp:\t\t", self.__db_camp,"\nAlive:\t\t", self.__db_alive, sep='')
-                return(self.__db_id, self.__db_num, self.__db_name, self.__db_sex, self.__db_birth, self.__db_cw, self.__db_caught, self.__db_camp, self.__db_alive)
-        except:
-            self.__sourced = 0
-            print ("Error: unable to fetch data")
-        
-        db.close()
+            print ("\nThis elephant is present in the database as:\nIndex:\t\t", self.__db_id, "\nNumber:\t\t", self.__db_num, "\nName:\t\t",  self.__db_name, "\nSex:\t\t",  self.__db_sex, "\nBirth date:\t",  self.__db_birth, ", ",  self.__db_cw, "\nAge at capture:\t",  self.__db_caught, "\nCamp:\t\t", self.__db_camp,"\nAlive:\t\t", self.__db_alive, sep='')
+            return(self.__db_id, self.__db_num, self.__db_name, self.__db_sex, self.__db_birth, self.__db_cw, self.__db_caught, self.__db_camp, self.__db_alive)
 
 ################################################################################
 ## 'check' function, checks consistency between database and new data         ##
@@ -257,6 +330,30 @@ class elephant:
             if self.cw == 'captive' or self.cw == 'UKN' or self.__db_cw == 'captive' or self.__db_cw =='UKN':
 
                 if self.caught == self.__db_caught and self.caught != None:
+                    self.__xcaught = 0
+                    print("Ages at capture match, but this elephant is registered as captive born. Check database and input data.")
+
+                elif self.__db_caught == None and self.caught != None:
+                    self.__xcaught = 0                   
+                    print("No known age at capture yet, but this elephant is registered as captive born. Check your data.")
+
+                elif self.__db_caught == None and self.caught == None:
+                    self.__xcaught = 1
+                    print("Age at capture is still missing, and this elephant is registered as captive born. All good.")
+
+                elif self.__db_caught != None and self.caught == None:
+                    self.__xcaught = 0
+                    self.caught = self.__db_caught
+                    print("In the database, it was captured at age ", self.__db_cw, " ,  but this elephant is registered as captive born. Check the database.", sep="")
+
+                else :
+                    self.__xcaught = 0
+                    if self.__interactive == 1:
+                        print("Different age at capture in database. You need to solve the conflict manually.")
+
+            elif self.cw == 'wild' or self.__db_cw == 'wild':
+                
+                if self.caught == self.__db_caught and self.caught != None:
                     self.__xcaught = 1
                     print("Ages at capture match.")
 
@@ -278,7 +375,6 @@ class elephant:
                     if self.__interactive == 1:
                         print("Different age at capture in database. You need to solve the conflict manually.")
 
-#            elif self.cw == 'wild' ######## finish this
 
 ############ Camp
 
@@ -414,8 +510,11 @@ class elephant:
         
         #If the elephant has been checked and there is no conflict, write an update statement.
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
-            self.statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s WHERE id=%s;" % (self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.__db_id)
-            return(self.statement)
+            if any(x == 1 for x in self.status): #All fields are matching, no update
+                pass
+            else:
+                self.statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s WHERE id=%s;" % (self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.__db_id)
+                return(self.statement)
         
         #If there is a pending conflict, we write out a csv-type line.
         else:
@@ -431,6 +530,8 @@ class elephant:
             return(self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive)
 
 
+            ##Add a light check here to see that a captive elephant has no age at capture.
+            
    ##########################################################################
  ##############################################################################
 ###                                                                          ###
@@ -535,6 +636,7 @@ class pedigree:
             delta = (self.__db_eleph_1[2] - self.__db_eleph_2[2]).days / 365.25
 
             if (self.__rel_1[1] == self.__rel_2[1]
+                and self.__rel_1[5] == self.__rel_2[5]
                 and self.__rel_1[2] == self.__rel_2[3]
                 and self.__rel_1[3] == self.__rel_2[2]
                 and ((self.__rel_1[4] == 'mother' and self.__rel_2[4] == 'offspring')
@@ -727,9 +829,14 @@ class pedigree:
             else:
                 self.__rel_fwd = q+"offspring"+q
                 self.__rel_rev = q+"unknown"+q
+
+        if self.coef == None:
+            self.coef='null'
+        else:
+            self.coef=q+self.coef+q
             
-        self.statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s);" % (self.__last_id, self.__db_id1, self.__db_id2, self.__rel_fwd)
-        self.statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s);" % (self.__last_id, self.__db_id2, self.__db_id1, self.__rel_rev)
+        self.statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (self.__last_id, self.__db_id1, self.__db_id2, self.__rel_fwd, self.coef)
+        self.statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (self.__last_id, self.__db_id2, self.__db_id1, self.__rel_rev, self.coef)
 
         if self.__checked == 1:
             return(self.statement_1, self.statement_2)

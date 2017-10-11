@@ -8,14 +8,14 @@ from datetime import datetime
 #Write a "crawler" function to work the pedigrees up and down from one individual
 
 ####################################################################################
-##  read_eleph() READ ELEPHANTS DEFINTION FILE                                    ##                             
+##  read_elephant() READ ELEPHANTS DEFINTION FILE                                 ##                             
 ####################################################################################
 
 # A model elephant file is made up of 8 fields:
 # num, name, sex, birth, cw, caught, camp, alive
 # field names irrelevant, but order necessary
 
-def read_eleph(elefile, sep):
+def read_elephant(elefile, sep):
     num = []
     name = []
     sex = []
