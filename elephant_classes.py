@@ -2,11 +2,12 @@ import pymysql as pms
 from datetime import datetime
 import string
 import numpy as np
+import re
 
    ##########################################################################
  ##############################################################################
 ###                                                                          ###
-##                               CLASS "MYSQLCONNECT                          ##
+##                               CLASS "MYSQLCONNECT"                         ##
 ###                                                                          ###
  ##############################################################################
    ##########################################################################
@@ -21,14 +22,36 @@ class mysqlconnect:
         self.__db = pms.connect(self.__host, self.__usr, self.__pwd, self.__db)
         self.__cursor = self.__db.cursor()
 
+    def __del__(self):
+        self.__db.close()
+        print("Connexion closed")
+
+    def stamp(self, details=''):
+    # will make a timestamp for all the operations of the sessions and return an entry for the commit table
+        # Make the stamp
+        sql = "SELECT NOW();"
+        self.__cursor.execute(sql)
+        t = str(self.__cursor.fetchall()[0][0])
+        self.__stamp = re.sub('\ |\-|\:', '', t)
+
+        #Check the latest commit ID
+        sql = "SELECT max(id) FROM commits;"
+        self.__cursor.execute(sql)
+        last_id = self.__cursor.fetchall()[0][0]
+        self.__i = last_id + 1
+        statement = "INSERT INTO commits (stamp, user, details) VALUES (%s, %s, %s);" % (self.__stamp, "'"+self.__usr+"'", "'"+details+"'")
+        return(statement)
+
     def fulleleph(self, num):
         self.__num=num
         sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
         try:
             self.__cursor.execute(sql)
             results = self.__cursor.fetchall()
-            return(results[0])
-        except:
+            if results:
+                return(results[0])
+        except Exception as ex: ##MAKE THIS MORE GENERAL (every exception?)
+            print(ex)
             print ("Error: unable to fetch data")
 
 
@@ -57,7 +80,6 @@ class mysqlconnect:
         except:
             pass  
 
-
     def mother(self, num):
         self.__num=num
         sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
@@ -66,9 +88,90 @@ class mysqlconnect:
         sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_2_id WHERE pedigree.elephant_1_id = %s AND rel = 'mother';" % (id1)
         self.__cursor.execute(sql)
         return(self.__cursor.fetchall()[0][0])
+
+    def insert_eleph(self,num,name,sex,birth,cw,caught,camp,alive):
+        if self.__i == None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+            break
         
-    #Here, look at the destructor function thing          
-    #db.close()
+        q = "'"
+        if name == None:
+            name = 'null'
+        else:
+            name = q+name+q
+        if sex == None:
+            sex = "'UKN'"
+        else:
+            sex = q+sex+q
+        if birth == None:
+            birth = 'null'
+        else:
+            birth = q+str(birth)+q
+        if cw == None:
+            cw = "'UKN'"
+        else:
+            cw = q+cw+q
+        if caught == None:
+            caught = 'null'
+        else:
+            caught = q+caught+q 
+        if camp == None:
+            camp = 'null'
+        else:
+            camp = q+camp+q
+            
+        if alive == None:
+            alive = "'UKN'"
+        else:
+            alive = q+alive+q
+        statement = "INSERT INTO elephants (num, name, sex, birth, cw, age_capture, camp, alive, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, sex, birth, cw, caught, camp, alive, self.__i)
+        return(statement)
+
+    def update_eleph(self, name, sex, birth, cw, caught, camp, alive, commits, id):
+        if self.__i == None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+            break
+
+        q = "'"
+        if name == None:
+            name = 'null'
+        else:
+            name = q+name+q
+        if sex == None:
+            sex = "'UKN'"
+        else:
+            sex = q+sex+q
+        if birth == None:
+            birth = 'null'
+        else:
+            birth = q+str(birth)+q
+        if cw == None:
+            cw = "'UKN'"
+        else:
+            cw = q+cw+q
+        if caught == None:
+            caught = 'null'
+        else:
+            caught = q+caught+q 
+        if camp == None:
+            camp = 'null'
+        else:
+            camp = q+camp+q
+            
+        if alive == None:
+            alive = "'UKN'"
+        else:
+            alive = q+alive+q
+        if commits != 'null':
+            newcommits = (q+commits+','+str(self.__i)+q)
+        else:
+            newcommits = (q+str(self.__i)+q)
+
+        statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s, commits=%s WHERE id=%s;" % (name, sex, birth, cw, caught, camp, alive, newcommits, id)
+        print(statement)
+        return(statement)                
+
+    def insert_pedigree(pedigree):
         
 
    ##########################################################################
@@ -82,12 +185,6 @@ class mysqlconnect:
 class elephant:
 
     def __init__(self, num, name=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, solved='N'):
-
-# MySQL server connexion parameters
-#        self.__mysql_usr=mysql_usr
-#        self.__mysql_pwd=mysql_pwd
-#        self.__mysql_host=mysql_host
-#        self.__mysql_db=mysql_db
 
 # Some execution parameters
         #Is the input file a conflict resolution (Y/N)? If Y, name and camp will be appended.
@@ -126,6 +223,7 @@ class elephant:
         self.__db_caught = None
         self.__db_camp = None
         self.__db_alive = None
+        self.__db_commits = None
         
 # These variables pass the state of each operation to the next
         self.__sourced=0
@@ -145,10 +243,6 @@ class elephant:
 #Getter function for some private variables that could be useful in scripting
     def get_num(self):
         return(self.__num)
-    def get_host(self):
-        return(self.__mysql_host)
-    def get_db(self):
-        return(self.__mysql_db)
     def get_solved(self):
         return(self.__solved)
     def set_solved(solved):
@@ -158,17 +252,10 @@ class elephant:
 ## 'source' function reads the elephant from the database if it exists        ##
 ################################################################################
 
-    def source(self, db):
+    def source(self,db):
         self.__db=db #db is a database connection object of class elephant.mysqlconnect()
-#        db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
-#        cursor = db.cursor()
-#        sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
-#        print("Request:\n",sql)
-#        try:
-#            cursor.execute(sql)
         self.__sourced = 0
         results = self.__db.fulleleph(self.__num)
-        print(results)
             
         if results == None:
             self.__sourced = 2
@@ -188,9 +275,12 @@ class elephant:
             if results[7] != None:
                 self.__db_camp = string.capwords(results[7])
             self.__db_alive = results[8]
-
+            self.__db_commits = results[9]
+            if self.__db_commits == None:
+                self.__db_commits = 'null'
+            
             print ("\nThis elephant is present in the database as:\nIndex:\t\t", self.__db_id, "\nNumber:\t\t", self.__db_num, "\nName:\t\t",  self.__db_name, "\nSex:\t\t",  self.__db_sex, "\nBirth date:\t",  self.__db_birth, ", ",  self.__db_cw, "\nAge at capture:\t",  self.__db_caught, "\nCamp:\t\t", self.__db_camp,"\nAlive:\t\t", self.__db_alive, sep='')
-            return(self.__db_id, self.__db_num, self.__db_name, self.__db_sex, self.__db_birth, self.__db_cw, self.__db_caught, self.__db_camp, self.__db_alive)
+            return(self.__db_id, self.__db_num, self.__db_name, self.__db_sex, self.__db_birth, self.__db_cw, self.__db_caught, self.__db_camp, self.__db_alive, self.__db_commits)
 
 ################################################################################
 ## 'check' function, checks consistency between database and new data         ##
@@ -236,7 +326,7 @@ class elephant:
                     print("Different name in database. You need to solve the conflict manually.")
                 if self.__solved =='Y':
                     self.name = self.__db_name + ", " + self.name
-                    self.__xname = 1
+                    self.__xname = 2   ###JUST CHANGED FROM 1 TO 2
                     print("Alias name appended to database")
  
 ############ Sex
@@ -451,53 +541,15 @@ class elephant:
 #Here, do the final fusion of data, and give an outcome (write to database or write out for manual conflict resolution)
         self.status = (self.__xname, self.__xsex, self.__xbirth, self.__xcw, self.__xcaught, self.__xcamp, self.__xalive)
         self.__checked = 1
-        return(self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive)
+        
+        return(self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.__db_commits)
 
 ################################################################################
 ## 'write' function writes out an sql statement to insert/update the elephant ##
 ################################################################################
     
-    def write(self):
-
-        #Everything that will be written is in the "input" variables. We start by formatting them.
-        #Kept explicit to allow special rules easily if needed
-        
-        q = "'"
-        
-        if self.name == None:
-            self.name = 'null'
-        else:
-            self.name = q+self.name+q
-            
-        if self.sex == None:
-            self.sex = "'UKN'"
-        else:
-            self.sex = q+self.sex+q
-            
-        if self.birth == None:
-            self.birth = 'null'
-        else:
-            self.birth = q+str(self.birth)+q
-            
-        if self.cw == None:
-            self.cw = "'UKN'"
-        else:
-            self.cw = q+self.cw+q
-            
-        if self.caught == None:
-            self.caught = 'null'
-        else:
-            self.caught = q+self.caught+q
-            
-        if self.camp == None:
-            self.camp = 'null'
-        else:
-            self.camp = q+self.camp+q
-            
-        if self.alive == None:
-            self.alive = "'UKN'"
-        else:
-            self.alive = q+self.alive+q
+    def write(self, db):
+        self.__db=db
 
         #The elephant must have been checked in the database
         if self.__sourced == 0:
@@ -505,16 +557,19 @@ class elephant:
         
         #If this elephant is not in the database yet, write an insert statement (consistency of data assumed).
         elif self.__sourced == 2:
-            self.statement = "INSERT INTO elephants (num, name, sex, birth, cw, age_capture, camp, alive) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive)
-            return(self.statement)
+
+            #this is outsourced to mysqlconnect
+            out = self.__db.insert_eleph(self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive)
+            return(out)
         
         #If the elephant has been checked and there is no conflict, write an update statement.
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
-            if any(x == 1 for x in self.status): #All fields are matching, no update
+            if all(x == 1 for x in self.status): #All fields are matching, no update
                 pass
             else:
-                self.statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s WHERE id=%s;" % (self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.__db_id)
-                return(self.statement)
+                #this is outsourced to mysqlconnect
+                out = self.__db.update_eleph(self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.__db_commits, self.__db_id)
+                return(out)
         
         #If there is a pending conflict, we write out a csv-type line.
         else:
@@ -547,13 +602,7 @@ class elephant:
 
 class pedigree:
 
-    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, mysql_usr=None, mysql_pwd=None, mysql_host='localhost', mysql_db='MTE'):
-
-# MySQL server connexion parameters
-        self.__mysql_usr=mysql_usr
-        self.__mysql_pwd=mysql_pwd
-        self.__mysql_host=mysql_host
-        self.__mysql_db=mysql_db
+    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None):
 
 # Non-prefixed parameters describe user input       
         self.eleph_1=eleph_1
@@ -595,39 +644,17 @@ class pedigree:
 ## 'source' function reads the pedigree from the database if it exists        ##
 ################################################################################
 
-    def source(self):
-        
-        #In the standard workflow, elephants will have already been checked using elephant.source() and elephant.check()
-        
-        db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
-        cursor = db.cursor()
-        sql_1 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_1)
-        sql_2 = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.eleph_2)
+    def source(self, db):
 
-        try:
-            cursor.execute(sql_1)
-            self.__db_eleph_1 = cursor.fetchall()[0]
-            cursor.execute(sql_2)
-            self.__db_eleph_2 = cursor.fetchall()[0]
-            
-        except:
-            print ("Error: unable to fetch elephant data, check that both elephants are in the database.")
-            
+        self.__db=db
+
+        self.__db_eleph_1 = self.__db.coreleph(self.eleph_1)
+        self.__db_eleph_2 = self.__db.coreleph(self.eleph_2)
         self.__db_id1 = self.__db_eleph_1[0]
         self.__db_id2 = self.__db_eleph_2[0]
-        sql_1 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id1, self.__db_id2) #__rel_1 : eleph 1 first
-        sql_2 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id2, self.__db_id1) #__rel_2 : eleph 2 first
-        
-        try:
-            cursor.execute(sql_1)
-            self.__rel_1 = cursor.fetchall()[0]
-            cursor.execute(sql_2)
-            self.__rel_2 = cursor.fetchall()[0]
-        except:
-            pass            
 
-        db.close()
-
+        self.__rel_1 = self.__db.pedigree(self.__db_id1, self.__db_id2)[0]
+        self.__rel_2 = self.__db.pedigree(self.__db_id1, self.__db_id2)[1]
 
         #If the relationship already exists, check exact consistency of the entry:
             
@@ -870,3 +897,5 @@ class pedigree:
 ###                                                                          ###
  ##############################################################################
    ##########################################################################
+
+# A measure object consists of fields
