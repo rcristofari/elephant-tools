@@ -60,7 +60,9 @@ class mysqlconnect:
         sql = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.__num)
         try:
             self.__cursor.execute(sql)
-            return(self.__cursor.fetchall()[0])
+            results = self.__cursor.fetchall()
+            if results:
+                return(results[0])
         except:
             print ("Error: unable to fetch elephant data.")
 
@@ -85,94 +87,118 @@ class mysqlconnect:
         sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
         self.__cursor.execute(sql)
         id1 = self.__cursor.fetchall()[0][0]
-        sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_2_id WHERE pedigree.elephant_1_id = %s AND rel = 'mother';" % (id1)
+        sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'mother';" % (id1)
         self.__cursor.execute(sql)
-        return(self.__cursor.fetchall()[0][0])
+        result = self.__cursor.fetchall()
+        if result:
+            return result[0][0]
+
+    def father(self, num):
+        self.__num=num
+        sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
+        self.__cursor.execute(sql)
+        id1 = self.__cursor.fetchall()[0][0]
+        sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'father';" % (id1)
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return result[0][0]
+        
 
     def insert_eleph(self,num,name,sex,birth,cw,caught,camp,alive):
         if self.__i == None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
-            break
-        
-        q = "'"
-        if name == None:
-            name = 'null'
         else:
-            name = q+name+q
-        if sex == None:
-            sex = "'UKN'"
-        else:
-            sex = q+sex+q
-        if birth == None:
-            birth = 'null'
-        else:
-            birth = q+str(birth)+q
-        if cw == None:
-            cw = "'UKN'"
-        else:
-            cw = q+cw+q
-        if caught == None:
-            caught = 'null'
-        else:
-            caught = q+caught+q 
-        if camp == None:
-            camp = 'null'
-        else:
-            camp = q+camp+q
+            q = "'"
+            if name == None:
+                name = 'null'
+            else:
+                name = q+name+q
+            if sex == None:
+                sex = "'UKN'"
+            else:
+                sex = q+sex+q
+            if birth == None:
+                birth = 'null'
+            else:
+                birth = q+str(birth)+q
+            if cw == None:
+                cw = "'UKN'"
+            else:
+                cw = q+cw+q
+            if caught == None:
+                caught = 'null'
+            else:
+                caught = q+caught+q 
+            if camp == None:
+                camp = 'null'
+            else:
+                camp = q+camp+q
             
-        if alive == None:
-            alive = "'UKN'"
-        else:
-            alive = q+alive+q
-        statement = "INSERT INTO elephants (num, name, sex, birth, cw, age_capture, camp, alive, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, sex, birth, cw, caught, camp, alive, self.__i)
-        return(statement)
+            if alive == None:
+                alive = "'UKN'"
+            else:
+                alive = q+alive+q
+            statement = "INSERT INTO elephants (num, name, sex, birth, cw, age_capture, camp, alive, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, sex, birth, cw, caught, camp, alive, self.__i)
+            return(statement)
 
     def update_eleph(self, name, sex, birth, cw, caught, camp, alive, commits, id):
         if self.__i == None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
-            break
 
-        q = "'"
-        if name == None:
-            name = 'null'
         else:
-            name = q+name+q
-        if sex == None:
-            sex = "'UKN'"
-        else:
-            sex = q+sex+q
-        if birth == None:
-            birth = 'null'
-        else:
-            birth = q+str(birth)+q
-        if cw == None:
-            cw = "'UKN'"
-        else:
-            cw = q+cw+q
-        if caught == None:
-            caught = 'null'
-        else:
-            caught = q+caught+q 
-        if camp == None:
-            camp = 'null'
-        else:
-            camp = q+camp+q
-            
-        if alive == None:
-            alive = "'UKN'"
-        else:
-            alive = q+alive+q
-        if commits != 'null':
-            newcommits = (q+commits+','+str(self.__i)+q)
-        else:
-            newcommits = (q+str(self.__i)+q)
+            q = "'"
+            if name == None:
+                name = 'null'
+            else:
+                name = q+name+q
+            if sex == None:
+                sex = "'UKN'"
+            else:
+                sex = q+sex+q
+            if birth == None:
+                birth = 'null'
+            else:
+                birth = q+str(birth)+q
+            if cw == None:
+                cw = "'UKN'"
+            else:
+                cw = q+cw+q
+            if caught == None:
+                caught = 'null'
+            else:
+                caught = q+caught+q 
+            if camp == None:
+                camp = 'null'
+            else:
+                camp = q+camp+q
+            if alive == None:
+                alive = "'UKN'"
+            else:
+                alive = q+alive+q
+            if commits != 'null':
+                newcommits = (q+commits+','+str(self.__i)+q)
+            else:
+                newcommits = (q+str(self.__i)+q)
 
-        statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s, commits=%s WHERE id=%s;" % (name, sex, birth, cw, caught, camp, alive, newcommits, id)
-        print(statement)
-        return(statement)                
+            statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s, commits=%s WHERE id=%s;" % (name, sex, birth, cw, caught, camp, alive, newcommits, id)
+            return(statement)                
 
-    def insert_pedigree(pedigree):
+    def insert_pedigree(self, id1, id2, rel_fwd, rel_rev, coef):
+        if self.__i == None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+            sql = "SELECT max(rel_id) FROM pedigree;"
+            try:
+                cursor.execute(sql)
+                last_id = cursor.fetchall()[0][0]+1
+            except:
+                Print("Unable to connect to database")
+
+            statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (last_id, id1, id2, rel_fwd, coef)
+            statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (last_id, id2, id1, rel_rev, coef)
         
+            return(statement_1, statement_2)
 
    ##########################################################################
  ##############################################################################
@@ -240,7 +266,7 @@ class elephant:
         self.__xcamp=0
         self.__xalive=0
 
-#Getter function for some private variables that could be useful in scripting
+# Getter function for some private variables that could be useful in scripting
     def get_num(self):
         return(self.__num)
     def get_solved(self):
@@ -253,6 +279,9 @@ class elephant:
 ################################################################################
 
     def source(self,db):
+
+        print("#########################################################")
+        
         self.__db=db #db is a database connection object of class elephant.mysqlconnect()
         self.__sourced = 0
         results = self.__db.fulleleph(self.__num)
@@ -538,6 +567,8 @@ class elephant:
                     print("This elephant is born in the future. We're doing science on the edge here.")
                     self.__xalive = 0
 
+        print("\n#########################################################")
+
 #Here, do the final fusion of data, and give an outcome (write to database or write out for manual conflict resolution)
         self.status = (self.__xname, self.__xsex, self.__xbirth, self.__xcw, self.__xcaught, self.__xcamp, self.__xalive)
         self.__checked = 1
@@ -653,9 +684,10 @@ class pedigree:
         self.__db_id1 = self.__db_eleph_1[0]
         self.__db_id2 = self.__db_eleph_2[0]
 
-        self.__rel_1 = self.__db.pedigree(self.__db_id1, self.__db_id2)[0]
-        self.__rel_2 = self.__db.pedigree(self.__db_id1, self.__db_id2)[1]
-
+        if self.__db.pedigree(self.__db_id1, self.__db_id2):
+            self.__rel_1 = self.__db.pedigree(self.__db_id1, self.__db_id2)[0]
+            self.__rel_2 = self.__db.pedigree(self.__db_id1, self.__db_id2)[1]
+        
         #If the relationship already exists, check exact consistency of the entry:
             
         if self.__rel_1 != None and self.__rel_2 != None:
@@ -673,9 +705,10 @@ class pedigree:
                      or (self.__rel_1[4] == 'unknown' or self.__rel_2[4] == 'unknown'))):
 
                     self._sourced = 1  
+
+                    #Testing the consistency of the relationship as entered in the database.
                     #Testing that the age difference is at least 7 years (should be tuned better).
                     #In case of problem, self.__sourced reverts to 0.
-                    #There's probably a more elegant way to do that.
                 
                     if self.__rel_1[4] == 'mother':
                         if delta > -7:
@@ -737,7 +770,7 @@ class pedigree:
                 
             else:
                 print("This relationship is present but incorreclty entered in the database.\nCheck it manually (relationship id: ",
-                      self.__rel_1[1], ", elephants ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
+                      self.__rel_1[1], ", elephant ids ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
 
         elif self.__rel_1 == None and self.__rel_2 == None:
             self.__sourced = 2
@@ -747,15 +780,15 @@ class pedigree:
 ## 'check' function, checks consistency between database and new data         ##
 ################################################################################
 
-    def check(self):
+    def check(self):  ###CHECK THAT THIS ELEPHANT DOESN'T ALREADY HAVE A MOTHER/A FATHER!!!
         
         delta = (self.__db_eleph_2[2] - self.__db_eleph_1[2]).days / 365.25
 
-        print("\nThe new relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1], "), born on ", self.__db_eleph_1[2],
+        print("\nThe proposed relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1], "), born on ", self.__db_eleph_1[2],
               ", is the ", self.rel, " of elephant ", self.eleph_2, " (", self.__db_eleph_2[1], "), born on ", self.__db_eleph_2[2], ".\n", sep="")
         
         if self.__sourced == 0:
-            print("\nCheck: You must source this relationship first using pedigree.source().")
+            print("\nCheck: This relationship is present in the database with an error. Please correct it manually")
 
         elif self.__sourced == 1:
             print("\nCheck: This relationship is already correctly entered in the database, nothing to do.")
@@ -764,6 +797,18 @@ class pedigree:
             self.__checked = 1
             self.__xsex = 1
             self.__xbirth = 1
+
+            #Check that this elephant does not already have a father or mother.
+            
+            if self.rel == "mother": # elephant 2 should not already have a mother or a father.
+                if self.__db.mother(self.eleph_2) != None:
+                    self.__checked = 0
+                    print("Elephant ", self.eleph_2, " already has a registered mother (", self.__db.father(self.eleph_2), ").", sep="")
+            elif self.rel == "father":
+                if self.__db.father(self.eleph_2) != None:
+                    self.__checked = 0
+                    print("Elephant ", self.eleph_2, " already has a registered father (", self.__db.father(self.eleph_2), ").", sep="")
+            
             
             if self.rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 7 and 90 years age difference)
                 if self.__db_eleph_1[1] != 'F':
@@ -826,16 +871,9 @@ class pedigree:
 ## 'write' function writes out two sql instert statements or an error         ##
 ################################################################################
 
-    def write(self):
+    def write(self, db):
+        self.__db = db
 
-        db = pms.connect(self.__mysql_host, self.__mysql_usr, self.__mysql_pwd, self.__mysql_db)
-        cursor = db.cursor()
-        sql = "SELECT max(rel_id) FROM pedigree;"
-        try:
-            cursor.execute(sql)
-            self.__last_id = cursor.fetchall()[0][0]+1
-        except:
-            Print("Unable to connect to database")
         q = "'"    
         if self.rel == "mother":
             self.__rel_fwd = q+"mother"+q
@@ -862,11 +900,10 @@ class pedigree:
         else:
             self.coef=q+self.coef+q
             
-        self.statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (self.__last_id, self.__db_id1, self.__db_id2, self.__rel_fwd, self.coef)
-        self.statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (self.__last_id, self.__db_id2, self.__db_id1, self.__rel_rev, self.coef)
-
+        out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
+        
         if self.__checked == 1:
-            return(self.statement_1, self.statement_2)
+            return(out)
 
         elif self.__checked == 0:
             status_array = np.array(self.status)
@@ -880,6 +917,30 @@ class pedigree:
 
             return(self.eleph_1, self.__db_eleph_1[1], self.__db_eleph_1[2], self.eleph_2, self.__db_eleph_2[1], self.__db_eleph_2[2])
 
+    ##########################################################################
+ ##############################################################################
+###                                                                          ###
+##                             CLASS "MEASURE"                                ##
+###                                                                          ###
+ ##############################################################################
+   ##########################################################################
+
+class measures:
+
+    def __init__(self, num, date, measure_id, measure, value):
+        self.__num=num
+        self.__date=date
+        self.__measure_id=measure_id
+        self.__measure=measure   
+        self.__value = value
+
+#Here, the source function will mostly serve to compare the measures to the measures_codes table
+#and decide whether we should create a new measure
+        
+#Tasks: check value against mean value in DB if exists
+#Check if an identical line is already in the database (including date)
+
+
 
    ##########################################################################
  ##############################################################################
@@ -889,13 +950,5 @@ class pedigree:
  ##############################################################################
    ##########################################################################
 
-
-    ##########################################################################
- ##############################################################################
-###                                                                          ###
-##                             CLASS "MEASURE"                                ##
-###                                                                          ###
- ##############################################################################
-   ##########################################################################
 
 # A measure object consists of fields
