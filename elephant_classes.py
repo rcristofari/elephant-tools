@@ -42,9 +42,15 @@ class mysqlconnect:
         statement = "INSERT INTO commits (stamp, user, details) VALUES (%s, %s, %s);" % (self.__stamp, "'"+self.__usr+"'", "'"+details+"'")
         return(statement)
 
-    def fulleleph(self, num):
+    def fulleleph(self, num=None, calf_num=None):
         self.__num=num
-        sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
+        self.__calf_num=calf_num
+        if self.__num is not None:
+            sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
+        elif self.__num is None and self.__calf_num is not None:
+            sql = "SELECT * FROM elephants WHERE calfnum = %s;" % (self.__calf_num) ##Will open to a problem when several calves have the same ID and no adult ID...fix by matching on dates
+        else:
+            print("Error: you need at least one identifier")
         try:
             self.__cursor.execute(sql)
             results = self.__cursor.fetchall()
@@ -142,46 +148,78 @@ class mysqlconnect:
             statement = "INSERT INTO elephants (num, name, sex, birth, cw, age_capture, camp, alive, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, sex, birth, cw, caught, camp, alive, self.__i)
             return(statement)
 
-    def update_eleph(self, name, sex, birth, cw, caught, camp, alive, commits, id):
+    def update_eleph(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, commits=None, id=None):
         if self.__i == None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
 
         else:
             q = "'"
-            if name == None:
-                name = 'null'
-            else:
+            fields = str()
+            values = []
+            if num != None:
+                fields=fields+'num=%s, '
+                values.append(num)
+                 
+            if name != None:
                 name = q+name+q
-            if sex == None:
-                sex = "'UKN'"
-            else:
+                fields=fields+'name=%s, '
+                values.append(name)
+
+            if calf_num != None:
+                calf_num = q+calf_num+q
+                fields=fields+'calf_num=%s, '
+                values.append(calf_num)
+                
+            if sex != None:
                 sex = q+sex+q
-            if birth == None:
-                birth = 'null'
-            else:
+                fields=fields+'sex=%s, '
+                values.append(sex)
+                
+            if birth != None:
                 birth = q+str(birth)+q
-            if cw == None:
-                cw = "'UKN'"
-            else:
+                fields=fields+'birth=%s, '
+                values.append(birth)
+                
+            if cw != None:
                 cw = q+cw+q
-            if caught == None:
-                caught = 'null'
-            else:
-                caught = q+caught+q 
-            if camp == None:
-                camp = 'null'
-            else:
+                fields=fields+'cw=%s, '
+                values.append(cw)
+                
+            if caught != None:
+                caught = q+caught+q
+                fields=fields+'age_capture=%s, '
+                values.append(age_capture)
+                
+            if camp != None:
                 camp = q+camp+q
-            if alive == None:
-                alive = "'UKN'"
-            else:
+                fields=fields+'camp=%s, '
+                values.append(camp)
+                
+            if alive != None:
                 alive = q+alive+q
-            if commits != 'null':
-                newcommits = (q+commits+','+str(self.__i)+q)
+                fields=fields+'alive=%s, '
+                values.append(alive)
+                
+            if research != None:
+                research = q+research+q
+                fields=fields+'research=%s, '
+                values.append(research)
+                
+            if commits != None:
+                newcommits = (q+str(commits)+','+str(self.__i)+q)
+                fields=fields+'commits=%s, '
+                values.append(newcommits)
             else:
                 newcommits = (q+str(self.__i)+q)
+                fields=fields+'commits=%s, '
+                values.append(newcommits)
 
-            statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s, commits=%s WHERE id=%s;" % (name, sex, birth, cw, caught, camp, alive, newcommits, id)
+            values.append(id)
+            values_t = tuple(values)
+            f = fields.rstrip(', ')
+            statement = str("UPDATE elephants SET "+f+" WHERE id=%s;") % (values_t)
+ 
+#            statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s, commits=%s WHERE id=%s;" % (name, sex, birth, cw, caught, camp, alive, newcommits, id)
             return(statement)                
 
     def insert_pedigree(self, id1, id2, rel_fwd, rel_rev, coef):
@@ -210,7 +248,7 @@ class mysqlconnect:
 
 class elephant:
 
-    def __init__(self, num, name=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, solved='N'):
+    def __init__(self, num=None, calf_num=None, name=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, solved='N'):
 
 # Some execution parameters
         #Is the input file a conflict resolution (Y/N)? If Y, name and camp will be appended.
@@ -219,6 +257,7 @@ class elephant:
         
 # Non-prefixed parameters describe user input
         self.__num=num #kept private since it is the primary key for the input. Has a getter function.
+        self.calf_num=calf_num
         if name != None:
             self.name=string.capwords(name)
         else:
@@ -238,10 +277,12 @@ class elephant:
         else:
             self.camp=camp
         self.alive=alive
+        self.research=research
 
 # Prefixed parameters describe database content. They are private and are not modified (declared here for reference only)
         self.__db_id = None
         self.__db_num = None
+        self.__db_calf_num = None
         self.__db_name = None
         self.__db_sex = None
         self.__db_birth = None
@@ -249,6 +290,7 @@ class elephant:
         self.__db_caught = None
         self.__db_camp = None
         self.__db_alive = None
+        self.__db_research = None
         self.__db_commits = None
         
 # These variables pass the state of each operation to the next
@@ -258,6 +300,7 @@ class elephant:
         self.statement=None #SQL statement issued by the write() function
         
 # __x variables describe state of the comparison db/input
+        self.__xcalf_num=0
         self.__xname=0
         self.__xsex=0
         self.__xbirth=0
@@ -265,6 +308,7 @@ class elephant:
         self.__xcaught=0
         self.__xcamp=0
         self.__xalive=0
+        self.__xresearch=0
 
 # Getter function for some private variables that could be useful in scripting
     def get_num(self):
@@ -284,31 +328,44 @@ class elephant:
         
         self.__db=db #db is a database connection object of class elephant.mysqlconnect()
         self.__sourced = 0
-        results = self.__db.fulleleph(self.__num)
-            
-        if results == None:
-            self.__sourced = 2
-            print("Elephant number", self.__num, "is absent from the database.")
+        
+        if self.__num is not None:
+            results = self.__db.fulleleph(num=self.__num)
+        elif self.__num is None and self.calf_num is not None:
+            results = self.__db.fulleleph(calf_num=self.calf_num)
+        else:
+            results = None
+            print("You need either an elephant number or a calf number to proceed")
 
+            
+        if results is None:
+            self.__sourced = 2
+            if self.__num is not None:
+                print("Elephant number", self.__num, "is absent from the database.")
+            elif self.__num is None and self.calf_num is not None:
+                print("Calf number", self.calf_num, "is absent from the database.")
         else:
             self.__sourced = 1
 
             self.__db_id = results[0]
             self.__db_num = results[1]
-            if results[2] != None:
-                self.__db_name = string.capwords(results[2])
-            self.__db_sex = results[3]
-            self.__db_birth = results[4]
-            self.__db_cw = results[5]
-            self.__db_caught = results[6]
-            if results[7] != None:
-                self.__db_camp = string.capwords(results[7])
-            self.__db_alive = results[8]
-            self.__db_commits = results[9]
-            if self.__db_commits == None:
-                self.__db_commits = 'null'
+            if results[2] is not None:
+                self.__db_name = string.capwords(results[2])  
+            self.__db_calf_num = results[3] 
+            self.__db_sex = results[4]
+            self.__db_birth = results[5]
+            self.__db_cw = results[6]
+            self.__db_caught = results[7]
+            if results[8] is not None:
+                self.__db_camp = string.capwords(results[8])
+            self.__db_alive = results[9]
+            self.__db_research = results[10]
+            self.__db_commits = results[11]
             
-            print ("\nThis elephant is present in the database as:\nIndex:\t\t", self.__db_id, "\nNumber:\t\t", self.__db_num, "\nName:\t\t",  self.__db_name, "\nSex:\t\t",  self.__db_sex, "\nBirth date:\t",  self.__db_birth, ", ",  self.__db_cw, "\nAge at capture:\t",  self.__db_caught, "\nCamp:\t\t", self.__db_camp,"\nAlive:\t\t", self.__db_alive, sep='')
+            print ("\nThis elephant is present in the database as:\nIndex:\t\t", self.__db_id, "\nNumber:\t\t", self.__db_num, "\nName:\t\t",  self.__db_name,
+                   "\nCalf number:\t", self.__db_calf_num, "\nSex:\t\t",  self.__db_sex, "\nBirth date:\t",  self.__db_birth, ", ",  self.__db_cw,
+                   "\nAge at capture:\t",  self.__db_caught, "\nCamp:\t\t", self.__db_camp,"\nAlive:\t\t", self.__db_alive,"\nResearch:\t", self.__db_research, sep='')
+            
             return(self.__db_id, self.__db_num, self.__db_name, self.__db_sex, self.__db_birth, self.__db_cw, self.__db_caught, self.__db_camp, self.__db_alive, self.__db_commits)
 
 ################################################################################
@@ -329,6 +386,9 @@ class elephant:
 
             print("\nOperations for elephant number ", self.__num, ":", sep='')
 
+
+###HERE, ADD CHECKS FOR NUM AND CALF_NUM
+
 ############ Name
             
             if self.name != None and self.name in self.__db_name: #Partial match since there could be multiple names in the database
@@ -346,7 +406,6 @@ class elephant:
 
             elif self.__db_name != None and self.name == None:
                 self.__xname = 4
-                self.name = self.__db_name
                 print("This elephant is known in database as ", self.__db_name, " - no change.", sep='')
 
             else :
@@ -375,7 +434,6 @@ class elephant:
 
             elif self.__db_sex != 'UKN' and self.sex == None:
                 self.__xsex = 4
-                self.sex = self.__db_sex
                 if self.__db_sex == 'M':
                     __strsex = 'male'
                 elif self.__db_sex == 'F':
@@ -403,7 +461,6 @@ class elephant:
 
             elif self.__db_birth != None and self.birth == None:
                 self.__xbirth = 4
-                self.birth = self.__db_birth
                 born = self.__db_birth
                 now = datetime.now().date()
                 age = round(((now - born).days / 365.25))
@@ -416,8 +473,6 @@ class elephant:
                 self.__xbirth = 0
                 if self.__interactive == 1:
                     print("Different birth date in database. You need to solve the conflict manually.")
-
-##age at capture first check
 
 ############ Wild or captive
 
@@ -436,7 +491,6 @@ class elephant:
 
             elif self.__db_cw != 'UKN' and self.cw == None:
                 self.__xcw = 4
-                self.cw = self.__db_cw
                 print("In the database, it is born ", self.__db_cw, " - no change.", sep='')
 
             else :
@@ -486,14 +540,12 @@ class elephant:
 
                 elif self.__db_caught != None and self.caught == None:
                     self.__xcaught = 4
-                    self.caught = self.__db_caught
                     print("In the database, it was captured at age ", self.__db_cw, " - no change.", sep="")
 
                 else :
                     self.__xcaught = 0
                     if self.__interactive == 1:
                         print("Different age at capture in database. You need to solve the conflict manually.")
-
 
 ############ Camp
 
@@ -512,7 +564,6 @@ class elephant:
 
             elif self.__db_camp != None and self.camp == None:
                 self.__xcamp = 4
-                self.camp = self.__db_camp
                 print("In the database, it comes from ", self.__db_camp, " - no change.", sep='')
 
             else :
@@ -539,12 +590,10 @@ class elephant:
 
             elif self.__db_alive == 'UKN' and self.alive == None:
                 self.__xalive = 3
-                self.alive = self.__db_alive
-                print("Still unknow whether alive or not.")
+                print("Still unknown whether alive or not.")
 
             elif self.__db_alive != 'UKN' and self.alive == None:
                 self.__xalive = 4
-                self.alive = self.__db_alive
                 if self.__db_alive == 'Y':
                     print("In the database, it is alive - no change")
                 elif self.__db_alive == 'N':
@@ -570,10 +619,11 @@ class elephant:
         print("\n#########################################################")
 
 #Here, do the final fusion of data, and give an outcome (write to database or write out for manual conflict resolution)
+
         self.status = (self.__xname, self.__xsex, self.__xbirth, self.__xcw, self.__xcaught, self.__xcamp, self.__xalive)
         self.__checked = 1
         
-        return(self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.__db_commits)
+        return(self.__num, self.calf_num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, self.__db_commits)
 
 ################################################################################
 ## 'write' function writes out an sql statement to insert/update the elephant ##
@@ -590,7 +640,7 @@ class elephant:
         elif self.__sourced == 2:
 
             #this is outsourced to mysqlconnect
-            out = self.__db.insert_eleph(self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive)
+            out = self.__db.insert_eleph(self.__num, self.calf_num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
             return(out)
         
         #If the elephant has been checked and there is no conflict, write an update statement.
@@ -599,7 +649,8 @@ class elephant:
                 pass
             else:
                 #this is outsourced to mysqlconnect
-                out = self.__db.update_eleph(self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.__db_commits, self.__db_id)
+                print(self.__num, self.calf_num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, self.__db_commits, self.__db_id)
+                out = self.__db.update_eleph(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, self.__db_commits, self.__db_id)
                 return(out)
         
         #If there is a pending conflict, we write out a csv-type line.
@@ -613,7 +664,7 @@ class elephant:
                 conflicts = conflicts+f[x]
             print("\nYou need to solve conflicts for:", conflicts)
 
-            return(self.__num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive)
+            return(self.__num, self.calf_num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
 
 
             ##Add a light check here to see that a captive elephant has no age at capture.

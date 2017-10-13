@@ -7,7 +7,7 @@ from datetime import datetime
 
 # Write a "crawler" function to work the pedigrees up and down from one individual
 # Write a "consolidate_alive" function to assess who is alive / dead now from data
-
+# Write a "get commits" function that parses out the list of commits and get the corresponding entries.
 ####################################################################################
 ##  read_elephant() READ ELEPHANTS DEFINTION FILE                                 ##                             
 ####################################################################################
