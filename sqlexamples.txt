@@ -1,1 +1,0 @@
-SELECT a.num AS MotherNum, a.name AS Mother, a.birth AS MotherBirth, b.num AS OffspringNum, b.name AS Offspring, b.birth AS OffspringBirth FROM pedigree AS p LEFT JOIN elephants AS a ON p.elephant_1_id = a.id LEFT JOIN elephants AS b ON p.elephant_2_id = b.id WHERE p.rel = 'mother' AND a.num=2222 ORDER BY b.birth DESC;
