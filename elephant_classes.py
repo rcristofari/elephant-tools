@@ -41,8 +41,12 @@ class mysqlconnect:
         #Check the latest commit ID
         sql = "SELECT max(id) FROM commits;"
         self.__cursor.execute(sql)
-        last_id = self.__cursor.fetchall()[0][0]
-        self.__i = last_id + 1
+        f = self.__cursor.fetchall()
+        if f[0][0] is not None:
+            last_id = f[0][0]
+            self.__i = last_id + 1
+        else:
+            self.__i = 0
         statement = "INSERT INTO commits (stamp, user, details) VALUES (%s, %s, %s);" % (self.__stamp, "'"+self.__usr+"'", "'"+details+"'")
         return(statement)
 
@@ -136,7 +140,7 @@ class mysqlconnect:
 ## 'insert_eleph' function                                                    ##
 ################################################################################
 
-    def insert_eleph(self,num,name,sex,birth,cw,caught,camp,alive):
+    def insert_eleph(self,num,name,calf_num,sex,birth,cw,caught,camp,alive,research):
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
@@ -145,6 +149,10 @@ class mysqlconnect:
                 name = 'null'
             else:
                 name = q+name+q
+            if calf_num is None:
+                calf_num = 'null'
+            else:
+                calf_num = q+calf_num+q
             if sex is None:
                 sex = "'UKN'"
             else:
@@ -165,12 +173,15 @@ class mysqlconnect:
                 camp = 'null'
             else:
                 camp = q+camp+q
-
             if alive is None:
                 alive = "'UKN'"
             else:
                 alive = q+alive+q
-            statement = "INSERT INTO elephants (num, name, sex, birth, cw, age_capture, camp, alive, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, sex, birth, cw, caught, camp, alive, self.__i)
+            if research is None:
+                research = "'N'"
+            else:
+                research = q+research+q
+            statement = "INSERT INTO elephants (num, name, calf_num, sex, birth, cw, age_capture, camp, alive, research, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, calf_num, sex, birth, cw, caught, camp, alive, research, self.__i)
             return(statement)
 
 ################################################################################
@@ -217,7 +228,7 @@ class mysqlconnect:
             if caught is not None:
                 caught = q+caught+q
                 fields=fields+'age_capture=%s, '
-                values.append(age_capture)
+                values.append(caught)
 
             if camp is not None:
                 camp = q+camp+q
@@ -279,9 +290,9 @@ class mysqlconnect:
  ##############################################################################
    ##########################################################################
 
-class elephant:
+class elephant: ##MAKE A __repr__ function !!
 
-    def __init__(self, num=None, calf_num=None, name=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, solved='N'):
+    def __init__(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, solved='N'):
 
 # Some execution parameters
         #Is the input file a conflict resolution (Y/N)? If Y, name and camp will be appended.
@@ -416,8 +427,8 @@ class elephant:
             print("This elephant is not in the database, you can proceed to write() directly.")
         elif self.__sourced == 1:
             print("\nCONSISTENCY CHECK:")
-            print ("This elephant is specified here as:\nNumber:\t\t", self.__num, "\nName:\t\t",  self.name, "\nCalf number:\t", self.calf_num,
-             "\nSex:\t\t",  self.sex, "\nBirth date:\t",  self.birth, ", ",  self.cw,
+            print ("This elephant is specified here as:\nNumber:\t\t", self.__num, "\nName:\t\t",  self.name,
+            "\nCalf number:\t", self.calf_num, "\nSex:\t\t",  self.sex, "\nBirth date:\t",  self.birth, ", ",  self.cw,
               "\nAge at capture:\t",  self.caught, "\nCamp:\t\t", self.camp,"\nAlive:\t\t", self.alive, "\nResearch:\t", self.research, sep='')
 
             print("\nOperations for elephant number ", self.__num, ":", sep='')
@@ -433,6 +444,9 @@ class elephant:
                 elif self.__db_calf_num is None and self.calf_num is None:
                     self.__xcalf_num = 3
                     print("Calf number is still missing.")
+                elif self.calf_num is not None and self.__db_calf_num is None:
+                    self.__xcalf_num = 2
+                    print("Calf number was still unknown, updating database.")
                 elif self.__db_calf_num is not None and self.calf_num != self.__db_calf_num:
                     self.__xcalf_num = 0
                     print("Calf numbers are conflicting. You need to solve that manually.")
@@ -665,10 +679,10 @@ class elephant:
                 self.__xresearch = 4
                 self.research = None
                 print("If you wish to remove this elephant's research status, do it manually.")
-            elif self.__xresearch == 'Y' and (self.__db_research == 'N' or self.__db_research is None):
+            elif self.research == 'Y' and (self.__db_research == 'N' or self.__db_research is None):
                 self.xresearch = 2
                 print("Not yet a research elephant in the database, updating database.")
-            elif self.__xresearch is None and self.__db_research is not None:
+            elif self.research is None and self.__db_research is not None:
                 self.xresearch = 4
                 if self.__db_research == 'N':
                     print("In the database, it is not a research elephant - no change")
@@ -757,7 +771,8 @@ class elephant:
 
         #If the elephant has been checked and there is no conflict, write an update statement.
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
-            if all(x == 1 for x in self.status): #All fields are matching, no update
+            print(self.status)
+            if all(x in (1,3) for x in self.status): #All fields are matching, no update
                 pass
             else:
                 #this is outsourced to mysqlconnect
@@ -774,10 +789,10 @@ class elephant:
             for x in i:
                 conflicts = conflicts+', '+f[x]
             c = conflicts.rstrip(', ')
-            conflicts = c+"."
+            conflicts = c[2:]+"."
             print("\nYou need to solve conflicts for:", conflicts)
 
-            return(self.__num, self.calf_num, self.name, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+            return(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
 
 
             ##Add a light check here to see that a captive elephant has no age at capture.
@@ -1089,14 +1104,23 @@ class pedigree:
  ##############################################################################
    ##########################################################################
 
-class measures:
-
-    def __init__(self, num, date, measure_id, measure, value):
-        self.__num=num
-        self.__date=date
-        self.__measure_id=measure_id
-        self.__measure=measure
-        self.__value = value
+# class measures:
+#
+#     def __init__(self, num, date, measure_id, measure, value):
+#         self.__num=num
+#         self.__date=date
+#         self.__measure_id=measure_id
+#         self.__measure=measure
+#         self.__value = value
+#
+#
+#     def source(self, db):
+#
+#
+#     def check(self):
+#
+#
+#     def write(self, db):
 
 #Here, the source function will mostly serve to compare the measures to the measures_codes table
 #and decide whether we should create a new measure

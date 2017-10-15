@@ -9,14 +9,14 @@ from datetime import datetime
 # Write a "consolidate_alive" function to assess who is alive / dead now from data
 # Write a "get commits" function that parses out the list of commits and get the corresponding entries.
 ####################################################################################
-##  read_elephant() READ ELEPHANTS DEFINTION FILE                                 ##                             
+##  read_elephant() READ ELEPHANTS DEFINTION FILE                                 ##
 ####################################################################################
 
 # A model elephant file is made up of 10 fields:
 # num, name, calf_num, sex, birth, cw, caught, camp, alive, research
 # field names irrelevant, but order necessary
 
-def read_elephant(elefile, sep=';'):
+def read_elephants(elefile, sep=';'):
     num = []
     name = []
     calf_num = []
@@ -107,136 +107,142 @@ def read_elephant(elefile, sep=';'):
     del ax
     del rx
 
-    # Check data types
-    reject = 0
-    warnings = []
+    #reformat as rows
+    rows=[]
+    for i,r in enumerate(num):
+        row=[num[i],name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i]]
+        rows.append(row)
 
-    ########## num
-    for i,x in enumerate(num):
-        if re.search(r"^[0-9]+$", x):
+    # Check data types row by row
+    valid = []
+    remarks = []
+    rejected = []
+    issues = []
+
+    for i,row in enumerate(rows):
+        print(row)
+        reject = 0
+        warnings = []
+
+        ########## Sort out missing values
+        for j,x in enumerate(row):
+            if x.casefold() in ('','none','na','null','unknown','ukn','n/a'):
+                row[j] = None
+            else:
+                pass
+
+        ########## num
+        if re.search(r"^[0-9]+$", str(row[0])):
             pass
-        elif x == '' and calf_num[i] != '':
-            print("calf", calf_num[i])
+        elif row[0] is None and row[2] is not None:
             warnings.append("Missing number at line " + str(i+1))
-        elif x == '' and calf_num[i] == '':
+        elif row[0] is None and row[2] is None:
             warnings.append("Missing number at line " + str(i+1) + ", and no calf number. You need at least one.")
             reject = 1
         else:
-            warnings.append("Format problem with number: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with number: " + str(row[0]) + " at line " + str(i+1))
             reject = 1
 
     ########## name
-    for i,x in enumerate(name):
-        if re.search(r"^[a-zA-Z ]+$", x):
+        if re.search(r"^[a-zA-Z ]+$", str(row[1])):
             pass
-        elif x =='':
+        elif row[1] is None:
             warnings.append("Missing name at line " + str(i+1))
         else:
-            warnings.append("Format problem with name: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with name: " + str(row[1]) + " at line " + str(i+1))
             reject = 1
 
     ########## calf_num
-    for i,x in enumerate(calf_num):
-        if re.search(r"^[0-9a-zA-Z]+$", x):
+        if re.search(r"^[0-9a-zA-Z]+$", str(row[2])):
             pass
-        elif x == '' and num[i] == '':
+        elif row[2] is None and row[0] is None:
             warnings.append("Missing calf number at line " + str(i+1) + ". You need at least one number.")
             reject = 1
-        elif x == '' and num[i] != '':
-            pass        
-        else:
-            warnings.append("Format problem with calf number: " + str(x) + " at line " + str(i+1))
-            reject = 1
-            
-    ########## sex
-    for i,x in enumerate(sex):
-        if x in ('M','F','UKN'):
+        elif row[2] is None and row[0] is not None:
             pass
-        elif x == None:
+        else:
+            warnings.append("Format problem with calf number: " + str(row[2]) + " at line " + str(i+1))
+            reject = 1
+
+    ########## sex
+        if row[3] in ('M','F','UKN'):
+            pass
+        elif row[3] == None:
             warnings.append("Missing sex at line " + str(i+1))
         else:
-            warnings.append("Sex must be M, F or UKN at line " + str(i+1) +" (here: " + str(x) + ")")
+            warnings.append("Sex must be M, F or UKN at line " + str(i+1) +" (here: " + str(row[3]) + ")")
             reject = 1
-        
+
     ########## birth
-    for i,x in enumerate(birth):
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", x):
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", str(row[4])):
             pass
-        elif x == '':
+        elif row[4]is None:
             warnings.append("Missing birth date at line " + str(i+1))
             reject = 1
         else:
-            warnings.append("Format problem with birth date: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with birth date: " + str(row[4]) + " at line " + str(i+1))
             reject = 1
 
     ########## CW
-    for i,x in enumerate(cw):
-        if x in ('captive','wild','UKN'):
+        if row[5] in ('captive','wild','UKN'):
             pass
-        elif x == '':
+        elif row[5] is None:
             warnings.append("Missing origin at line " + str(i+1))
         else:
-            warnings.append("Origin pust be captive, wild or UKN at line " + str(i+1) +" (here: " + str(x) + ")")
+            warnings.append("Origin pust be captive, wild or UKN at line " + str(i+1) +" (here: " + str(row[5]) + ")")
             reject = 1
-            
+
     ########## caught
-    for i,x in enumerate(caught):
-        if re.search(r"^[0-9]+$", x):
+        if re.search(r"^[0-9]+$", str(row[6])):
             pass
-        elif x =='' and cw[i] == 'wild':
+        elif row[6] is None and cw[i] == 'wild':
             warnings.append("Missing age at capture at line " + str(i+1) + " fo a wild-born elephant.")
             pass
-        elif x =='' and cw[i] != 'wild':
+        elif row[6] is None and cw[i] != 'wild':
             pass
         else:
-            warnings.append("Format problem with age at capture: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with age at capture: " + str(row[6]) + " at line " + str(i+1))
             reject = 1
 
     ########## camp
-            
-    for i,x in enumerate(camp):
-        if re.search(r"^[a-zA-Z ]+$", x):
+        if re.search(r"^[a-zA-Z ]+$", str(row[7])):
             pass
-        elif x =='':
+        elif row[7] is None:
             warnings.append("Missing camp at line " + str(i+1))
         else:
-            warnings.append("Format problem with camp: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with camp: " + str(row[7]) + " at line " + str(i+1))
             reject = 1
-  
+
     ########## alive
-    for i,x in enumerate(alive):
-        if x in ('Y','N','UKN'):
+        if row[8] in ('Y','N','UKN'):
             pass
-        elif x =='':
+        elif row[8] is None:
             warnings.append("Missing information whether alive or not at line " + str(i+1))
         else:
-            warnings.append("Format problem with living status: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with living status: " + str(row[8]) + " at line " + str(i+1))
             reject = 1
-            
+
     ########## research
-    for i,x in enumerate(research):
-        if x in ('Y','N'):
+        if row[9] in ('Y','N'):
             pass
         else:
-            warnings.append("Format problem with living status: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with living status: " + str(row[9]) + " at line " + str(i+1))
             reject = 1
 
-    for w in warnings:
-        print(w)
-
-    lines = []
-    lines.append(tuple(fields))
-    if reject == 0:
-        for i,x in enumerate(num):
-            line = (num[i],name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i])
-            lines.append(line)
-        
-        return(lines)
-    else:
-       return(warnings)
+    ######### send out to the correct list
+        print(warnings)
+        if reject == 0:
+            if warnings != []:
+                remarks.append(warnings)
+            valid.append(row)
+        elif reject == 1:
+            issues.append(warnings)
+            rejected.append(row)
+            
+    return[valid, remarks, rejected, issues]
 
 ####################################################################################
-##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##                             
+##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##
 ####################################################################################
 # A pedigree file is made of four columns:
 # elephant_1_id, elephant_2_id, rel, coef
@@ -246,7 +252,7 @@ def read_pedigree(elefile, sep=';'):
     elephant_2_id = []
     rel = []
     coef = []
-    
+
     with open(elefile) as elefile:
         eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
         fields = next(eleread)[0:4]
@@ -255,7 +261,7 @@ def read_pedigree(elefile, sep=';'):
             elephant_2_id.append(row[1])
             rel.append(row[2])
             coef.append(row[3])
-            
+
     # Try to guess the rel and coef fields (the latter, only if it's been assigned "NA" or the like)
     rx = []
     cx = []
@@ -333,9 +339,9 @@ def read_pedigree(elefile, sep=';'):
         return(warnings)
 
 ####################################################################################
-##  read_measures() READ MEASURE DATA FILE                                        ##                             
+##  read_measures() READ MEASURE DATA FILE                                        ##
 ####################################################################################
-    
+
 # read_measures() takes a datafile with an arbitrary number of columns.
 # The only restriction is that the first three nums be num, and date.
 # Each further column will have a label at the head, and values in the column.
@@ -343,7 +349,7 @@ def read_pedigree(elefile, sep=';'):
 # Thus, eg, mean and variance of a measure are entered as separate inserts.
 
 def read_measures(elefile, sep=';', solved='N'):
-    
+
     rows = []
 
     with open(elefile) as elefile:
@@ -378,7 +384,7 @@ def read_measures(elefile, sep=';', solved='N'):
             else:
                 warnings.append("Format problem with elephant number: " + str(x) + " at line " + str(i+1))
                 reject = 1
-                
+
         ########## date
         for i,x in enumerate(date):
             if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", x):
@@ -427,7 +433,7 @@ def read_measures(elefile, sep=';', solved='N'):
                             warnings.append(current_field+": value "+str(v)+" seems out of range at line "+str(i)+".")
                         elif solved == 'Y':
                             pass
-                        
+
             if reject == 1 and solved == 'N':
                 warnings.append("Please check values are correct and declare the file Solved.")
 
@@ -446,10 +452,10 @@ def read_measures(elefile, sep=';', solved='N'):
         return(output)
     else:
        return(warnings)
-    
+
 
 ####################################################################################
-##  read_event() READ EVENT LIST FILE                                             ##                             
+##  read_event() READ EVENT LIST FILE                                             ##
 ####################################################################################
 
 # an event datafile is composed of elephant num|calf_num, date, loc, event_type, code
@@ -465,7 +471,7 @@ def read_events(elefile, sep=';', solved='N'):
 
     reject = 0
     warnings = []
-    
+
     with open(elefile) as elefile:
         eleread = csv.reader(elefile, delimiter=sep, quotechar="'")
         fields = next(eleread)
@@ -501,7 +507,7 @@ def read_events(elefile, sep=';', solved='N'):
             warnings.append("Missing calf number at line " + str(i+1) + ". You need at least one number.")
             reject = 1
         elif x == '' and num[i] != '':
-            pass        
+            pass
         else:
             warnings.append("Format problem with calf number: " + str(x) + " at line " + str(i+1))
             reject = 1
@@ -526,7 +532,7 @@ def read_events(elefile, sep=';', solved='N'):
         else:
             warnings.append("Format problem with location: " + str(x) + " at line " + str(i+1))
             reject = 1
-            
+
     ########## event_type [COMPLUSORY]
     for i,x in enumerate(event_type):
         if x.casefold() in ('capture','accident','disease','death','alive'):
@@ -558,8 +564,7 @@ def read_events(elefile, sep=';', solved='N'):
         for i,x in enumerate(event_type):
             line = (num[i],calf_num[i],date[i],loc[i],event_type[i],code[i])
             lines.append(line)
-        
+
         return(lines)
     else:
        return(warnings)
-
