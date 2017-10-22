@@ -4,7 +4,6 @@ import re
 import numpy as np
 from datetime import datetime
 
-
 # Write a "crawler" function to work the pedigrees up and down from one individual
 # Write a "consolidate_alive" function to assess who is alive / dead now from data
 # Write a "get commits" function that parses out the list of commits and get the corresponding entries.
@@ -131,7 +130,7 @@ def read_elephants(elefile, sep=';'):
             else:
                 pass
 
-        ########## num
+    ########## num
         if re.search(r"^[0-9]+$", str(row[0])):
             pass
         elif row[0] is None and row[2] is not None:
@@ -175,10 +174,13 @@ def read_elephants(elefile, sep=';'):
 
     ########## birth
         if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", str(row[4])):
-            pass
+            try:
+                datetime.strptime(str(row[4]), '%Y-%m-%d')
+            except ValueError:
+                reject = 1
+                warnings.append("Invalid date " + str(row[4]) + " at line " + str(i+1))
         elif row[4]is None:
             warnings.append("Missing birth date at line " + str(i+1))
-            reject = 1
         else:
             warnings.append("Format problem with birth date: " + str(row[4]) + " at line " + str(i+1))
             reject = 1
@@ -189,7 +191,7 @@ def read_elephants(elefile, sep=';'):
         elif row[5] is None:
             warnings.append("Missing origin at line " + str(i+1))
         else:
-            warnings.append("Origin pust be captive, wild or UKN at line " + str(i+1) +" (here: " + str(row[5]) + ")")
+            warnings.append("Origin must be captive, wild or UKN at line " + str(i+1) +" (here: " + str(row[5]) + ")")
             reject = 1
 
     ########## caught
@@ -238,8 +240,8 @@ def read_elephants(elefile, sep=';'):
         elif reject == 1:
             issues.append(warnings)
             rejected.append(row)
-            
-    return[valid, remarks, rejected, issues]
+
+    return[fields, valid, remarks, rejected, issues]
 
 ####################################################################################
 ##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##
@@ -286,57 +288,80 @@ def read_pedigree(elefile, sep=';'):
     del rx
     del cx
 
-    # Check data types
-    reject = 0
-    warnings = []
+    # Check data types row by row
+    valid = []
+    remarks = []
+    rejected = []
+    issues = []
 
-    ########## elephant_1_id
-    for i,x in enumerate(elephant_1_id):
-        if re.search(r"^[0-9]+$", x):
+
+    #reformat as rows
+    rows=[]
+    for i,r in enumerate(elephant_1_id):
+        row=[str(elephant_1_id[i]),str(elephant_2_id[i]),str(rel[i]),str(coef[i])]
+        rows.append(row)
+
+        ########## Sort out missing values
+        for j,x in enumerate(row):
+            if x.casefold() in ('','none','na','null','unknown','ukn','n/a'):
+                row[j] = None
+            else:
+                pass
+
+        # Check data types
+        reject = 0
+        warnings = []
+
+        ########## elephant_1_id
+        if re.search(r"^[0-9a-zA-Z]+$", row[0]):
             pass
-        elif x == '':
+        elif row[0] is None:
             warnings.append("Missing elephant ID-1 at line " + str(i+1) + ". You need one.")
             reject = 1
         else:
-            warnings.append("Format problem with elephant ID-1: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with elephant ID-1: " + row[0] + " at line " + str(i+1))
             reject = 1
 
-    for i,x in enumerate(elephant_2_id):
-        if re.search(r"^[0-9]+$", x):
+        ########## elephant_2_id
+        if re.search(r"^[0-9a-zA-Z]+$", row[1]):
             pass
-        elif x == '':
+        elif row[1] is None:
             warnings.append("Missing elephant ID-2 at line " + str(i+1) + ". You need one.")
             reject = 1
         else:
-            warnings.append("Format problem with elephant ID-2: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with elephant ID-2: " + row[1] + " at line " + str(i+1))
             reject = 1
-
-    for i,x in enumerate(rel):
-        if x in ('mother','father','offspring','unknown'):
+        ########## rel
+        if row[2] in ('mother','father','offspring','unknown'):
             pass
-        elif x == '':
+        elif row[2] is None:
             warnings.append("Missing relationship definition at line " + str(i+1) + ". You need one.")
             reject = 1
         else:
             warnings.append("Format problem with relationship at line " + str(i+1))
             reject = 1
 
-    for i,x in enumerate(coef):
-        if re.search(r"^[0-9]+.[0-9]+$",x):
-            pass
-        elif x== '':
+        ########## coef
+        if row[3] is None:
             warnings.append("Missing kinship coefficient at line " + str(i+1))
         else:
-            warnings.append("Format problem with kinship coefficient at line " + str(i+1))
-            reject = 1
+            try:
+                float(row[3])
+            except ValueError:
+                    warnings.append("Format problem with kinship coefficient at line " + str(i+1))
+                    reject = 1
 
-    for w in warnings:
-        print(w)
+    ######### send out to the correct list
+        if reject == 0:
+            if warnings != []:
+                remarks.append(warnings)
+            valid.append(row)
+        elif reject == 1:
+            issues.append(warnings)
+            rejected.append(row)
 
-    if reject == 0:
-        return(fields,elephant_1_id,elephant_2_id,rel,coef)
-    else:
-        return(warnings)
+    return[fields, valid, remarks, rejected, issues]
+
 
 ####################################################################################
 ##  read_measures() READ MEASURE DATA FILE                                        ##

@@ -3,6 +3,11 @@ from datetime import datetime
 import string
 import numpy as np
 import re
+import os
+
+#A simple function for mysql queries:
+def quote(string):
+    return("'"+str(string)+"'")
 
    ##########################################################################
  ##############################################################################
@@ -14,7 +19,7 @@ import re
 
 class mysqlconnect:
 
-    def __init__(self, usr, pwd, host, db):
+    def __init__(self, usr, pwd, host='localhost', db='mep'):
         self.__usr=usr
         self.__pwd=pwd
         self.__host=host
@@ -46,8 +51,8 @@ class mysqlconnect:
             last_id = f[0][0]
             self.__i = last_id + 1
         else:
-            self.__i = 0
-        statement = "INSERT INTO commits (stamp, user, details) VALUES (%s, %s, %s);" % (self.__stamp, "'"+self.__usr+"'", "'"+details+"'")
+            self.__i = 1
+        statement = "INSERT INTO commits (stamp, user, details) VALUES (%s, %s, %s);" % (self.__stamp, quote(self.__usr), quote(details))
         return(statement)
 
 ################################################################################
@@ -137,6 +142,56 @@ class mysqlconnect:
             return result[0][0]
 
 ################################################################################
+## 'measure_code' function                                                          ##
+################################################################################
+
+    def measure_code(self, measure):
+        self.__measure=measure
+        sql = "SELECT id FROM measure_code WHERE code = %s" % (quote(self.__measure))
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return(result[0][0])
+
+################################################################################
+## 'measure_line' function                                                    ##
+################################################################################
+
+    def measure_line(self, num, date, code):
+        self.__num=num
+        self.__date=date
+        self.__code=code
+
+        sql = "SELECT id FROM elephants WHERE num = %s;" % (self.__num)
+        try:
+            self.__cursor.execute(sql)
+            self.__eleph_id = self.__cursor.fetchall()[0][0]
+        except:
+            print("This elephant is absent from the database")
+
+        sql = "SELECT * FROM measures WHERE elephant_id = %s and date = %s and measure = %s;" % (quote(self.__eleph_id), quote(self.__date), self.__code)
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            if result.__len__ == 1:
+                return(result[0])
+            else:
+                return(result[0])
+                print("More than one line corresponding to that measure. Check what is going on in the database")
+
+################################################################################
+## 'mean_measure' function                                                    ##
+################################################################################
+
+    def mean_measure(self, code):
+        self.__code = code
+        sql = "SELECT ROUND(AVG(value),2) FROM measures WHERE measure = %s;" % (self.__code)
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return(result[0][0])
+
+################################################################################
 ## 'insert_eleph' function                                                    ##
 ################################################################################
 
@@ -148,39 +203,39 @@ class mysqlconnect:
             if name is None:
                 name = 'null'
             else:
-                name = q+name+q
+                name = quote(name)
             if calf_num is None:
                 calf_num = 'null'
             else:
-                calf_num = q+calf_num+q
+                calf_num = quote(calf_num)
             if sex is None:
                 sex = "'UKN'"
             else:
-                sex = q+sex+q
+                sex = quote(sex)
             if birth is None:
                 birth = 'null'
             else:
-                birth = q+str(birth)+q
+                birth = quote(str(birth))
             if cw is None:
                 cw = "'UKN'"
             else:
-                cw = q+cw+q
+                cw = quote(cw)
             if caught is None:
                 caught = 'null'
             else:
-                caught = q+caught+q
+                caught = quote(str(caught))
             if camp is None:
                 camp = 'null'
             else:
-                camp = q+camp+q
+                camp = quote(camp)
             if alive is None:
                 alive = "'UKN'"
             else:
-                alive = q+alive+q
+                alive = quote(alive)
             if research is None:
                 research = "'N'"
             else:
-                research = q+research+q
+                research = quote(research)
             statement = "INSERT INTO elephants (num, name, calf_num, sex, birth, cw, age_capture, camp, alive, research, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, calf_num, sex, birth, cw, caught, camp, alive, research, self.__i)
             return(statement)
 
@@ -201,56 +256,56 @@ class mysqlconnect:
                 values.append(num)
 
             if name is not None:
-                name = q+name+q
+                name = quote(name)
                 fields=fields+'name=%s, '
                 values.append(name)
 
             if calf_num is not None:
-                calf_num = q+calf_num+q
+                calf_num = quote(calf_num)
                 fields=fields+'calf_num=%s, '
                 values.append(calf_num)
 
             if sex is not None:
-                sex = q+sex+q
+                sex = quote(sex)
                 fields=fields+'sex=%s, '
                 values.append(sex)
 
             if birth is not None:
-                birth = q+str(birth)+q
+                birth = quote(str(birth))
                 fields=fields+'birth=%s, '
                 values.append(birth)
 
             if cw is not None:
-                cw = q+cw+q
+                cw = quote(cw)
                 fields=fields+'cw=%s, '
                 values.append(cw)
 
             if caught is not None:
-                caught = q+caught+q
+                caught = quote(str(caught))
                 fields=fields+'age_capture=%s, '
                 values.append(caught)
 
             if camp is not None:
-                camp = q+camp+q
+                camp = quote(camp)
                 fields=fields+'camp=%s, '
                 values.append(camp)
 
             if alive is not None:
-                alive = q+alive+q
+                alive = quote(alive)
                 fields=fields+'alive=%s, '
                 values.append(alive)
 
             if research is not None:
-                research = q+research+q
+                research = quote(research)
                 fields=fields+'research=%s, '
                 values.append(research)
 
             if commits is not None:
-                newcommits = (q+str(commits)+','+str(self.__i)+q)
+                newcommits = (quote(str(commits)+','+str(self.__i)))
                 fields=fields+'commits=%s, '
                 values.append(newcommits)
             else:
-                newcommits = (q+str(self.__i)+q)
+                newcommits = (quote(str(self.__i)))
                 fields=fields+'commits=%s, '
                 values.append(newcommits)
 
@@ -272,10 +327,14 @@ class mysqlconnect:
         else:
             sql = "SELECT max(rel_id) FROM pedigree;"
             try:
-                cursor.execute(sql)
-                last_id = cursor.fetchall()[0][0]+1
+                self.__cursor.execute(sql)
+                y = self.__cursor.fetchall()[0][0]
+                if y is not None:
+                    last_id = y+1
+                else:
+                    last_id = 1
             except:
-                Print("Unable to connect to database")
+                print("Unable to connect to database")
 
             statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (last_id, id1, id2, rel_fwd, coef)
             statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (last_id, id2, id1, rel_rev, coef)
@@ -296,12 +355,21 @@ class elephant: ##MAKE A __repr__ function !!
 
 # Some execution parameters
         #Is the input file a conflict resolution (Y/N)? If Y, name and camp will be appended.
-        self.__solved=solved
+        if solved in ('Y','y','YES','yes'):
+            self.__solved='Y'
+        else:
+            self.__solved='N'
         self.__interactive=1 # Not implemented so far
 
 # Non-prefixed parameters describe user input
-        self.__num=num #kept private since it is the primary key for the input. Has a getter function.
-        self.calf_num=calf_num
+        if num is not None:
+            self.__num=str(num) #kept private since it is the primary key for the input. Has a getter function.
+        else:
+            self.__num = None
+        if calf_num is not None:
+            self.calf_num = str(calf_num)
+        else:
+            self.calf_num=calf_num
         if name is not None:
             self.name=string.capwords(name)
         else:
@@ -312,10 +380,10 @@ class elephant: ##MAKE A __repr__ function !!
         else:
             self.birth=birth
         self.cw=cw
-        if caught == '':
-            self.caught = None
+        if caught is not None:
+            self.caught=int(caught)
         else:
-            self.caught=caught
+            self.caught = caught
         if camp is not None:
             self.camp=string.capwords(camp)
         else:
@@ -422,6 +490,7 @@ class elephant: ##MAKE A __repr__ function !!
 
     def check(self):
         if self.__sourced == 0:
+            os.system('clear')
             print("\nCheck: You must source this elephant first using elephant.source().")
         elif self.__sourced == 2:
             print("This elephant is not in the database, you can proceed to write() directly.")
@@ -434,20 +503,22 @@ class elephant: ##MAKE A __repr__ function !!
             print("\nOperations for elephant number ", self.__num, ":", sep='')
 
 ############ Num and calf_num checked together (inter-dependent)
-
             if self.__num is not None and self.__num == self.__db_num:
                 self.__xnum = 1
                 print("Numbers match.")
                 if self.__db_calf_num == self.calf_num and self.calf_num is not None:
                     self.__xcalf_num = 1
                     print("Calf numbers match")
-                elif self.__db_calf_num is None and self.calf_num is None:
-                    self.__xcalf_num = 3
-                    print("Calf number is still missing.")
                 elif self.calf_num is not None and self.__db_calf_num is None:
                     self.__xcalf_num = 2
                     print("Calf number was still unknown, updating database.")
-                elif self.__db_calf_num is not None and self.calf_num != self.__db_calf_num:
+                elif self.__db_calf_num is None and self.calf_num is None:
+                    self.__xcalf_num = 3
+                    print("Calf number is still missing.")
+                elif self.__db_calf_num is not None and self.calf_num is None:
+                    self.__xcalf_num = 4
+                    print("Calf number entered as", self.__db_calf_num, "in the database, no change.")
+                elif self.__db_calf_num is not None and self.calf_num is not None and self.calf_num != self.__db_calf_num:
                     self.__xcalf_num = 0
                     print("Calf numbers are conflicting. You need to solve that manually.")
             elif self.__num is None and self.__db_num is None:
@@ -455,10 +526,6 @@ class elephant: ##MAKE A __repr__ function !!
                     self.__xnum = 3
                     self.__xcalf_num = 1
                     print("No adult number, but calf numbers match.")
-                elif self.calf_num is None and self.__db_calf_num is None: #this should not be possible in the present version.
-                    self.__xnum = 0
-                    self.__xcalf_num = 0
-                    print("You need at least an adult or a calf number.")
                 elif self.calf_num is not None and self.__db_calf_num is None: #this should not be possible in the present version.
                     self.__xnum = 3
                     self.__xcalf_num = 2
@@ -471,6 +538,10 @@ class elephant: ##MAKE A __repr__ function !!
                     self.__xnum = 3
                     self.__xcalf_num = 0
                     print("Calf numbers do not match (", self.calf_num, " here, ", self.__db_calf_num, " in the db)", sep="")
+                elif self.calf_num is None and self.__db_calf_num is None: #this should not be possible in the present version.
+                    self.__xnum = 0
+                    self.__xcalf_num = 0
+                    print("You need at least an adult or a calf number.")
             elif self.__num is not None and str(self.__num) != str(self.__db_num): #Impossible in the current version (match priority to num) but if later on: this means the match has been made on calf_num, so the case is clear on that side.
                 if self.calf_num == self.__db_calf_num: #just a check so far, but later on there may be research by birth date.
                     self.__xnum = 0
@@ -484,7 +555,7 @@ class elephant: ##MAKE A __repr__ function !!
 
 ############ Name
 
-            if self.name is not None and self.name in self.__db_name: #Partial match since there could be multiple names in the database
+            if self.name is not None  and self.__db_name is not None and self.name in self.__db_name: #Partial match since there could be multiple names in the database
                 self.__xname = 1
                 self.name = self.__db_name #This is in case that name is a subset of database name
                 print("Names match.")
@@ -616,7 +687,7 @@ class elephant: ##MAKE A __repr__ function !!
 
 ############ Camp
 
-            if self.camp is not None and self.camp in self.__db_camp:
+            if self.camp is not None and self.__db_camp is not None and self.camp in self.__db_camp:
                 self.__xcamp = 1
                 self.camp = self.__db_camp
                 print("Camps match.")
@@ -763,16 +834,14 @@ class elephant: ##MAKE A __repr__ function !!
             print("\nWrite: You must check that the elephant is absent from the database first.")
 
         #If this elephant is not in the database yet, write an insert statement (consistency of data assumed).
-        elif self.__sourced == 2:
-
+        elif self.__sourced == 2 and self.__num is not None and self.birth is not None:
             #this is outsourced to mysqlconnect
             out = self.__db.insert_eleph(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
             return(out)
 
         #If the elephant has been checked and there is no conflict, write an update statement.
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
-            print(self.status)
-            if all(x in (1,3) for x in self.status): #All fields are matching, no update
+            if all(x in (1,3,4) for x in self.status): #All fields are matching, no update
                 pass
             else:
                 #this is outsourced to mysqlconnect
@@ -790,9 +859,14 @@ class elephant: ##MAKE A __repr__ function !!
                 conflicts = conflicts+', '+f[x]
             c = conflicts.rstrip(', ')
             conflicts = c[2:]+"."
-            print("\nYou need to solve conflicts for:", conflicts)
+            if self.__sourced == 2:
+                return("[Conflict] Elephant number "+str(self.__num)+" is not in the database yet, but you must provide at least number and birth date")
+            elif self.__sourced != 2 and self.__num is not None:
+                return("[Conflict] Elephant number "+str(self.__num)+": you need to solve conflicts for: "+conflicts)
+            elif self.__sourced != 2 and self.__num is None:
+                return("[Conflict] Calf number "+str(self.calf_num)+": you need to solve conflicts for: "+conflicts)
 
-            return(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+            #return(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
 
 
             ##Add a light check here to see that a captive elephant has no age at capture.
@@ -860,8 +934,13 @@ class pedigree:
 
         self.__db_eleph_1 = self.__db.coreleph(self.eleph_1)
         self.__db_eleph_2 = self.__db.coreleph(self.eleph_2)
-        self.__db_id1 = self.__db_eleph_1[0]
-        self.__db_id2 = self.__db_eleph_2[0]
+        elephant_absent = 0
+        try:
+            self.__db_id1 = self.__db_eleph_1[0]
+            self.__db_id2 = self.__db_eleph_2[0]
+        except TypeError:
+            print("Impossible to find elephants", self.eleph_1, "and/or", self.eleph_2, "in the database.")
+            elephant_absent = 1
 
         if self.__db.pedigree(self.__db_id1, self.__db_id2):
             self.__rel_1 = self.__db.pedigree(self.__db_id1, self.__db_id2)[0]
@@ -944,6 +1023,9 @@ class pedigree:
                         else:
                             pass
 
+            if elephant_absent == 1:
+                self.__sourced = 0
+
             if self._sourced == 1:
                 print("This relationship is already correctly entered in the database, nothing to do.")
 
@@ -951,7 +1033,7 @@ class pedigree:
                 print("This relationship is present but incorreclty entered in the database.\nCheck it manually (relationship id: ",
                       self.__rel_1[1], ", elephant ids ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
 
-        elif self.__rel_1 is None and self.__rel_2 is None:
+        elif self.__rel_1 is None and self.__rel_2 is None and elephant_absent != 1:
             self.__sourced = 2
             print("This relationship is not in the database yet. You can proceed to check()")
 
@@ -960,11 +1042,6 @@ class pedigree:
 ################################################################################
 
     def check(self):  ###CHECK THAT THIS ELEPHANT DOESN'T ALREADY HAVE A MOTHER/A FATHER!!!
-
-        delta = (self.__db_eleph_2[2] - self.__db_eleph_1[2]).days / 365.25
-
-        print("\nThe proposed relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1], "), born on ", self.__db_eleph_1[2],
-              ", is the ", self.rel, " of elephant ", self.eleph_2, " (", self.__db_eleph_2[1], "), born on ", self.__db_eleph_2[2], ".\n", sep="")
 
         if self.__sourced == 0:
             print("\nCheck: This relationship is present in the database with an error. Please correct it manually")
@@ -976,6 +1053,12 @@ class pedigree:
             self.__checked = 1
             self.__xsex = 1
             self.__xbirth = 1
+
+            delta = (self.__db_eleph_2[2] - self.__db_eleph_1[2]).days / 365.25
+
+            print("\nThe proposed relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1], "), born on ", self.__db_eleph_1[2],
+                    ", is the ", self.rel, " of elephant ", self.eleph_2, " (", self.__db_eleph_2[1], "), born on ", self.__db_eleph_2[2], ".\n", sep="")
+
 
             #Check that this elephant does not already have a father or mother.
 
@@ -1055,33 +1138,32 @@ class pedigree:
 
         q = "'"
         if self.rel == "mother":
-            self.__rel_fwd = q+"mother"+q
-            self.__rel_rev = q+"offspring"+q
+            self.__rel_fwd = quote("mother")
+            self.__rel_rev = quote("offspring")
         elif self.rel == "father":
-            self.__rel_fwd = q+"father"+q
-            self.__rel_rev = q+"offspring"+q
+            self.__rel_fwd = quote("father")
+            self.__rel_rev = quote("offspring")
         elif self.rel == "unknown":
-            self.__rel_fwd = q+"unknown"+q
-            self.__rel_rev = q+"unknown"+q
+            self.__rel_fwd = quote("unknown")
+            self.__rel_rev = quote("unknown")
         elif self.rel == "offspring":
             if self.__db_eleph_2[1] == 'F':
-                self.__rel_fwd = q+"offspring"+q
-                self.__rel_rev = q+"mother"+q
+                self.__rel_fwd = quote("offspring")
+                self.__rel_rev = quote("mother")
             elif self.__db_eleph_2[1] == 'M':
-                self.__rel_fwd = q+"offspring"+q
-                self.__rel_rev = q+"father"+q
+                self.__rel_fwd = quote("offspring")
+                self.__rel_rev = quote("father")
             else:
-                self.__rel_fwd = q+"offspring"+q
-                self.__rel_rev = q+"unknown"+q
+                self.__rel_fwd = quote("offspring")
+                self.__rel_rev = quote("unknown")
 
         if self.coef is None:
             self.coef='null'
         else:
-            self.coef=q+self.coef+q
-
-        out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
+            self.coef=quote(self.coef)
 
         if self.__checked == 1:
+            out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
             return(out)
 
         elif self.__checked == 0:
@@ -1092,9 +1174,9 @@ class pedigree:
             conflicts = str()
             for x in i:
                 conflicts = conflicts+f[x]
-            print("\nYou need to solve conflicts for:", conflicts, "\n")
+            return("\n[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": you need to solve conflicts for:" + conflicts + "\n")
 
-            return(self.eleph_1, self.__db_eleph_1[1], self.__db_eleph_1[2], self.eleph_2, self.__db_eleph_2[1], self.__db_eleph_2[2])
+            #return(self.eleph_1, self.__db_eleph_1[1], self.__db_eleph_1[2], self.eleph_2, self.__db_eleph_2[1], self.__db_eleph_2[2])
 
     ##########################################################################
  ##############################################################################
@@ -1104,23 +1186,92 @@ class pedigree:
  ##############################################################################
    ##########################################################################
 
-# class measures:
-#
-#     def __init__(self, num, date, measure_id, measure, value):
-#         self.__num=num
-#         self.__date=date
-#         self.__measure_id=measure_id
-#         self.__measure=measure
-#         self.__value = value
-#
-#
-#     def source(self, db):
-#
-#
-#     def check(self):
-#
-#
-#     def write(self, db):
+#NEED TO ADD A DETECTION FOR REPLICATES IN THE READ MODULE (DON'T KNOW IF WE DO REPLICATES AT ALL?)
+
+class measure:
+
+    def __init__(self, num, date, measure_id, measure, value, replicate='N', solved = 'N'):
+        self.__num=num
+        self.__date=date
+        self.__measure_id=measure_id
+        self.__measure=measure
+        self.__value = float(value)
+        if replicate in ('Y','y','YES','yes'):
+            self.__replicate='Y'
+        else:
+            self.__replicate='N'
+        if solved in ('Y','y','YES','yes'):
+            self.__solved='Y'
+        else:
+            self.__solved='N'
+        self.__code = None
+
+################################################################################
+## 'source' function reads the measure from the database if it exists         ##
+################################################################################
+
+#Sees if a similar measure is already in the database
+#Verifies if that measure type is already in the measure_code table.
+#Note that adding a new measure should also be done through python (mysqlconnect module)
+
+    def source(self, db):
+
+        self.__db=db
+        self.__sourced = 0
+        #Start by seeing if that measure type is present in the measure_code table:
+        self.__code = self.__db.measure_code(self.__measure)
+        if self.__code is None:
+            print("Measure type", self.__measure, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
+
+        else:
+
+            self.__db_line = self.__db.measure_line(self.__num, self.__date, self.__code)
+
+            #Cases where the measure is already entered in a similar form in the database:
+            if self.__db_line is not None:
+
+                self.__db_value = self.__db_line[5]
+                if float(self.__value) == self.__db_value:
+                    self.__sourced = 1
+                    print("An identical measure is already entered in the database.")
+                    return(self.__db_line)
+                else:
+                    if self.__replicate == 'N':
+                        print("There is already a measure for ", self.__measure, " at that date in the database (", self.__value, ")", sep="")
+                        self.__sourced = 1
+                        return(self.__db_line)
+
+            #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
+            elif self.__db_line is None or (self.__db_line is not None and self.__replicate == 'Y'):
+                print("This measure is not in the database yet.")
+                self.__sourced = 2
+
+################################################################################
+## 'check' function, checks consistency between database and new data         ##
+################################################################################
+
+# Checks whether the value is in the range of the whole series (a power of 10 only to check the unit)
+# No check as to chronology since samples may be processed post-mortem (and date may be analysis, not sampling date)
+
+    def check(self,db):
+        self.__db=db
+
+        #If the measure is not present yet but the measure type is valid
+        if self.__sourced == 2:
+            mean_value = float(self.__db.mean_measure(self.__code))
+            if self.__solved == 'N':
+                print(10*mean_value)
+                if self.__value > 10*mean_value or self.__value < mean_value/10:
+                    print("The proposed value is out of the mean order of magnitude in the database. Check the input.")
+
+
+
+
+
+
+    #
+    #
+    # def write(self, db):
 
 #Here, the source function will mostly serve to compare the measures to the measures_codes table
 #and decide whether we should create a new measure
