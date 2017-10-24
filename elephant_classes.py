@@ -56,10 +56,10 @@ class mysqlconnect:
         return(statement)
 
 ################################################################################
-## 'fulleleph' function                                                       ##
+## 'get_elephant' function                                                       ##
 ################################################################################
 
-    def fulleleph(self, num=None, calf_num=None):
+    def get_elephant(self, num=None, calf_num=None):
         self.__num=num
         self.__calf_num=calf_num
         if self.__num is not None:
@@ -78,25 +78,10 @@ class mysqlconnect:
             print ("Error: unable to fetch data")
 
 ################################################################################
-## 'coreleph' function                                                        ##
+## 'get_pedigree' function                                                        ##
 ################################################################################
 
-    def coreleph(self, num):
-        self.__num=num
-        sql = "SELECT id, sex, birth, alive FROM elephants WHERE num = %s;" % (self.__num)
-        try:
-            self.__cursor.execute(sql)
-            results = self.__cursor.fetchall()
-            if results:
-                return(results[0])
-        except:
-            print ("Error: unable to fetch elephant data.")
-
-################################################################################
-## 'pedigree' function                                                        ##
-################################################################################
-
-    def pedigree(self, id_1, id_2):
+    def get_pedigree(self, id_1, id_2):
         self.__db_id1 = id_1
         self.__db_id2 = id_2
         sql_1 = "SELECT * FROM pedigree WHERE elephant_1_id = %s AND elephant_2_id = %s;" % (self.__db_id1, self.__db_id2) #__rel_1 : eleph 1 first
@@ -112,10 +97,10 @@ class mysqlconnect:
             pass
 
 ################################################################################
-## 'mother' function                                                          ##
+## 'get_mother' function                                                          ##
 ################################################################################
 
-    def mother(self, num):
+    def get_mother(self, num):
         self.__num=num
         sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
         self.__cursor.execute(sql)
@@ -127,10 +112,10 @@ class mysqlconnect:
             return result[0][0]
 
 ################################################################################
-## 'father' function                                                          ##
+## 'get_father' function                                                          ##
 ################################################################################
 
-    def father(self, num):
+    def get_father(self, num):
         self.__num=num
         sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
         self.__cursor.execute(sql)
@@ -142,10 +127,10 @@ class mysqlconnect:
             return result[0][0]
 
 ################################################################################
-## 'measure_code' function                                                          ##
+## 'get_measure_code' function                                                          ##
 ################################################################################
 
-    def measure_code(self, measure):
+    def get_measure_code(self, measure):
         self.__measure=measure
         sql = "SELECT id FROM measure_code WHERE code = %s" % (quote(self.__measure))
         self.__cursor.execute(sql)
@@ -154,10 +139,10 @@ class mysqlconnect:
             return(result[0][0])
 
 ################################################################################
-## 'measure_line' function                                                    ##
+## 'get_measure' function                                                    ##
 ################################################################################
 
-    def measure_line(self, num, date, code):
+    def get_measure(self, num, date, code):
         self.__num=num
         self.__date=date
         self.__code=code
@@ -180,10 +165,10 @@ class mysqlconnect:
                 print("More than one line corresponding to that measure. Check what is going on in the database")
 
 ################################################################################
-## 'mean_measure' function                                                    ##
+## 'get_mean_measure' function                                                    ##
 ################################################################################
 
-    def mean_measure(self, code):
+    def get_mean_measure(self, code):
         self.__code = code
         sql = "SELECT ROUND(AVG(value),2) FROM measures WHERE measure = %s;" % (self.__code)
         self.__cursor.execute(sql)
@@ -192,10 +177,10 @@ class mysqlconnect:
             return(result[0][0])
 
 ################################################################################
-## 'insert_eleph' function                                                    ##
+## 'insert_elephant' function                                                    ##
 ################################################################################
 
-    def insert_eleph(self,num,name,calf_num,sex,birth,cw,caught,camp,alive,research):
+    def insert_elephant(self,num,name,calf_num,sex,birth,cw,caught,camp,alive,research):
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
@@ -240,10 +225,10 @@ class mysqlconnect:
             return(statement)
 
 ################################################################################
-## 'update_eleph' function                                                    ##
+## 'update_elephant' function                                                    ##
 ################################################################################
 
-    def update_eleph(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, commits=None, id=None):
+    def update_elephant(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, commits=None, id=None):
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
 
@@ -836,7 +821,7 @@ class elephant: ##MAKE A __repr__ function !!
         #If this elephant is not in the database yet, write an insert statement (consistency of data assumed).
         elif self.__sourced == 2 and self.__num is not None and self.birth is not None:
             #this is outsourced to mysqlconnect
-            out = self.__db.insert_eleph(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+            out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
             return(out)
 
         #If the elephant has been checked and there is no conflict, write an update statement.
@@ -845,7 +830,7 @@ class elephant: ##MAKE A __repr__ function !!
                 pass
             else:
                 #this is outsourced to mysqlconnect
-                out = self.__db.update_eleph(wnum, wname, wcalf_num, wsex, wbirth, wcw, wcaught, wcamp, walive, wresearch, self.__db_commits, self.__db_id)
+                out = self.__db.update_elephant(wnum, wname, wcalf_num, wsex, wbirth, wcw, wcaught, wcamp, walive, wresearch, self.__db_commits, self.__db_id)
                 return(out)
 
         #If there is a pending conflict, we write out a csv-type line.
@@ -931,20 +916,28 @@ class pedigree:
     def source(self, db):
 
         self.__db=db
-
-        self.__db_eleph_1 = self.__db.coreleph(self.eleph_1)
-        self.__db_eleph_2 = self.__db.coreleph(self.eleph_2)
+        self.__db_eleph_1 = None
+        self.__db_eleph_2 = None
         elephant_absent = 0
+
         try:
+            el1 = self.__db.get_elephant(self.eleph_1)
+            el2 = self.__db.get_elephant(self.eleph_2)
+            self.__db_eleph_1 = []
+            self.__db_eleph_2 = []
+            for x in (0,4,5,9):
+                self.__db_eleph_1.append(el1[x])
+                self.__db_eleph_2.append(el2[x])
             self.__db_id1 = self.__db_eleph_1[0]
             self.__db_id2 = self.__db_eleph_2[0]
+
         except TypeError:
             print("Impossible to find elephants", self.eleph_1, "and/or", self.eleph_2, "in the database.")
             elephant_absent = 1
 
-        if self.__db.pedigree(self.__db_id1, self.__db_id2):
-            self.__rel_1 = self.__db.pedigree(self.__db_id1, self.__db_id2)[0]
-            self.__rel_2 = self.__db.pedigree(self.__db_id1, self.__db_id2)[1]
+        if self.__db.get_pedigree(self.__db_id1, self.__db_id2):
+            self.__rel_1 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[0]
+            self.__rel_2 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[1]
 
         #If the relationship already exists, check exact consistency of the entry:
 
@@ -1063,13 +1056,13 @@ class pedigree:
             #Check that this elephant does not already have a father or mother.
 
             if self.rel == "mother": # elephant 2 should not already have a mother or a father.
-                if self.__db.mother(self.eleph_2) is not None:
+                if self.__db.get_mother(self.eleph_2) is not None:
                     self.__checked = 0
-                    print("Elephant ", self.eleph_2, " already has a registered mother (", self.__db.father(self.eleph_2), ").", sep="")
+                    print("Elephant ", self.eleph_2, " already has a registered mother (", self.__db.get_mother(self.eleph_2), ").", sep="")
             elif self.rel == "father":
-                if self.__db.father(self.eleph_2) is not None:
+                if self.__db.get_father(self.eleph_2) is not None:
                     self.__checked = 0
-                    print("Elephant ", self.eleph_2, " already has a registered father (", self.__db.father(self.eleph_2), ").", sep="")
+                    print("Elephant ", self.eleph_2, " already has a registered father (", self.__db.get_father(self.eleph_2), ").", sep="")
 
 
             if self.rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 7 and 90 years age difference)
@@ -1219,13 +1212,13 @@ class measure:
         self.__db=db
         self.__sourced = 0
         #Start by seeing if that measure type is present in the measure_code table:
-        self.__code = self.__db.measure_code(self.__measure)
+        self.__code = self.__db.get_measure_code(self.__measure)
         if self.__code is None:
             print("Measure type", self.__measure, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
 
         else:
 
-            self.__db_line = self.__db.measure_line(self.__num, self.__date, self.__code)
+            self.__db_line = self.__db.get_measure(self.__num, self.__date, self.__code)
 
             #Cases where the measure is already entered in a similar form in the database:
             if self.__db_line is not None:
@@ -1258,7 +1251,7 @@ class measure:
 
         #If the measure is not present yet but the measure type is valid
         if self.__sourced == 2:
-            mean_value = float(self.__db.mean_measure(self.__code))
+            mean_value = float(self.__db.get_mean_measure(self.__code))
             if self.__solved == 'N':
                 print(10*mean_value)
                 if self.__value > 10*mean_value or self.__value < mean_value/10:
