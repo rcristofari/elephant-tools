@@ -67,7 +67,17 @@ class mysqlconnect:
         return(statement)
 
 ################################################################################
-## 'get_elephant' function                                                       ##
+## 'get_stamp' function                                                       ##
+################################################################################
+# A getter function useful for the parse_output function
+    def get_stamp(self):
+        if self.__i is None:
+            print("You must generate a stamp first using stamp()")
+        else:
+            return(self.__stamp)
+
+################################################################################
+## 'get_elephant' function                                                    ##
 ################################################################################
 
     def get_elephant(self, num=None, calf_num=None):
@@ -472,9 +482,9 @@ class elephant: ##MAKE A __repr__ function !!
         self.__sourced = 0
 
         if self.__num is not None:
-            results = self.__db.fulleleph(num=self.__num)
+            results = self.__db.get_elephant(num=self.__num)
         elif self.__num is None and self.calf_num is not None:
-            results = self.__db.fulleleph(calf_num=self.calf_num)
+            results = self.__db.get_elephant(calf_num=self.calf_num)
         else:
             results = None
             print("You need either an elephant number or a calf number to proceed")

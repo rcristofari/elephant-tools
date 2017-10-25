@@ -7,6 +7,7 @@ from datetime import datetime
 # Write a "crawler" function to work the pedigrees up and down from one individual
 # Write a "consolidate_alive" function to assess who is alive / dead now from data
 # Write a "get commits" function that parses out the list of commits and get the corresponding entries.
+
 ####################################################################################
 ##  read_elephant() READ ELEPHANTS DEFINTION FILE                                 ##
 ####################################################################################
@@ -593,3 +594,56 @@ def read_events(elefile, sep=';', solved='N'):
         return(lines)
     else:
        return(warnings)
+
+####################################################################################
+##  parse_output() parses the total output into mysql and warings                 ##
+####################################################################################
+
+def parse_output(stream, db):
+
+    stamp = db.get_stamp()
+    statements = []
+    warnings = []
+    statement_name = str(stamp)+"_operations.sql"
+    warnings_name = str(stamp)+"_conflicts.out"
+    for row in stream:
+        if re.search(r"^INSERT", str(row)):
+            statements.append(row)
+        elif re.search(r"^UPDATE", str(row)):
+            statements.append(row)
+        else:
+            warnings.append(row)
+
+    with open(statement_name,"w") as s:
+        for x in statements:
+            s.write(str(x)+'\n')
+
+    with open(warnings_name, "w") as w:
+        for x in warnings:
+            if x != '' and x is not None:
+                w.write((str(x))+'\n')
+
+####################################################################################
+##  parse_reads() parses the output from a read_ function into warnings etc       ##
+####################################################################################
+#the argument here is the output from a read_ function (read_elephants, read_pedigree...)
+def parse_reads(read_output, prefix='reads_'):
+    accepted_name = prefix+'_accepted.reads'
+    rejected_name = prefix+'_rejected.reads'
+    remark_name = prefix+'_accepted.log'
+    issue_name =prefix+'_rejected.log'
+
+    with open(accepted_name, "w") as accepted:
+        accepted.write(str(read_output[0])[1:-1]+'\n')
+        for x in read_output[1]:
+            accepted.write(str(x)[1:-1]+'\n')
+    with open(rejected_name, "w") as rejected:
+        rejected.write(str(read_output[0])[1:-1]+'\n')
+        for x in read_output[3]:
+            rejected.write(str(x)[1:-1]+'\n')
+    with open(remark_name,"w") as remark:
+        for i,x in enumerate(read_output[2]):
+            remark.write(str(i)+': '+str(x)[2:-2]+'\n')
+    with open(issue_name, "w") as issue:
+        for i,x in enumerate(read_output[4]):
+            issue.write(str(i)+': '+str(x)[2:-2]+'\n')

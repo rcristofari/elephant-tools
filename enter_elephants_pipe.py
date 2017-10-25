@@ -10,22 +10,9 @@ s = db.stamp()
 common_out.append(s)
 
 print("\nREADING INPUT FILE...\n")
-eles_raw = read_elephants('../elephants_rejected_formatted_2nd.csv', sep=',')
+eles_raw = read_elephants('../elephants.csv', sep=',')
 
-with open("Accepted.txt", "w") as accepted:
-    accepted.write(str(eles_raw[0])[1:-1]+'\n')
-    for x in eles_raw[1]:
-        accepted.write(str(x)[1:-1]+'\n')
-with open("Rejected.txt", "w") as rejected:
-    rejected.write(str(eles_raw[0])[1:-1]+'\n')
-    for x in eles_raw[3]:
-        rejected.write(str(x)[1:-1]+'\n')
-with open("Remarks.txt","w") as remark:
-    for x in eles_raw[2]:
-        remark.write(str(x)[2:-2]+'\n')
-with open("Issues.txt", "w") as issue:
-    for x in eles_raw[4]:
-        issue.write((str(x)[2:-2])+'\n')
+parse_reads(eles_raw, prefix='../test')
 
 eles = eles_raw[1]
 del eles_raw
@@ -49,5 +36,4 @@ for row in eles[1:]:
     ele.check()
     common_out.append(ele.write(db))
 
-for o in common_out:
-    print(o)
+parse_output(common_out,db)
