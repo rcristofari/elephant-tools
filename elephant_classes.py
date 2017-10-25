@@ -44,14 +44,25 @@ class mysqlconnect:
         self.__stamp = re.sub('\ |\-|\:', '', t)
 
         #Check the latest commit ID
-        sql = "SELECT max(id) FROM commits;"
+        sql = "SHOW TABLE STATUS LIKE 'commits';"
         self.__cursor.execute(sql)
         f = self.__cursor.fetchall()
-        if f[0][0] is not None:
-            last_id = f[0][0]
-            self.__i = last_id + 1
-        else:
-            self.__i = 1
+        try:
+            self.__i = f[0][10]
+        except:
+            print("Impossible to connect to database")
+
+        #Get the running ID for measures
+        sql = "SELECT MAX(measure_id) FROM measures;"
+#        sql = "SHOW TABLE STATUS LIKE 'measures';"
+        self.__cursor.execute(sql)
+        f = self.__cursor.fetchall()
+        try:
+#            self.__max_measure_id = f[0][10]-1
+            self.__max_measure_id = f[0][0]
+        except:
+            print("Impossible to connect to database")
+
         statement = "INSERT INTO commits (stamp, user, details) VALUES (%s, %s, %s);" % (self.__stamp, quote(self.__usr), quote(details))
         return(statement)
 
@@ -184,7 +195,6 @@ class mysqlconnect:
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
-            q = "'"
             if name is None:
                 name = 'null'
             else:
@@ -233,10 +243,10 @@ class mysqlconnect:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
 
         else:
-            q = "'"
             fields = str()
             values = []
             if num is not None:
+                num = quote(num)
                 fields=fields+'num=%s, '
                 values.append(num)
 
@@ -299,7 +309,6 @@ class mysqlconnect:
             f = fields.rstrip(', ')
             statement = str("UPDATE elephants SET "+f+" WHERE id=%s;") % (values_t)
 
-#            statement = "UPDATE elephants SET name=%s, sex=%s, birth=%s, cw=%s, age_capture=%s, camp=%s, alive=%s, commits=%s WHERE id=%s;" % (name, sex, birth, cw, caught, camp, alive, newcommits, id)
             return(statement)
 
 ################################################################################
@@ -321,10 +330,45 @@ class mysqlconnect:
             except:
                 print("Unable to connect to database")
 
-            statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (last_id, id1, id2, rel_fwd, coef)
-            statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel) VALUES (%s, %s, %s, %s, %s);" % (last_id, id2, id1, rel_rev, coef)
+            statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id1, id2, rel_fwd, coef, quote(self.__i))
+            statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id2, id1, rel_rev, coef, quote(self.__i))
 
             return(statement_1, statement_2)
+
+################################################################################
+## 'insert_measure' function                                                 ##
+################################################################################
+
+    def insert_measure(self, measure_id, elephant_id, date, measure_code_id, value, commits = None):
+
+        if self.__i is None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+            if commits is not None:
+                newcommits = (quote(str(commits)+','+str(self.__i)))
+            else:
+                newcommits = (quote(str(self.__i)))
+            statement = "INSERT INTO measures (measure_id, elephant_id, date, measure, value, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (quote(int(measure_id) + int(self.__max_measure_id)), elephant_id, quote(date), measure_code_id, value, newcommits)
+
+            return(statement)
+
+################################################################################
+## 'insert_measure_code' function                                             ##
+################################################################################
+
+    def insert_measure_code(self, code, unit, descript, commits = None):
+
+        if self.__i is None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+            if commits is not None:
+                newcommits = (quote(str(commits)+','+str(self.__i)))
+            else:
+                newcommits = (quote(str(self.__i)))
+
+            statement = "INSERT INTO measure_code (code, unit, descript, commits) VALUES (%s, %s, %s, %s);" % (quote(code), quote(unit), quote(descript), newcommits)
+
+            return(statement)
 
    ##########################################################################
  ##############################################################################
@@ -955,7 +999,7 @@ class pedigree:
                      or (self.__rel_1[4] == 'offspring' and self.__rel_2[4] == 'father')
                      or (self.__rel_1[4] == 'unknown' or self.__rel_2[4] == 'unknown'))):
 
-                    self._sourced = 1
+                    self.__sourced = 1
 
                     #Testing the consistency of the relationship as entered in the database.
                     #Testing that the age difference is at least 7 years (should be tuned better).
@@ -963,55 +1007,55 @@ class pedigree:
 
                     if self.__rel_1[4] == 'mother':
                         if delta > -10:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Mother too young (", round(abs(delta)), " years old)", sep="")
                         elif delta < -70:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Mother too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     if self.__rel_2[4] == 'mother':
                         if delta < 10:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Mother too young (", round(abs(delta)), " years old)", sep="")
                         elif delta > 10:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Mother too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_1[4] == 'father':
                         if delta > -10:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Father too young (", round(abs(delta)), " years old)", sep="")
                         elif delta < -70:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Father too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_2[4] == 'father':
                         if delta < 10:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Father too young (", round(abs(delta)), " years old)", sep="")
                         elif delta > 70:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Father too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_1[4] == 'offspring':
                         if delta < 10:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Parent too young (", round(abs(delta)), " years old)", sep="")
                         elif delta > 70:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Parent too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
                     elif self.__rel_2[4] == 'offspring':
                         if delta > -10:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Parent too young (", round(abs(delta)), " years old)", sep="")
                         elif delta < -70:
-                            self._sourced = 0
+                            self.__sourced = 0
                             print("Parent too old (", round(abs(delta)), " years old)", sep="")
                         else:
                             pass
@@ -1019,7 +1063,7 @@ class pedigree:
             if elephant_absent == 1:
                 self.__sourced = 0
 
-            if self._sourced == 1:
+            if self.__sourced == 1:
                 print("This relationship is already correctly entered in the database, nothing to do.")
 
             else:
@@ -1129,7 +1173,6 @@ class pedigree:
     def write(self, db):
         self.__db = db
 
-        q = "'"
         if self.rel == "mother":
             self.__rel_fwd = quote("mother")
             self.__rel_rev = quote("offspring")
@@ -1198,6 +1241,11 @@ class measure:
         else:
             self.__solved='N'
         self.__code = None
+        self.__xval = 0
+        self.__xeleph = 0
+        self.__xrep = 1
+        self.__sourced = 0
+        self.__checked = 0
 
 ################################################################################
 ## 'source' function reads the measure from the database if it exists         ##
@@ -1210,34 +1258,43 @@ class measure:
     def source(self, db):
 
         self.__db=db
-        self.__sourced = 0
-        #Start by seeing if that measure type is present in the measure_code table:
-        self.__code = self.__db.get_measure_code(self.__measure)
-        if self.__code is None:
-            print("Measure type", self.__measure, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
+
+        #Get the ID of the elephant:
+        self.__elephant = self.__db.get_elephant(num = self.__num)
+        if self.__elephant is None:
+            print("This elephant is absent from the database. Impossible to add a measure.")
+            self.__xeleph = 0
 
         else:
+            self.__elephant_id = self.__elephant[0]
+            self.__xeleph = 1
 
-            self.__db_line = self.__db.get_measure(self.__num, self.__date, self.__code)
+            #Start by seeing if that measure type is present in the measure_code table:
+            self.__code = self.__db.get_measure_code(self.__measure)
 
-            #Cases where the measure is already entered in a similar form in the database:
-            if self.__db_line is not None:
+            if self.__code is None:
+                print("Measure type", self.__measure, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
 
-                self.__db_value = self.__db_line[5]
-                if float(self.__value) == self.__db_value:
-                    self.__sourced = 1
-                    print("An identical measure is already entered in the database.")
-                    return(self.__db_line)
-                else:
-                    if self.__replicate == 'N':
-                        print("There is already a measure for ", self.__measure, " at that date in the database (", self.__value, ")", sep="")
+            else:
+                self.__db_line = self.__db.get_measure(self.__num, self.__date, self.__code)
+                #Cases where the measure is already entered in a similar form in the database:
+                if self.__db_line is not None:
+
+                    self.__db_value = self.__db_line[5]
+                    if float(self.__value) == self.__db_value:
                         self.__sourced = 1
-                        return(self.__db_line)
+                        print("An identical measure is already entered in the database.")
+                        self.__xrep = 0
+                    else:
+                        if self.__replicate == 'N':
+                            print("There is already a measure for ", self.__measure, " at that date in the database (", self.__value, ")", sep="")
+                            self.__sourced = 1
+                            self.__xrep = 0
 
-            #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
-            elif self.__db_line is None or (self.__db_line is not None and self.__replicate == 'Y'):
-                print("This measure is not in the database yet.")
-                self.__sourced = 2
+                #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
+                elif self.__db_line is None or (self.__db_line is not None and self.__replicate == 'Y'):
+                    print("This measure is not in the database yet.")
+                    self.__sourced = 2
 
 ################################################################################
 ## 'check' function, checks consistency between database and new data         ##
@@ -1248,31 +1305,52 @@ class measure:
 
     def check(self,db):
         self.__db=db
+        self.__checked = 0
+        self.__xval = 0
 
+        if self.__sourced == 0:
+            print("You need to source this measure first.")
+        elif self.__sourced == 1:
+            self.__checked = 1
+            print("This measure is already in the database. Nothing to do here.")
         #If the measure is not present yet but the measure type is valid
-        if self.__sourced == 2:
-            mean_value = float(self.__db.get_mean_measure(self.__code))
-            if self.__solved == 'N':
-                print(10*mean_value)
-                if self.__value > 10*mean_value or self.__value < mean_value/10:
-                    print("The proposed value is out of the mean order of magnitude in the database. Check the input.")
+        elif self.__sourced == 2:
+            self.__mean_value = float(self.__db.get_mean_measure(self.__code))
+            if (self.__value > 10*self.__mean_value or self.__value < self.__mean_value/10) and self.__solved == 'N':
+                print("The proposed value is out of the mean order of magnitude in the database. Check the input.")
+                self.__xval = 0
+            else:
+                print("This measure is valid. You can proceed to write()")
+                self.__xval = 1
+                self.__checked = 2
 
+################################################################################
+## 'write' function writes out the sql instert statement or an error          ##
+################################################################################
 
+    def write(self, db):
+        self.__db=db
 
+        if self.__checked == 0:
+            if self.__sourced == 0:
+                print("This entry must pass through check() first.")
+            elif self.__sourced == 1:
+                print("This entry is not valid. Please check input before proceeding.")
+        elif self.__checked == 1 and self.__sourced == 1:
+            print("This measure is already entered, nothing to do.")
+        elif self.__checked == 2:
+            out = self.__db.insert_measure(self.__measure_id, self.__elephant_id, self.__date, self.__code, self.__value)
 
+        if self.__xeleph == 1:
+            if self.__xval == 0:
+                if self.__xrep == 1:
+                    out = "[Conflict] Value out of range for elephant "+str(self.__num)+" (here "+str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")"
+                elif self.__xrep == 0:
+                    out = "[Conflict] Value "+str(self.__value)+" ("+str(self.__measure)+") for elephant "+str(self.__num)+" appears to be a duplicate"
+        elif self.__xeleph == 0:
+            out = "[Conflict] Elephant number "+str(self.__num)+" is absent from the database"
 
-
-    #
-    #
-    # def write(self, db):
-
-#Here, the source function will mostly serve to compare the measures to the measures_codes table
-#and decide whether we should create a new measure
-
-#Tasks: check value against mean value in DB if exists
-#Check if an identical line is already in the database (including date)
-
-
+        return(out)
 
    ##########################################################################
  ##############################################################################
