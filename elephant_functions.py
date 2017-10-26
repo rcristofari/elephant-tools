@@ -647,3 +647,31 @@ def parse_reads(read_output, prefix='reads_'):
     with open(issue_name, "w") as issue:
         for i,x in enumerate(read_output[4]):
             issue.write(str(i)+': '+str(x)[2:-2]+'\n')
+
+####################################################################################
+##  make_measure_set() takes an optional list of individuals and measure names    ##
+####################################################################################
+# ind is a tuple of individuals
+# measures is a tuple with measure names.
+# either we fix the measures, and we get all elephants that have them.
+# or we fix the elephants, and we get all available measures.
+# or we fix both and then we get what's available.
+
+# then there will be a read_example() function to provide an empty table
+
+def make_measure_set(ind=None, measures=None):
+    if ind is None and measures is None:
+        print("You must give at least one desciption")
+        mode = 0
+    elif ind is None and measures is not None:
+        mode = 1
+    elif ind is not None and measures is None:
+        mode = 2
+    elif ind is not None and measures is not None:
+        mode = 3
+
+def make_time_series(ind=None, measure=None):
+    pass
+
+def retrieve_dataset(dataset):
+    pass
