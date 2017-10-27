@@ -160,7 +160,7 @@ class mysqlconnect:
             return(result[0][0])
 
 ################################################################################
-## 'get_measure' function                                                    ##
+## 'get_measure' function                                                     ##
 ################################################################################
 
     def get_measure(self, num, date, code):
@@ -186,7 +186,7 @@ class mysqlconnect:
                 print("More than one line corresponding to that measure. Check what is going on in the database")
 
 ################################################################################
-## 'get_mean_measure' function                                                    ##
+## 'get_mean_measure' function                                                ##
 ################################################################################
 
     def get_mean_measure(self, code):
@@ -198,7 +198,70 @@ class mysqlconnect:
             return(result[0][0])
 
 ################################################################################
-## 'insert_elephant' function                                                    ##
+## 'get_event_code' function                                                          ##
+################################################################################
+
+    def get_event_code(self, event):
+        self.__event=event
+        sql = "SELECT id FROM event_code WHERE code = %s" % (quote(self.__event))
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return(result[0][0])
+
+################################################################################
+## 'get_event' function                                                       ##
+################################################################################
+
+    def get_event(self, num, date, event_type):
+        sql = "SELECT id FROM elephants WHERE num = %s" % (num)
+        try:
+            self.__cursor.execute(sql)
+            self.__eleph_id = self.__cursor.fetchall()[0][0]
+        except:
+            print("This elephant is absent from the database")
+
+        sql = "SELECT * FROM events WHERE num = %s AND date = %s AND type = %s" % (quote(num), quote(date), quote(event_type))
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return(result[0])
+
+################################################################################
+## 'get_date_of_death' function                                               ##
+################################################################################
+
+    def get_date_of_death(self, id):
+        sql = "SELECT date FROM events WHERE elephant_id = %s AND type = 'death';" % (id)
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return(result[0][0])
+
+################################################################################
+## 'get_last_alive' function                                                  ##
+################################################################################
+
+    def get_last_alive(self, id):
+        sql = "SELECT MAX(date) FROM events WHERE id = %s AND type != 'death';" % (id)
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return(result[0][0])
+
+################################################################################
+## 'get_last_breeding' function                                                  ##
+################################################################################
+
+    def get_last_breeding(self, id):
+        sql = "SELECT MAX(b.birth) FROM pedigree AS p LEFT JOIN elephants AS a ON p.elephant_1_id = a.id LEFT JOIN elephants AS b ON p.elephant_2_id = b.id WHERE (p.rel = 'mother' OR p.rel = 'father') AND a.id = %s;" % (id)
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return(result[0][0])
+
+################################################################################
+## 'insert_elephant' function                                                 ##
 ################################################################################
 
     def insert_elephant(self,num,name,calf_num,sex,birth,cw,caught,camp,alive,research):
@@ -377,6 +440,42 @@ class mysqlconnect:
                 newcommits = (quote(str(self.__i)))
 
             statement = "INSERT INTO measure_code (code, unit, descript, commits) VALUES (%s, %s, %s, %s);" % (quote(code), quote(unit), quote(descript), newcommits)
+
+            return(statement)
+
+################################################################################
+## 'insert_event' function                                                    ##
+################################################################################
+
+    def insert_event(self, id, date, loc, event_type, code):
+
+        if self.__i is None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+            if commits is not None:
+                newcommits = (quote(str(commits)+','+str(self.__i)))
+            else:
+                newcommits = (quote(str(self.__i)))
+
+            statement = "INSERT INTO events (elephant_id, date, loc, type, code, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (id, quote(date), quote(loc), quote(event_type), code, newcommits)
+
+            return(statement)
+
+################################################################################
+## 'insert_event_code' function                                               ##
+################################################################################
+
+    def insert_event_code(self, code, descript, commits = None):
+
+        if self.__i is None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+            if commits is not None:
+                newcommits = (quote(str(commits)+','+str(self.__i)))
+            else:
+                newcommits = (quote(str(self.__i)))
+
+            statement = "INSERT INTO event_code (code, descript, commits) VALUES (%s, %s, %s);" % (quote(code), quote(descript), newcommits)
 
             return(statement)
 
@@ -1370,5 +1469,174 @@ class measure:
  ##############################################################################
    ##########################################################################
 
+class event:
 
-# A measure object consists of fields
+    def __init__(self, num, date, loc, event_type, code, solved = 'N'):
+        self.__num=num
+        self.__date=datetime.strptime(date, '%Y-%m-%d').date()
+        self.__loc=loc
+        self.__event_type=event_type
+        self.__code=code
+        if solved in ('Y','y','YES','yes'):
+            self.__solved='Y'
+        else:
+            self.__solved='N'
+
+        self.__sourced = 0
+        self.__checked = 0
+
+################################################################################
+## 'source' function reads the event from the database if it exists           ##
+################################################################################
+
+# Like a measure, an event is considered redundant if it shares the same individual, date, and type.
+
+    def source(self,db):
+        self.__db=db
+
+        #Get the ID of the elephant:
+        self.__elephant = self.__db.get_elephant(num = self.__num)
+        if self.__elephant is None:
+            print("This elephant is absent from the database. Impossible to add an event.")
+            self.__xeleph = 0
+
+        else:
+            self.__elephant_id = self.__elephant[0]
+            self.__db_birth = self.__elephant[5]
+            self.__db_alive = self.__elephant[9]
+            self.__db_cw = self.__elephant[6]
+            self.__xeleph = 1
+
+            #Start by seeing if that measure type is present in the measure_code table:
+            self.__code_id = self.__db.get_event_code(self.__code)
+
+            if self.__code_id is None:
+                print("Event code", self.__event, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
+
+            else:
+                self.__db_line = self.__db.get_event(self.__num, self.__date, self.__event_type)
+                #Cases where the measure is already entered in a similar form in the database:
+                if self.__db_line is not None:
+
+                    self.__db_code = self.__db_line[5]
+                    if self.__code_id == self.__db_code:
+                        self.__sourced = 1
+                        print("An identical event is already entered in the database.")
+                        self.__xrep = 0
+                    else:
+                        if self.__solved == 'N':
+                            print("There is already an event of type '", self.__event_type, "' for elephant ", self.__num, " at that date in the database.", sep="")
+                            self.__sourced = 1
+                            self.__xrep = 0
+
+                #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
+                elif self.__db_line is None or (self.__db_line is not None and self.__solved == 'Y'):
+                    print("This event is not in the database yet.")
+                    self.__sourced = 2
+
+################################################################################
+## 'check' function checks consistency between database and new data          ##
+################################################################################
+
+# Consistency check on death: a death event prohibits further events, and triggers an update in the elephants table
+# Events over 100 years of age requires a "solved" flag to be allowed
+# Consistency check on birth: no event is allowed prior to birth datetime
+# Possible event types are : 'capture','accident','disease','death','alive'
+
+    def check(self, db):
+        # Here, add the basic controls (sourced or not...)
+        self.__db = db
+        delta = (self.__date - self.__birth).days / 365.25
+        self.__date_of_death = self.__db.get_date_of_death(self.__elephant_id)
+        self.__last_alive = self.__db.get_last_alive(self.__elephant_id)
+        self.__last_breeding = self.__db.get_last_breeding(self.__elephant_id)
+        self.__update_cw = 0
+        self.__update_alive = 0
+
+        if delta < 0:
+            print("This event precedes this elephant's birth.")
+            self.__xdate = 0
+        elif delta > 100 and solved == 'N':
+            print("This event occurs when the elephant is over 100 years. Please verify input.")
+
+        if self.__event_type == 'death':
+            if self.__date_of_death is not None:
+                print("This elephant is already died on ", date_of_death, ". You can't kill what's already dead.", sep="")
+                self.__xdate = 0
+            elif (self.__date - self.__last_alive).days < 0:
+                print("This elephant was seen alive later, on ", self.__last_alive,", check your input.", sep="")
+                self.__xdate = 0
+            elif (self.__date - self.__last_breeding) < 0:
+                print("This elephant had an offspring on ", self.__last_breeding,", check your input.", sep="")
+                self.__xdate = 0
+            else:
+                print("Chronologies seem to match - updating database")
+                self.__update_alive = 1
+                self.__xdate = 1
+
+        elif self.__event_type in ('capture','accident','disease','alive'):
+            if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0:
+                print("This elephant was already six feet under by then. Please check your input.")
+                self.__xdate = 0
+            elif self.__date_of_death is None and self.__db_alive == 'UKN':
+                    #If the event is less than 5 years ago and the elephant is now less than 90 years old, it switches to 'alive'
+                    if ((datetime.now().date()-self.__date).days / 365.25) <= 5 and ((datetime.now().date()-self.__db_birth).days / 365.25) <= 90:
+                        print("Updating status to 'alive' in the database.")
+                        self.__update_alive = 2
+                        self.__xdate = 1
+                    else:
+                        print("Chronologies seem to match.")
+                        self.__xdate = 1
+            elif self.__date_of_death is not None and (self.__date - self.__date_of_death).days <= 0:
+                print("Chronologies seem to match.")
+                self.__xdate = 1
+
+        elif self.__event_type == 'capture':
+            if self.__db_cw == 'captive':
+                print("You can't register a capture event for a captive-born elephant.")
+                self.__xcw = 0
+            elif self.__db_cw == 'UKN':
+                print("We didn't know this was a wild elephant - updating database.")
+                self.__xcw=1
+                self.__update_cw = 1
+            elif self.__db_cw == 'wild':
+                print("This elephant is indeed registered as wild-caught. No problem.")
+                self.__xcw = 1
+
+        if self.__xdate != 0 and self.__xcw !=0:
+            self.__checked = 1
+
+################################################################################
+## 'write' function writes out the sql instert statement or an error          ##
+################################################################################
+
+    def write(self):
+        #Write some basic checks here for the workflow + am the __x checks
+
+        if self.__checked == 1:
+
+            #If we need to update the "cw" or "alive" flags in the elephants table
+            if self.__update_cw == 0:
+                wcw = None
+            elif self.__update_cw == 1:
+                wcw = 'wild'
+            if self.__update_alive == 0:
+                walive = None
+            elif self.__update_alive == 1:
+                walive = 'N'
+            elif self.__update_alive == 2:
+                walive = 'Y'
+
+            if wcw is not None or walive is not None:
+                update = self.__db.update_elephant(num=self.__num, cw=wcw, alive=walive)
+
+            insert = self.__db.insert_event(self.__elephant_id, self.__date, self.__loc, self.__event_type, self.__code_id)
+
+
+
+
+
+
+# self.__update_alive == 1 means that we need to issue an update statement to kill that elephant.
+# self.__update_alive == 2 means that we need to issue an update statement to resurrect that elephant.
+# self.__update_cw = 1 means that the elephant is born wild.

@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 
 # Write a "crawler" function to work the pedigrees up and down from one individual
-# Write a "consolidate_alive" function to assess who is alive / dead now from data
+# Write a "consolidate_alive" function to assess who is alive / dead now from data (using get_last_alive and get_last_breeding)
 # Write a "get commits" function that parses out the list of commits and get the corresponding entries.
 
 ####################################################################################
