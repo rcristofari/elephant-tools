@@ -5,6 +5,7 @@ import numpy as np
 import re
 import os
 import csv
+from ete3 import Tree, TreeStyle, Tree, TextFace, add_face_to_node
 
 #A simple function for mysql queries:
 def quote(string):
@@ -81,15 +82,18 @@ class mysqlconnect:
 ## 'get_elephant' function                                                    ##
 ################################################################################
 
-    def get_elephant(self, num=None, calf_num=None):
+    def get_elephant(self, num=None, calf_num=None, id=None):
         self.__num=num
         self.__calf_num=calf_num
-        if self.__num is not None:
+        self.__id=id
+        if self.__num is not None and self.__id is None:
             sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
-        elif self.__num is None and self.__calf_num is not None:
+        elif self.__num is None and self.__calf_num is not None and self.__id is None:
             sql = "SELECT * FROM elephants WHERE calfnum = %s;" % (self.__calf_num) ##Will open to a problem when several calves have the same ID and no adult ID...fix by matching on dates
+        elif self.__num is None and self.__calf_num is None and self.__id is not None:
+            sql = "SELECT * FROM elephants WHERE id = %s;" % (self.__id)
         else:
-            print("Error: you need at least one identifier")
+            print("Error: you one and only one identifier")
         try:
             self.__cursor.execute(sql)
             results = self.__cursor.fetchall()
@@ -122,14 +126,22 @@ class mysqlconnect:
 ## 'get_mother' function                                                          ##
 ################################################################################
 
-    def get_mother(self, num):
+    def get_mother(self, num=None, id=None):
         self.__num=num
-        sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
-        self.__cursor.execute(sql)
-        id1 = self.__cursor.fetchall()[0][0]
-        sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'mother';" % (id1)
-        self.__cursor.execute(sql)
-        result = self.__cursor.fetchall()
+        self.__id=id
+        if self.__num is not None and self.__id is None:
+            sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
+            self.__cursor.execute(sql)
+            id1 = self.__cursor.fetchall()[0][0]
+            sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'mother';" % (id1)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        elif self.__num is None and self.__id is not None:
+            sql = "SELECT elephant_1_id FROM pedigree WHERE elephant_2_id = %s AND rel = 'mother';" % (self.__id)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        else:
+            print("You must provide an ID number OR an elephant number")
         if result:
             return result[0][0]
 
@@ -137,16 +149,51 @@ class mysqlconnect:
 ## 'get_father' function                                                          ##
 ################################################################################
 
-    def get_father(self, num):
+    def get_father(self, num=None, id=None):
         self.__num=num
-        sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
-        self.__cursor.execute(sql)
-        id1 = self.__cursor.fetchall()[0][0]
-        sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'father';" % (id1)
-        self.__cursor.execute(sql)
-        result = self.__cursor.fetchall()
+        self.__id=id
+        if self.__num is not None and self.__id is None:
+            sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
+            self.__cursor.execute(sql)
+            id1 = self.__cursor.fetchall()[0][0]
+            sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'father';" % (id1)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        elif self.__num is None and self.__id is not None:
+            sql = "SELECT elephant_1_id FROM pedigree WHERE elephant_2_id = %s AND rel = 'father';" % (self.__id)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        else:
+            print("You must provide an ID number OR an elephant number")
         if result:
             return result[0][0]
+
+################################################################################
+## 'get_offsprings' function                                                          ##
+################################################################################
+
+    def get_offsprings(self, num=None, id=None):
+        self.__num=num
+        self.__id=id
+        if self.__num is not None and self.__id is None:
+            sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
+            self.__cursor.execute(sql)
+            id1 = self.__cursor.fetchall()[0][0]
+            sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'offspring';" % (id1)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        elif self.__num is None and self.__id is not None:
+            sql = "SELECT elephant_1_id FROM pedigree WHERE elephant_2_id = %s AND rel = 'offspring';" % (self.__id)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+
+        else:
+            print("You must provide an ID number OR an elephant number")
+        if result:
+            o = []
+            for r in result:
+                o.append(r[0])
+            return o
 
 ################################################################################
 ## 'get_measure_code' function                                                          ##
@@ -1669,7 +1716,7 @@ class event:
 
 
 ####################################################################################
-##  read_elephant() READ ELEPHANTS DEFINTION FILE                                 ##
+##  read_elephants() READ ELEPHANTS DEFINTION FILE                                 ##
 ####################################################################################
 
 # A model elephant file is made up of 10 fields:
@@ -2307,3 +2354,91 @@ def parse_reads(read_output, prefix='reads_'):
     with open(issue_name, "w") as issue:
         for i,x in enumerate(read_output[4]):
             issue.write(str(i)+': '+str(x)[2:-2]+'\n')
+
+####################################################################################
+##  matriline_tree() function builds a Nexus tree string around an individual     ##
+####################################################################################
+
+def matriline_tree(id, db):
+    offspring = id
+    #Start upwards to the oldest existing maternal ancestor
+    direct_mothers = []
+    mother = int
+    while mother is not None:
+        mother = db.get_mother(id=offspring)
+        direct_mothers.append(mother)
+        offspring = mother
+
+        direct_mothers.pop()
+    print(direct_mothers)
+    #Find the oldest known female in the line
+    if direct_mothers != []:
+        oldest_mother = direct_mothers.pop()
+    else:
+        oldest_mother = id
+        print(oldest_mother)
+    #Go back down. The criterion to stop is that no female of generation 'n'
+    #has any offspring.
+
+    mothers = [oldest_mother]
+    generation_n = [1]
+    oldest_mother_num = db.get_elephant(id = oldest_mother)[1]
+    newick="('#"+str(oldest_mother_num)+"_\u2640')"
+
+    while generation_n.__len__() != 0:
+        generation_n = []
+        for m in mothers:
+            m_num = db.get_elephant(id = m)[1]
+            o = db.get_offsprings(id = m)
+            if o is not None:
+                taxon = []
+
+                for i in o:
+                    generation_n.append(i)
+                    info = db.get_elephant(id = i)
+                    num = info[1]
+                    sex = info[4]
+                    if sex == 'F':
+                        u = '\u2640'
+                    elif sex == 'M':
+                        u = '\u2642'
+                    else:
+                        u = '?'
+                    taxon.append('#'+str(num)+'_'+u)
+
+                #Could be refined so that branch length equals age of mother at childbirth
+                newick = newick.replace(("'#"+str(m_num)+"_\u2640'"), (str(taxon).replace('[','(').replace(']',')').replace(' ','')+'#'+str(m_num)+'_\u2640'))
+        mothers = generation_n
+    newick = newick.replace("'","")+';'
+
+
+
+    #Now formatting for the actual plotting in ete3:
+    t = Tree(newick , format=8)
+    # print(t.get_ascii(attributes=['name'], show_internal=True))
+    ts = TreeStyle()
+    ts.show_leaf_name = False
+    ts.rotation = 90
+    ts.show_scale = False
+    ts.min_leaf_separation = 50
+    def my_layout(node):
+         F = TextFace(node.name, tight_text=True)
+         F.fsize=6
+         F.margin_left=5
+         F.margin_right=5
+         F.margin_top=0
+         F.margin_bottom=15
+         F.rotation=-90
+         add_face_to_node(F, node, column=0, position="branch-right")
+    ts.layout_fn = my_layout
+    ts.margin_left=10
+    ts.margin_right=10
+    ts.margin_top=10
+    ts.margin_bottom=10
+
+    for n in t.traverse():
+        n.img_style["size"] = 0.
+        n.img_style["vt_line_width"] = 1
+        n.img_style["hz_line_width"] = 1
+
+    t.render('tree.png', w=600, h=600, units= 'px', tree_style=ts)
