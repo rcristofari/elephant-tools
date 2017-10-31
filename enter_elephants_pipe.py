@@ -34,6 +34,6 @@ for row in eles[1:]:
     ele = elephant(num,name,calf_num,sex,birth,cw,caught,camp,alive,research, solved='Y')
     ele.source(db)
     ele.check()
-    common_out.append(ele.write(db))
+    self.master.common_out.append(ele.write(db))
 
 parse_output(common_out,db)
