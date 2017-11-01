@@ -1,6 +1,6 @@
 #! /usr/bin/python3
 import tkinter as tk
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 from PIL import Image
 from ElephantTools import *
 
@@ -78,34 +78,41 @@ class dbconnect(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
-        self.userlabel = tk.Label(self.master, text="User:").grid(row=1, column=1, sticky=tk.NSEW, padx=5, pady=5)
-        self.pwdlabel = tk.Label(self.master, text="Password:").grid(row=2, column=1, sticky=tk.NSEW, padx=5, pady=5)
-        self.hostlabel = tk.Label(self.master, text="Host:").grid(row=3, column=1, sticky=tk.NSEW, padx=5, pady=5)
-        self.dblabel = tk.Label(self.master, text="Database:").grid(row=4, column=1, sticky=tk.NSEW, padx=5, pady=5)
+        self.userlabel = tk.Label(self.master, text="User:").grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        self.pwdlabel = tk.Label(self.master, text="Password:").grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
+        self.hostlabel = tk.Label(self.master, text="Host:").grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
+        self.dblabel = tk.Label(self.master, text="Database:").grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e2 = tk.Entry(self.master, show='*')
         self.e3 = tk.Entry(self.master)
         self.e4 = tk.Entry(self.master)
         self.e3.insert(10,"localhost")
         self.e4.insert(10,"mep")
-        self.e1.grid(row=1, column=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.e2.grid(row=2, column=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.e3.grid(row=3, column=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.e4.grid(row=4, column=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.connectbutton = tk.Button(self.master, text='Connect', command=self.connect_to_db)
-        self.disconnectbutton = tk.Button(self.master, text='Disconnect', command=self.disconnect_from_db)
-        self.connectbutton.grid(row=5, column=1, sticky=tk.NSEW, padx=5, pady=5)
-        self.disconnectbutton.grid(row=5, column=2, sticky=tk.NSEW, padx=5, pady=5)
+        self.e1.grid(row=1, column=2, sticky=tk.E, padx=5, pady=5)
+        self.e2.grid(row=2, column=2, sticky=tk.E, padx=5, pady=5)
+        self.e3.grid(row=3, column=2, sticky=tk.E, padx=5, pady=5)
+        self.e4.grid(row=4, column=2, sticky=tk.E, padx=5, pady=5)
+        self.detailslabel = tk.Label(self.master, text="Details (optional, if entering new data):")
+        self.detailslabel.grid(row=5, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
+        self.details = tk.Text(self.master, height=5, width=45)
+        self.details.grid(row=6, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
+        self.connectbutton = tk.Button(self.master, text='Connect', width=15, command=self.connect_to_db)
+        self.disconnectbutton = tk.Button(self.master, text='Disconnect', width=15, command=self.disconnect_from_db)
+        self.connectbutton.grid(row=7, column=1, sticky=tk.W, padx=5, pady=5)
+        self.disconnectbutton.grid(row=7, column=2, sticky=tk.E, padx=5, pady=5)
         self.disconnectbutton.config(state="disabled")
         self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(6, weight=1)
+        self.grid_rowconfigure(8, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(3, weight=1)
 
     def connect_to_db(self):
         try:
             self.master.db = mysqlconnect(self.e1.get(), self.e2.get(), self.e3.get(), self.e4.get())
-            self.master.stamp = self.master.db.stamp() #SEND THAT TO BE WRITTEN TO OUTPUT DIRECTLY
+            if self.details.get("1.0", tk.END) is not None:
+                self.master.stamp = self.master.db.stamp(details=self.details.get("1.0", tk.END)) #SEND THAT TO BE WRITTEN TO OUTPUT DIRECTLY
+            else:
+                self.master.stamp = self.master.db.stamp() #SEND THAT TO BE WRITTEN TO OUTPUT DIRECTLY
             self.master.common_out.append(self.master.stamp)
             print("You are connected!")
         except: #still an error here.
@@ -118,6 +125,10 @@ class dbconnect(tk.Frame):
     def disconnect_from_db(self):
         try:
             del self.master.db
+            self.disconnectbutton.config(state="disabled")
+            self.connectbutton.config(state="normal")
+            self.master.menubar.entryconfig("File", state='disabled')
+            self.master.menubar.entryconfig("Search", state='disabled')
         except:
             print("You are not connected to any database.")
 
@@ -148,15 +159,22 @@ class findeleph(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
-        self.numlabel = tk.Label(self.master, text="Number:").grid(row=1, column=1, padx=5, pady=5)
+
+        self.numlabel = tk.Label(self.master, text="Number:")
+        self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
-        self.e1.grid(row=1, column=2, padx=5, pady=5)
-        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1).grid(row=2, column=1, padx=5, pady=5)
-        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2).grid(row=2, column=2, padx=5, pady=5)
-        self.findbutton = tk.Button(self.master, text='Find', command=self.call_get_elephant).grid(row=3, column=1, padx=5, pady=5)
-        self.treebutton = tk.Button(self.master, text='Show tree', command=self.call_show_matriline).grid(row=3, column=2, padx=5, pady=5)
+        self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=0, pady=5)
+
+        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1)
+        self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
+        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2)
+        self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
+
+        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant).grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
+        self.treebutton = tk.Button(self.master, text='Show tree', width=15, command=self.call_show_matriline).grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+
         self.result = tk.Text(self.master, height=15, width=45)
-        self.result.grid(row=4, column = 1, columnspan=2, padx=5, pady=5)
+        self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
     def call_get_elephant(self):
         self.result.config(state=tk.NORMAL)
@@ -196,7 +214,7 @@ class findeleph(tk.Frame):
             self.result.config(state=tk.DISABLED)
 
     def call_show_matriline(self):
-        matriline_tree(id=self.eleph[0], db=self.master.db)
+        self.master.newick = matriline_tree(id=self.eleph[0], db=self.master.db)
         show_matriline(self.master)
 
 ################################################################################
@@ -229,18 +247,21 @@ class show_matriline(tk.Frame):
             img = img.resize(newsize, Image.ANTIALIAS)
             img.save('./tree.png')
         img_w, img_h = img.size
-        background = Image.new('RGBA', (600, 600), (255, 255, 255, 255))
-        bg_w, bg_h = background.size
+        self.background = Image.new('RGBA', (600, 600), (255, 255, 255, 255))
+        bg_w, bg_h = self.background.size
         offset = (round((bg_w - img_w) / 2), round((bg_h - img_h) / 2))
-        background.paste(img, offset)
-        background.save('./tree.png')
+        self.background.paste(img, offset)
+        self.background.save('./tree.png')
         self.treebox = tk.Text(self.master, height=50, width=100)
         self.tree=tk.PhotoImage(file='./tree.png')
         self.treebox.image_create(tk.END, image=self.tree)
         self.treebox.grid(row=2, column = 1, columnspan=4)
-
-        self.backbutton = tk.Button(self.master, text='Back', command=self.back_to_find)
-        self.backbutton.grid(row=1, column=1, sticky=tk.NSEW, padx=5, pady=5)
+        self.backbutton = tk.Button(self.master, text='<< Back', width=20, command=self.back_to_find)
+        self.backbutton.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
+        self.saveimgbutton = tk.Button(self.master, width=20, text='Save as Image', command=self.save_tree)
+        self.saveimgbutton.grid(row=1, column=4, sticky=tk.EW, padx=5, pady=5)
+        self.savenexbutton = tk.Button(self.master, text='Save as Nexus', width=20, command=self.save_newick)
+        self.savenexbutton.grid(row=1, column=3, sticky=tk.EW, padx=5, pady=5)
 
 
     def call_show_matriline(self):
@@ -250,6 +271,13 @@ class show_matriline(tk.Frame):
     def back_to_find(self):
         findeleph(self.master, back = 1)
 
+    def save_tree(self):
+        treefile = asksaveasfilename(title='Save tree image...', initialdir='~', defaultextension='.png')
+        self.background.save(treefile)
+
+    def save_newick(self):
+        nexusfile = asksaveasfilename(title='Save tree definition...', initialdir='~', defaultextension='.nex')
+        nexus_tree(self.master.newick, nexusfile)
 
 ################################################################################
 ## Batch read an elephant file                                                ##
@@ -276,14 +304,17 @@ class read_elephant_file(tk.Frame):
 
     def create_widgets(self):
         self.result = tk.Text(self.master, height=15, width=45)
-        self.result.grid(row=1, column = 1, columnspan=2, padx=5, pady=5)
-        self.reloadbutton = tk.Button(self.master, text='Reload', command=self.reload_file).grid(row=2, column=1, sticky=tk.NSEW, padx=5, pady=5)
-        self.analysebutton = tk.Button(self.master, text='Analyse', command=self.call_analyse).grid(row=2, column=2, sticky=tk.NSEW, padx=5, pady=5)
+        self.result.grid(row=1, column = 1, columnspan=2, sticky=tk.EW, padx=5, pady=5)
+
+        self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file)
+        self.reloadbutton.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
+        self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse)
+        self.analysebutton.grid(row=2, column=2, sticky=tk.E, padx=5, pady=5)
 
     def call_read_elephants(self):
         if self.name is None:
             self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
-        shortname=self.name.rpartition('/')[2]
+        shortname=os.path.split(self.name)[1]
         self.master.file_content = read_elephants(self.name, ',')
         n_accepted = self.master.file_content[1].__len__()
         n_rejected = self.master.file_content[3].__len__()
@@ -336,22 +367,27 @@ class analyse_elephant_file(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
-        self.result = tk.Text(self.master, height=25, width=55)
-        self.result.grid(row=1, column = 1, columnspan=2, padx=5, pady=5)
-        self.writebutton = tk.Button(self.master, text='Write an SQL file', command=self.write_sql)
-        self.stopbutton = tk.Button(self.master, text='Stop', command=self.stop_loop)
-        self.writebutton.grid(row=2, column=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.stopbutton.grid(row=2, column=1, sticky=tk.NSEW, padx=5, pady=5)
+        self.result = tk.Text(self.master, height=25, width=65)
+        self.result.grid(row=2, column = 1, columnspan=2, sticky=tk.EW, padx=0, pady=5)
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql)
+        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop)
+        self.writebutton.grid(row=3, column=2, sticky=tk.E, padx=0, pady=5)
+        self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
     def stop_loop(self):
         self.break_loop = 1
 
     def call_analyse_elephants(self):
+        sV=0
+        sC=0
+        sK=0
         self.elephants = self.master.file_content[1]
         del self.master.file_content
         n_elephs = self.elephants[1:].__len__()
         for i,row in enumerate(self.elephants[1:]):
+            statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
+            self.statelabel = tk.Label(self.master, text=statenow).grid(row=1, column=1, columnspan=2, sticky=tk.EW, padx=0, pady=5)
             if self.break_loop != 0:
                 break
             num = row[0]
@@ -370,29 +406,37 @@ class analyse_elephant_file(tk.Frame):
             w = ele.write(self.master.db)
             if re.search(r"^INSERT", str(w)):
                 say = 'valid'
+                sV += 1
             elif re.search(r"^UPDATE", str(w)):
                 say = 'valid'
+                sV += 1
             elif re.search(r"^[Conflict]", str(w)):
                 say = 'conflicting'
+                sC += 1
             else:
                 say = 'known'
+                sK += 1
             self.master.common_out.append(w)
-            self.result.insert(tk.END, ("Analysing elephant number "+num+"\t\t("+str(i)+" of "+str(n_elephs)+"): "+say+"\n"))
+            self.result.insert(tk.END, ("\tAnalysing elephant number "+num+"\t\t("+str(i)+" of "+str(n_elephs)+"): "+say+"\n"))
             self.result.update()
             self.result.see(tk.END)
 
         if self.break_loop == 0:
-            self.result.insert(tk.END, ("\nFinished..!\n"))
+            self.result.insert(tk.END, ("\n\tFinished..!\n"))
             self.writebutton.config(state="normal")
             self.stopbutton.config(state="disabled")
         else:
-            self.result.insert(tk.END, ("\nStopped.\n"))
+            self.result.insert(tk.END, ("\n\tStopped.\n"))
             self.stopbutton.config(state="disabled")
         self.result.update()
         self.result.see(tk.END)
 
     def write_sql(self):
-        parse_output(self.master.common_out,self.master.db)
+        folder = askdirectory(title='Choose SQL file directory...')
+        parse_output(self.master.common_out, self.master.db, folder)
+        self.result.insert(tk.END, ("\tFiles written in "+folder))
+        self.result.update()
+        self.result.see(tk.END)
 
 ################################################################################
 ## Call the main application                                                  ##
@@ -403,6 +447,6 @@ if __name__ == '__main__':
    main_app =  MainApplication(root).grid(sticky="nsew")
    root.grid_rowconfigure(0, weight=1)
    root.grid_columnconfigure(0, weight=1)
-   root.grid_rowconfigure(6, weight=1)
-   root.grid_columnconfigure(3, weight=1)
+   root.grid_rowconfigure(8, weight=1)
+   root.grid_columnconfigure(4, weight=1)
    root.mainloop()

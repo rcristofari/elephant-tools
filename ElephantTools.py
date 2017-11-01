@@ -2306,13 +2306,19 @@ def read_events(elefile, sep=';', solved='N'):
 ##  parse_output() parses the total output into mysql and warings                 ##
 ####################################################################################
 
-def parse_output(stream, db):
+def parse_output(stream, db, folder=None):
 
     stamp = db.get_stamp()
     statements = []
     warnings = []
-    statement_name = str(stamp)+"_operations.sql"
-    warnings_name = str(stamp)+"_conflicts.out"
+
+    if folder is None:
+        statement_name = str(stamp)+"_operations.sql"
+        warnings_name = str(stamp)+"_conflicts.out"
+    else:
+        statement_name = os.path.join(folder, str(stamp)+"_operations.sql")
+        warnings_name = os.path.join(folder, str(stamp)+"_conflicts.out")
+
     for row in stream:
         if re.search(r"^INSERT", str(row)):
             statements.append(row)
@@ -2356,7 +2362,7 @@ def parse_reads(read_output, prefix='reads_'):
             issue.write(str(i)+': '+str(x)[2:-2]+'\n')
 
 ####################################################################################
-##  matriline_tree() function builds a Nexus tree string around an individual     ##
+##  matriline_tree() function builds a Newick tree string around an individual    ##
 ####################################################################################
 
 def matriline_tree(id, db):
@@ -2441,6 +2447,7 @@ def matriline_tree(id, db):
     ts.margin_bottom=10
 
     i = 0
+
     for n in t.traverse():
         if i == 0:
             n.delete()
@@ -2463,3 +2470,30 @@ def matriline_tree(id, db):
                 n.dist = int(branch_length[i-1][1])
             i += 1
     t.render('tree.png', w=600, units= 'px', tree_style=ts)
+
+    taxa = []
+    for n in t.traverse():
+        taxa.append(n.name)
+    return(t.write(format=1),taxa)
+
+####################################################################################
+##  nexus_tree() function writes a Newick tree as a Nexus file                    ##
+####################################################################################
+
+def nexus_tree(newick, file):
+    lines = []
+    lines.append('#NEXUS')
+    lines.append('begin taxa;')
+    lines.append('\tdimensions ntax='+str(newick[1].__len__()-1)+';')
+    lines.append('\ttaxlabels')
+    for n in newick[1][1:]:
+        lines.append('\t'+n)
+    lines.append(';')
+    lines.append('end;')
+    lines.append('begin trees;')
+    lines.append('\ttree TREE1 = [&R]'+newick[0])
+    lines.append('end;')
+
+    with open(file,"w") as f:
+        for l in lines:
+            f.write(str(l)+'\n')
