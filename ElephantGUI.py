@@ -168,6 +168,7 @@ class findeleph(tk.Frame):
                 self.eleph = self.master.db.get_elephant(calf_num = self.e1.get())
                 self.master.eleph_now = self.eleph
         elif self.back == 1:
+            self.back = 0
             self.eleph = self.master.eleph_now
 
         if self.eleph is None:

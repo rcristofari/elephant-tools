@@ -1,6 +1,6 @@
 CREATE TABLE elephants (
 id INT(10) NOT NULL primary key auto_increment,
-num INT(12) UNIQUE,
+num VARCHAR(10) UNIQUE,
 name VARCHAR(128),
 calf_num VARCHAR(10),
 sex ENUM('F','M','UKN') NOT NULL DEFAULT 'UKN',
@@ -88,15 +88,13 @@ ALTER TABLE `measure_code` ENGINE = InnoDB ;
 
 ALTER TABLE `events` ADD INDEX (`elephant_id`);
 ALTER TABLE `events` ADD INDEX (`code`);
-ALTER TABLE `breeding` ADD INDEX (`elephant_id`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_1_id`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_2_id`);
 ALTER TABLE `measures` ADD INDEX (`elephant_id`);
-ALTER TABLE `measures` ADD INDEX (`code`);
+ALTER TABLE `measures` ADD INDEX (`measure`);
 
 ALTER TABLE `events` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `events` ADD FOREIGN KEY (`code`) REFERENCES `event_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
-ALTER TABLE `breeding` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_1_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_2_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
