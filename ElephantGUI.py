@@ -292,6 +292,8 @@ class read_elephant_file(tk.Frame):
         self.name = None
         self.master = master
         tk.Frame.__init__(self, self.master)
+        self.solved = tk.IntVar()
+        self.solved.set(0)
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
@@ -318,10 +320,13 @@ class read_elephant_file(tk.Frame):
         self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse)
         self.analysebutton.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
 
+        self.radio1 = tk.Radiobutton(self.master, text="This data has already been verified", variable=self.solved, value=1)
+        self.radio1.grid(row=3, column=2, columnspan=2, sticky=tk.E, padx=5, pady=5)
+
     def call_read_elephants(self):
         if self.name is None:
             self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
-        self.shortname=os.path.split(self.name)[1]
+        self.master.shortname=os.path.split(self.name)[1]
         self.master.file_content = read_elephants(self.name, ',')
         n_accepted = self.master.file_content[1].__len__()
         n_rejected = self.master.file_content[3].__len__()
@@ -332,10 +337,10 @@ class read_elephant_file(tk.Frame):
             +"\n\t-"+str(n_accepted)+" were accepted,"
             +"\n\t-"+str(n_rejected)+" were rejected.\n"
             +"\n  Accepted and rejected entries and logs were written out in:\n\n"
-            +"\t"+self.shortname.partition('.')[0]+"_accepted.reads\n"
-            +"\t"+self.shortname.partition('.')[0]+"_accepted.log\n"
-            +"\t"+self.shortname.partition('.')[0]+"_rejected.reads\n"
-            +"\t"+self.shortname.partition('.')[0]+"_rejected.log")
+            +"\t"+self.master.shortname.partition('.')[0]+"_accepted.reads\n"
+            +"\t"+self.master.shortname.partition('.')[0]+"_accepted.log\n"
+            +"\t"+self.master.shortname.partition('.')[0]+"_rejected.reads\n"
+            +"\t"+self.master.shortname.partition('.')[0]+"_rejected.log")
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
@@ -345,7 +350,7 @@ class read_elephant_file(tk.Frame):
         rows = self.master.file_content[5]
         isvalid = self.master.file_content[6]
         self.view_window = tk.Toplevel(self.master)
-        self.view_window.title("Elephant file "+self.shortname)
+        self.view_window.title("Elephant file "+self.master.shortname)
         # self.view_window.geometry("600x700")
         # self.view_window.resizable(False, False)
         self.view_window.grid_columnconfigure(0, weight=1)
@@ -419,7 +424,7 @@ class read_elephant_file(tk.Frame):
             self.call_read_elephants()
 
     def call_analyse(self):
-        analyse_elephant_file(self.master)
+        analyse_elephant_file(self.master, solved=self.solved.get())
 
 ################################################################################
 ## Batch analyse an elephant file                                                ##
@@ -427,10 +432,14 @@ class read_elephant_file(tk.Frame):
 
 class analyse_elephant_file(tk.Frame):
 
-    def __init__(self, master):
+    def __init__(self, master, solved):
         self.master = master
         tk.Frame.__init__(self, self.master)
         self.name = None
+        if solved==1:
+            self.solved='Y'
+        else:
+            self.solved='N'
         self.break_loop = 0
         self.configure_gui()
         self.clear_frame()
@@ -447,11 +456,16 @@ class analyse_elephant_file(tk.Frame):
 
     def create_widgets(self):
         self.result = tk.Text(self.master, height=25, width=65)
-        self.result.grid(row=2, column = 1, columnspan=2, sticky=tk.EW, padx=0, pady=5)
-        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql)
+        self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+
         self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop)
-        self.writebutton.grid(row=3, column=2, sticky=tk.E, padx=0, pady=5)
         self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
+
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts)
+        self.showfilebutton.grid(row=3, column=2, sticky=tk.EW, padx=5, pady=5)
+
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql)
+        self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
     def stop_loop(self):
@@ -462,11 +476,14 @@ class analyse_elephant_file(tk.Frame):
         sC=0
         sK=0
         self.elephants = self.master.file_content[1]
-        del self.master.file_content
-        n_elephs = self.elephants[1:].__len__()
-        for i,row in enumerate(self.elephants[1:]):
+        #del self.master.file_content
+        n_elephs = self.elephants.__len__()
+        self.checkstatus = []
+        self.all_write_out = []
+        for i,row in enumerate(self.elephants):
             statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
-            self.statelabel = tk.Label(self.master, text=statenow).grid(row=1, column=1, columnspan=2, sticky=tk.EW, padx=0, pady=5)
+            self.statelabel = tk.Label(self.master, text=statenow)
+            self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
             if self.break_loop != 0:
                 break
             num = row[0]
@@ -479,24 +496,29 @@ class analyse_elephant_file(tk.Frame):
             camp = row[7]
             alive = row[8]
             research = row[9]
-            ele = elephant(num,name,calf_num,sex,birth,cw,caught,camp,alive,research, solved='N')
+            ele = elephant(num,name,calf_num,sex,birth,cw,caught,camp,alive,research, solved=self.solved)
             ele.source(self.master.db)
             ele.check()
             w = ele.write(self.master.db)
+            self.all_write_out.append(w)
             if re.search(r"^INSERT", str(w)):
                 say = 'valid'
                 sV += 1
+                self.checkstatus.append('checked')
             elif re.search(r"^UPDATE", str(w)):
                 say = 'valid'
                 sV += 1
-            elif re.search(r"^[Conflict]", str(w)):
+                self.checkstatus.append('checked')
+            elif re.search(r"Conflict", str(w)):
                 say = 'conflicting'
                 sC += 1
+                self.checkstatus.append('conflicting')
             else:
                 say = 'known'
                 sK += 1
+                self.checkstatus.append('known')
             self.master.common_out.append(w)
-            self.result.insert(tk.END, ("\tAnalysing elephant number "+num+"\t\t("+str(i)+" of "+str(n_elephs)+"): "+say+"\n"))
+            self.result.insert(tk.END, ("\tAnalysing elephant number "+num+"\t\t("+str(i+1)+" of "+str(n_elephs)+"): "+say+"\n"))
             self.result.update()
             self.result.see(tk.END)
 
@@ -509,6 +531,99 @@ class analyse_elephant_file(tk.Frame):
             self.stopbutton.config(state="disabled")
         self.result.update()
         self.result.see(tk.END)
+
+    def show_conflicts(self):
+        rows = self.master.file_content[5]
+        self.isvalid = self.master.file_content[6]
+        self.rawindex = self.master.file_content[8]
+
+        self.view_window = tk.Toplevel(self.master)
+        self.view_window.title("Elephant file "+self.master.shortname)
+        # self.view_window.geometry("600x700")
+        # self.view_window.resizable(False, False)
+        self.view_window.grid_columnconfigure(0, weight=1)
+        self.view_window.grid_columnconfigure(2, weight=1)
+        self.view_window.grid_rowconfigure(0, weight=1)
+        self.view_window.grid_rowconfigure(2, weight=1)
+
+        self.tv = ttk.Treeview(self.view_window, height=32)
+        self.tv['columns'] = ('num','name','calf_num','sex','birth','cw','caught','camp','alive','research')
+
+        self.tv.heading("#0", text='#')
+        self.tv.column("#0", anchor='center', width=100)
+
+        self.tv.heading('num', text='num')
+        self.tv.column('num', anchor='w', width=100)
+
+        self.tv.heading('name', text='name')
+        self.tv.column('name', anchor='w', width=150)
+
+        self.tv.heading('calf_num', text='calf_num')
+        self.tv.column('calf_num', anchor='w', width=100)
+
+        self.tv.heading('sex', text='sex')
+        self.tv.column('sex', anchor='center', width=100)
+
+        self.tv.heading('birth', text='birth')
+        self.tv.column('birth', anchor='center', width=100)
+
+        self.tv.heading('cw', text='coef')
+        self.tv.column('cw', anchor='center', width=100)
+
+        self.tv.heading('caught', text='caught')
+        self.tv.column('caught', anchor='center', width=100)
+
+        self.tv.heading('camp', text='camp')
+        self.tv.column('camp', anchor='center', width=100)
+
+        self.tv.heading('alive', text='alive')
+        self.tv.column('alive', anchor='center', width=100)
+
+        self.tv.heading('research', text='research')
+        self.tv.column('research', anchor='center', width=100)
+
+        self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
+
+        k = 0
+        for i,row in enumerate(rows):
+
+            if i in self.rawindex:
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.checkstatus[k]))
+                k+=1
+
+            else:
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.isvalid[i],)) #Orange if failed at read()
+
+        self.tv.tag_configure('rejected', background='orange')
+        self.tv.tag_configure('known', background='grey')
+        self.tv.tag_configure('conflicting', background='red')
+        self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+    def OnDoubleClick(self, event):
+        item = self.tv.selection()[0]
+        self.warning_window = tk.Toplevel(self.master)
+        self.warning_window.title("")
+        self.warningbox = tk.Text(self.warning_window, height=10, width=65)
+        self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
+
+        warning = self.master.file_content[7][int(self.tv.item(item,"text"))-1]
+
+        if (int(self.tv.item(item,"text"))-1) in self.rawindex:
+            writeout = self.all_write_out[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
+            status = self.checkstatus[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
+            if status in ('checked','conflicting'):
+                self.warningbox.insert(tk.END, writeout)
+            else:
+                self.warningbox.insert(tk.END, 'This elephant is already in the database')
+
+        else:
+            if warning != []:
+                for w in warning:
+                    self.warningbox.insert(tk.END, w+'\n')
+            else:
+                self.warningbox.insert(tk.END, "No problem with this elephant.")
+        self.warningbox.config(state=tk.DISABLED)
+
 
     def write_sql(self):
         folder = askdirectory(title='Choose SQL file directory...')
@@ -557,7 +672,7 @@ class read_pedigree_file(tk.Frame):
 
         if self.name is None:
             self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose a pedigree definition file")
-        self.shortname=os.path.split(self.name)[1]
+        self.master.shortname=os.path.split(self.name)[1]
 
         self.master.file_content = read_pedigree(self.name, ',')
         n_accepted = self.master.file_content[1].__len__()
@@ -571,10 +686,10 @@ class read_pedigree_file(tk.Frame):
             +"\n\t-"+str(n_accepted)+" were accepted,"
             +"\n\t-"+str(n_rejected)+" were rejected.\n"
             +"\n  Accepted and rejected entries and logs were written out in:\n\n"
-            +"\t"+self.shortname.partition('.')[0]+"_accepted.reads\n"
-            +"\t"+self.shortname.partition('.')[0]+"_accepted.log\n"
-            +"\t"+self.shortname.partition('.')[0]+"_rejected.reads\n"
-            +"\t"+self.shortname.partition('.')[0]+"_rejected.log")
+            +"\t"+self.master.shortname.partition('.')[0]+"_accepted.reads\n"
+            +"\t"+self.master.shortname.partition('.')[0]+"_accepted.log\n"
+            +"\t"+self.master.shortname.partition('.')[0]+"_rejected.reads\n"
+            +"\t"+self.master.shortname.partition('.')[0]+"_rejected.log")
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
@@ -584,7 +699,7 @@ class read_pedigree_file(tk.Frame):
         rows = self.master.file_content[5]
         isvalid = self.master.file_content[6]
         self.view_window = tk.Toplevel(self.master)
-        self.view_window.title("Pedigree file "+self.shortname)
+        self.view_window.title("Pedigree file "+self.master.shortname)
         self.view_window.geometry("600x700")
         self.view_window.resizable(False, False)
         self.view_window.grid_columnconfigure(0, weight=1)

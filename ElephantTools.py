@@ -1816,6 +1816,7 @@ def read_elephants(elefile, sep=';'):
 
     #reformat as rows
     rows=[]
+
     for i,r in enumerate(num):
         row=[num[i],name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i]]
         rows.append(row)
@@ -1827,9 +1828,10 @@ def read_elephants(elefile, sep=';'):
     issues = []
     isvalid = []
     allwarnings = []
+    rawindex = []
 
     for i,row in enumerate(rows):
-        print(row)
+#        print(row)
         reject = 0
         warnings = []
 
@@ -1948,12 +1950,13 @@ def read_elephants(elefile, sep=';'):
                 remarks.append(warnings)
             valid.append(row)
             isvalid.append('valid')
+            rawindex.append(i)
         elif reject == 1:
             issues.append(warnings)
             rejected.append(row)
             isvalid.append('rejected')
 
-    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings]
+    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings, rawindex]
 
 ####################################################################################
 ##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##
@@ -2007,6 +2010,7 @@ def read_pedigree(elefile, sep=';'):
     issues = []
     isvalid = []
     allwarnings = []
+    rawindex = []
 
     #reformat as rows
     rows=[]
@@ -2071,12 +2075,13 @@ def read_pedigree(elefile, sep=';'):
                 remarks.append(warnings)
             valid.append(row)
             isvalid.append('valid')
+            rawindex.append(i)
         elif reject == 1:
             issues.append(warnings)
             rejected.append(row)
             isvalid.append('rejected')
 
-    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings]
+    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings,rawindex]
 
 
 ####################################################################################
