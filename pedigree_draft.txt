@@ -1,0 +1,12 @@
+Pedigree pipeline:
+
+1) read pedigree file (read_pedigree)
+2) extract elephant numbers (or calf numbers)
+3) blast that list to the database using get_elephant()
+4) Return a list of elephants that are unknown so far.
+5) Proceed with the elephants that are already known.
+6) Check and reject invalid relationships.
+
+
+
+Note: add an explicit output of elephant.check() so state that it is present and valid (like [Known])
