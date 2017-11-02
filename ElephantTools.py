@@ -1768,39 +1768,39 @@ def read_elephants(elefile, sep=';'):
     ax = []
     rx = []
     for x in sex:
-        if x.casefold() in ('male','m','males'):
+        if x.casefold().strip().strip() in ('male','m','males'):
             sx.append('M')
-        elif x.casefold() in ('female','f','females'):
+        elif x.casefold().strip().strip() in ('female','f','females'):
             sx.append('F')
-        elif x.casefold() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
             sx.append('UKN')
         else:
             sx.append(x)
 
     for x in cw:
-        if x.casefold() in ('c','captive'):
+        if x.casefold().strip().strip() in ('c','captive'):
             cwx.append('captive')
-        elif x.casefold() in ('w','wild'):
+        elif x.casefold().strip().strip() in ('w','wild'):
             cwx.append('wild')
-        elif x.casefold() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
             cwx.append('UKN')
         else:
             cwx.append(x)
 
     for x in alive:
-        if x.casefold() in ('y','yes','alive'):
+        if x.casefold().strip().strip() in ('y','yes','alive'):
             ax.append('Y')
-        elif x.casefold() in ('n','no','dead'):
+        elif x.casefold().strip().strip() in ('n','no','dead'):
             ax.append('N')
-        elif x.casefold() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
             ax.append('UKN')
         else:
             ax.append(x)
 
     for x in research:
-        if x.casefold() in ('y','yes'):
+        if x.casefold().strip().strip() in ('y','yes'):
             rx.append('Y')
-        elif x.casefold() in ('n','no','','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip().strip() in ('n','no','','none','na','null','unknown','ukn','n/a'):
             rx.append('N')
         else:
             rx.append(x)
@@ -1825,6 +1825,8 @@ def read_elephants(elefile, sep=';'):
     remarks = []
     rejected = []
     issues = []
+    isvalid = []
+    allwarnings = []
 
     for i,row in enumerate(rows):
         print(row)
@@ -1833,7 +1835,7 @@ def read_elephants(elefile, sep=';'):
 
         ########## Sort out missing values
         for j,x in enumerate(row):
-            if x.casefold() in ('','none','na','null','unknown','ukn','n/a'):
+            if x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
                 row[j] = None
             else:
                 pass
@@ -1940,16 +1942,18 @@ def read_elephants(elefile, sep=';'):
             reject = 1
 
     ######### send out to the correct list
-        print(warnings)
+        allwarnings.append(warnings)
         if reject == 0:
             if warnings != []:
                 remarks.append(warnings)
             valid.append(row)
+            isvalid.append('valid')
         elif reject == 1:
             issues.append(warnings)
             rejected.append(row)
+            isvalid.append('rejected')
 
-    return[fields, valid, remarks, rejected, issues]
+    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings]
 
 ####################################################################################
 ##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##
@@ -1976,18 +1980,18 @@ def read_pedigree(elefile, sep=';'):
     rx = []
     cx = []
     for x in rel:
-        if x.casefold() in ('mother','m'):
+        if x.casefold().strip() in ('mother','m'):
             rx.append('mother')
-        elif x.casefold() in ('father','f'):
+        elif x.casefold().strip() in ('father','f'):
             rx.append('father')
-        elif x.casefold() in ('offspring','o'):
+        elif x.casefold().strip() in ('offspring','o'):
             rx.append('offspring')
-        elif x.casefold() in ('none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('none','na','null','unknown','ukn','n/a'):
             rx.append('unknown')
         else:
             rx.append(x)
     for x in coef:
-        if x.casefold() in ('none','na','null','unknown','ukn','n/a'):
+        if x.casefold().strip() in ('none','na','null','unknown','ukn','n/a'):
             cx.append('')
         else:
             cx.append(x)
@@ -2001,7 +2005,8 @@ def read_pedigree(elefile, sep=';'):
     remarks = []
     rejected = []
     issues = []
-
+    isvalid = []
+    allwarnings = []
 
     #reformat as rows
     rows=[]
@@ -2011,7 +2016,7 @@ def read_pedigree(elefile, sep=';'):
 
         ########## Sort out missing values
         for j,x in enumerate(row):
-            if x.casefold() in ('','none','na','null','unknown','ukn','n/a'):
+            if x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
                 row[j] = None
             else:
                 pass
@@ -2060,15 +2065,18 @@ def read_pedigree(elefile, sep=';'):
                     reject = 1
 
     ######### send out to the correct list
+        allwarnings.append(warnings)
         if reject == 0:
             if warnings != []:
                 remarks.append(warnings)
             valid.append(row)
+            isvalid.append('valid')
         elif reject == 1:
             issues.append(warnings)
             rejected.append(row)
+            isvalid.append('rejected')
 
-    return[fields, valid, remarks, rejected, issues]
+    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings]
 
 
 ####################################################################################
@@ -2135,7 +2143,7 @@ def read_measures(elefile, sep=';', solved='N'):
             for row in rows:
                 values.append(row[f+2])
             for i,v in enumerate(values):
-                if v.casefold() in ('', 'na','none','null','n/a','unknown','ukn'):
+                if v.casefold().strip() in ('', 'na','none','null','n/a','unknown','ukn'):
                     v = None
                 if v != None:
                     try:
@@ -2268,8 +2276,8 @@ def read_events(elefile, sep=';', solved='N'):
 
     ########## event_type [COMPLUSORY]
     for i,x in enumerate(event_type):
-        if x.casefold() in ('capture','accident','disease','death','alive'):
-            event_type[i] = x.casefold()
+        if x.casefold().strip() in ('capture','accident','disease','death','alive'):
+            event_type[i] = x.casefold().strip()
         elif x == '':
             warnings.append("Missing event type at line " + str(i+1))
             reject = 1
@@ -2280,7 +2288,7 @@ def read_events(elefile, sep=';', solved='N'):
     ########## code
     for i,x in enumerate(code):
         if re.search(r"^[0-9a-zA-Z ]+$", x):
-            code[i] = x.casefold()
+            code[i] = x.casefold().strip()
         elif x == '':
             warnings.append("Missing event code at line " + str(i+1))
         else:
