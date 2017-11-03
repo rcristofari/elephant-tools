@@ -1238,9 +1238,11 @@ class pedigree:
     def check(self):  ###CHECK THAT THIS ELEPHANT DOESN'T ALREADY HAVE A MOTHER/A FATHER!!!
 
         if self.__sourced == 0:
+            self.__checked = 3
             print("\nCheck: This relationship is present in the database with an error. Please correct it manually")
 
         elif self.__sourced == 1:
+            self.__checked = 2
             print("\nCheck: This relationship is already correctly entered in the database, nothing to do.")
 
         elif self.__sourced == 2:
@@ -1359,15 +1361,22 @@ class pedigree:
             out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
             return(out)
 
+        elif self.__checked == 2:
+            pass
+
+        elif self.__checked == 3:
+            return("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": this relationship exists in the database, but with an error.")
+
+
         elif self.__checked == 0:
             status_array = np.array(self.status)
             conflicts_array = np.where(status_array == 0)
             i = tuple(map(tuple, conflicts_array))[0]
-            f = ('sex','birth date')
+            f = ['sex','birth date']
             conflicts = str()
             for x in i:
                 conflicts = conflicts+f[x]
-            return("\n[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": you need to solve conflicts for:" + conflicts + "\n")
+            return("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": you need to solve conflicts for " + conflicts)
 
             #return(self.eleph_1, self.__db_eleph_1[1], self.__db_eleph_1[2], self.eleph_2, self.__db_eleph_2[1], self.__db_eleph_2[2])
 
@@ -2337,6 +2346,9 @@ def parse_output(stream, db, folder=None):
             statements.append(row)
         elif re.search(r"^UPDATE", str(row)):
             statements.append(row)
+        elif re.search(r"^\(\"INSERT", str(row)):
+            for r in row:
+                statements.append(r)
         else:
             warnings.append(row)
 

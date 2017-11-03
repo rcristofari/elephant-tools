@@ -427,7 +427,7 @@ class read_elephant_file(tk.Frame):
         analyse_elephant_file(self.master, solved=self.solved.get())
 
 ################################################################################
-## Batch analyse an elephant file                                                ##
+## Batch analyse an elephant file                                             ##
 ################################################################################
 
 class analyse_elephant_file(tk.Frame):
@@ -633,7 +633,7 @@ class analyse_elephant_file(tk.Frame):
         self.result.see(tk.END)
 
 ################################################################################
-## Batch read a pedigree file                                                ##
+## Batch read a pedigree file                                                 ##
 ################################################################################
 
 class read_pedigree_file(tk.Frame):
@@ -756,8 +756,181 @@ class read_pedigree_file(tk.Frame):
             self.call_read_pedigree()
 
     def call_analyse(self):
-        analyse_elephant_file(self.master)
-## DO THIS !!
+        analyse_pedigree_file(self.master)
+
+################################################################################
+## Batch analyse an elephant file                                             ##
+################################################################################
+
+class analyse_pedigree_file(tk.Frame):
+
+    def __init__(self, master):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.name = None
+        self.break_loop = 0
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+        self.call_analyse_pedigree()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        self.result = tk.Text(self.master, height=25, width=65)
+        self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+
+        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop)
+        self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
+
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts)
+        self.showfilebutton.grid(row=3, column=2, sticky=tk.EW, padx=5, pady=5)
+
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql)
+        self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+        self.writebutton.config(state="disabled")
+
+    def stop_loop(self):
+        self.break_loop = 1
+
+    def call_analyse_pedigree(self):
+        sV=0
+        sC=0
+        sK=0
+        self.pedigrees = self.master.file_content[1]
+        #del self.master.file_content
+        n_pedigree = self.pedigrees.__len__()
+        self.checkstatus = []
+        self.all_write_out = []
+        for i,row in enumerate(self.pedigrees):
+            statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
+            self.statelabel = tk.Label(self.master, text=statenow)
+            self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+            if self.break_loop != 0:
+                break
+            elephant_1_id = row[0]
+            elephant_2_id = row[1]
+            rel = row[2]
+            coef = row[3]
+            p = pedigree(elephant_1_id, elephant_2_id, rel, coef)
+            p.source(self.master.db)
+            p.check()
+            w = p.write(self.master.db)
+            self.all_write_out.append(w)
+            if re.search(r"\(\"INSERT", str(w)):
+                say = 'valid'
+                sV += 1
+                self.checkstatus.append('checked')
+            elif re.search(r"Conflict", str(w)):
+                say = 'conflicting'
+                sC += 1
+                self.checkstatus.append('conflicting')
+            else:
+                say = 'known'
+                sK += 1
+                self.checkstatus.append('known')
+            self.master.common_out.append(w)
+            self.result.insert(tk.END, ("\tAnalysing relationship number "+str(i+1)+" of "+str(n_pedigree)+": "+say+"\n"))
+            self.result.update()
+            self.result.see(tk.END)
+
+        if self.break_loop == 0:
+            self.result.insert(tk.END, ("\n\tFinished..!\n"))
+            self.writebutton.config(state="normal")
+            self.stopbutton.config(state="disabled")
+        else:
+            self.result.insert(tk.END, ("\n\tStopped.\n"))
+            self.stopbutton.config(state="disabled")
+        self.result.update()
+        self.result.see(tk.END)
+
+    def show_conflicts(self):
+        rows = self.master.file_content[5]
+        self.isvalid = self.master.file_content[6]
+        self.rawindex = self.master.file_content[8]
+
+        self.view_window = tk.Toplevel(self.master)
+        self.view_window.title("Pedigree file "+self.master.shortname)
+        # self.view_window.geometry("600x700")
+        # self.view_window.resizable(False, False)
+        self.view_window.grid_columnconfigure(0, weight=1)
+        self.view_window.grid_columnconfigure(2, weight=1)
+        self.view_window.grid_rowconfigure(0, weight=1)
+        self.view_window.grid_rowconfigure(2, weight=1)
+
+        self.tv = ttk.Treeview(self.view_window, height=32)
+        self.tv['columns'] = ('elephant_1_id', 'elephant_2_id', 'rel', 'coef')
+
+        self.tv.heading("#0", text='#')
+        self.tv.column("#0", anchor='center', width=100)
+
+        self.tv.heading('elephant_1_id', text='elephant_1_id')
+        self.tv.column('elephant_1_id', anchor='center', width=120)
+
+        self.tv.heading('elephant_2_id', text='elephant_2_id')
+        self.tv.column('elephant_2_id', anchor='center', width=120)
+
+        self.tv.heading('rel', text='rel')
+        self.tv.column('rel', anchor='center', width=120)
+
+        self.tv.heading('coef', text='coef')
+        self.tv.column('coef', anchor='center', width=120)
+
+        self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
+
+        k = 0
+        for i,row in enumerate(rows):
+
+            if i in self.rawindex:
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.checkstatus[k]))
+                k+=1
+
+            else:
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.isvalid[i],)) #Orange if failed at read()
+
+        self.tv.tag_configure('rejected', background='orange')
+        self.tv.tag_configure('known', background='grey')
+        self.tv.tag_configure('conflicting', background='red')
+        self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+    def OnDoubleClick(self, event):
+        item = self.tv.selection()[0]
+        self.warning_window = tk.Toplevel(self.master)
+        self.warning_window.title("")
+        self.warningbox = tk.Text(self.warning_window, height=10, width=65)
+        self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
+
+        warning = self.master.file_content[7][int(self.tv.item(item,"text"))-1]
+
+        if (int(self.tv.item(item,"text"))-1) in self.rawindex:
+            writeout = self.all_write_out[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
+            status = self.checkstatus[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
+            if status in ('checked','conflicting'):
+                self.warningbox.insert(tk.END, writeout)
+            else:
+                self.warningbox.insert(tk.END, 'This relationship is already in the database')
+
+        else:
+            if warning != []:
+                for w in warning:
+                    self.warningbox.insert(tk.END, w+'\n')
+            else:
+                self.warningbox.insert(tk.END, "No problem with this relationship.")
+        self.warningbox.config(state=tk.DISABLED)
+
+
+    def write_sql(self):
+        folder = askdirectory(title='Choose SQL file directory...')
+        parse_output(self.master.common_out, self.master.db, folder)
+        self.result.insert(tk.END, ("\tFiles written in "+folder))
+        self.result.update()
+        self.result.see(tk.END)
 
 ################################################################################
 ## Call the main application                                                  ##
