@@ -374,7 +374,7 @@ class read_elephant_file(tk.Frame):
         for i,row in enumerate(rows):
             self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (row[10],))
 
-        self.tv.tag_configure(1, background='orange')
+        self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
     def OnDoubleClick(self, event):
@@ -478,7 +478,6 @@ class analyse_elephant_file(tk.Frame):
                 ele.source(self.master.db)
                 ele.check()
                 w = ele.write(self.master.db)
-                print(row)
                 # Add up the flag values
                 row[10] = row[10] + w[10]
                 # Add the warnings field
@@ -603,7 +602,7 @@ class read_pedigree_file(tk.Frame):
 
         if self.name is None:
             self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose a pedigree definition file")
-        self.master.shortname=os.path.split(self.name)[1]
+        self.master.shortname = os.path.split(self.name)[1]
 
         self.master.file_content = read_pedigree(self.name, ',')
         n_accepted = self.master.file_content[1].__len__()
@@ -624,11 +623,8 @@ class read_pedigree_file(tk.Frame):
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
-    # Open an extra window with the scrollable pedigree file contents
-    # Should ADD FUNCTION to color row that contain an error in red.
     def show_file_content(self):
         rows = self.master.file_content[5]
-        isvalid = self.master.file_content[6]
         self.view_window = tk.Toplevel(self.master)
         self.view_window.title("Pedigree file "+self.master.shortname)
         self.view_window.geometry("600x700")
@@ -637,31 +633,17 @@ class read_pedigree_file(tk.Frame):
         self.view_window.grid_columnconfigure(2, weight=1)
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
-
         self.tv = ttk.Treeview(self.view_window, height=32)
         self.tv['columns'] = ('elephant_1_id', 'elephant_2_id', 'rel', 'coef')
-
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
-
-        self.tv.heading('elephant_1_id', text='elephant_1_id')
-        self.tv.column('elephant_1_id', anchor='center', width=120)
-
-        self.tv.heading('elephant_2_id', text='elephant_2_id')
-        self.tv.column('elephant_2_id', anchor='center', width=120)
-
-        self.tv.heading('rel', text='rel')
-        self.tv.column('rel', anchor='center', width=120)
-
-        self.tv.heading('coef', text='coef')
-        self.tv.column('coef', anchor='center', width=120)
-
+        for c in self.tv['columns']:
+            self.tv.heading(c, text=c)
+            self.tv.column(c, anchor='w', width=100)
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
-
         for i,row in enumerate(rows):
-            self.tv.insert('','end',text=str(i+1), values=row[0:4], tags = (isvalid[i],))
-
-        self.tv.tag_configure('rejected', background='orange')
+            self.tv.insert('','end',text=str(i+1), values=row[0:4], tags = (row[4],))
+        self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
     def OnDoubleClick(self, event):
@@ -677,7 +659,6 @@ class read_pedigree_file(tk.Frame):
         else:
             self.warningbox.insert(tk.END, "No problem with this relationship.")
         self.warningbox.config(state=tk.DISABLED)
-
 
     def reload_file(self):
         if self.name is None:
@@ -734,43 +715,37 @@ class analyse_pedigree_file(tk.Frame):
         sV=0
         sC=0
         sK=0
-        self.pedigrees = self.master.file_content[1]
-        #del self.master.file_content
+        self.pedigrees = self.master.file_content[5]
         n_pedigree = self.pedigrees.__len__()
-        self.checkstatus = []
-        self.all_write_out = []
         for i,row in enumerate(self.pedigrees):
             statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow)
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
             if self.break_loop != 0:
                 break
-            elephant_1_id = row[0]
-            elephant_2_id = row[1]
-            rel = row[2]
-            coef = row[3]
-            p = pedigree(elephant_1_id, elephant_2_id, rel, coef)
-            p.source(self.master.db)
-            p.check()
-            w = p.write(self.master.db)
-            self.all_write_out.append(w)
-            if re.search(r"\(\"INSERT", str(w)):
-                say = 'valid'
-                sV += 1
-                self.checkstatus.append('checked')
-            elif re.search(r"Conflict", str(w)):
-                say = 'conflicting'
-                sC += 1
-                self.checkstatus.append('conflicting')
+            if row[4] == 1:
+                pass
             else:
-                say = 'known'
-                sK += 1
-                self.checkstatus.append('known')
-            self.master.common_out.append(w)
-            self.result.insert(tk.END, ("\tAnalysing relationship number "+str(i+1)+" of "+str(n_pedigree)+": "+say+"\n"))
-            self.result.update()
-            self.result.see(tk.END)
-
+                elephant_1_id, elephant_2_id, rel, coef  = row[0:4]
+                p = pedigree(elephant_1_id, elephant_2_id, rel, coef)
+                p.source(self.master.db)
+                p.check()
+                w = p.write(self.master.db)
+                row[4] = row[4] + w[4]
+                row[5] = w[5]
+                if 1 in break_flag(row[4]) or 2 in break_flag(row[4]):
+                    say = 'valid'
+                    sV += 1
+                elif 3 in break_flag(row[4]):
+                    say = 'known'
+                    sK += 1
+                else:
+                    say = 'conflicting'
+                    sC += 1
+                self.master.common_out.append(w)
+                self.result.insert(tk.END, ("\tAnalysing relationship number "+str(i+1)+" of "+str(n_pedigree)+": "+say+"\n"))
+                self.result.update()
+                self.result.see(tk.END)
         if self.break_loop == 0:
             self.result.insert(tk.END, ("\n\tFinished..!\n"))
             self.writebutton.config(state="normal")
@@ -783,51 +758,34 @@ class analyse_pedigree_file(tk.Frame):
 
     def show_conflicts(self):
         rows = self.master.file_content[5]
-        self.isvalid = self.master.file_content[6]
-        self.rawindex = self.master.file_content[8]
-
         self.view_window = tk.Toplevel(self.master)
         self.view_window.title("Pedigree file "+self.master.shortname)
-        # self.view_window.geometry("600x700")
-        # self.view_window.resizable(False, False)
         self.view_window.grid_columnconfigure(0, weight=1)
         self.view_window.grid_columnconfigure(2, weight=1)
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
-
         self.tv = ttk.Treeview(self.view_window, height=32)
         self.tv['columns'] = ('elephant_1_id', 'elephant_2_id', 'rel', 'coef')
-
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
-
-        self.tv.heading('elephant_1_id', text='elephant_1_id')
-        self.tv.column('elephant_1_id', anchor='center', width=120)
-
-        self.tv.heading('elephant_2_id', text='elephant_2_id')
-        self.tv.column('elephant_2_id', anchor='center', width=120)
-
-        self.tv.heading('rel', text='rel')
-        self.tv.column('rel', anchor='center', width=120)
-
-        self.tv.heading('coef', text='coef')
-        self.tv.column('coef', anchor='center', width=120)
-
+        for c in self.tv['columns']:
+            self.tv.heading(c, text=c)
+            self.tv.column(c, anchor='w', width=100)
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
-        k = 0
         for i,row in enumerate(rows):
-
-            if i in self.rawindex:
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.checkstatus[k]))
-                k+=1
-
+            if 1 in break_flag(row[4]) or 2 in break_flag(row[4]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('valid',))
+            elif 3 in break_flag(row[4]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('known',))
+            elif row[4] == 1:
+                self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('rejected',))
             else:
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.isvalid[i],)) #Orange if failed at read()
+                self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('conflicting',))
 
-        self.tv.tag_configure('rejected', background='orange')
-        self.tv.tag_configure('known', background='grey')
-        self.tv.tag_configure('conflicting', background='red')
+        self.tv.tag_configure('rejected', background='#E08E45')
+        self.tv.tag_configure('known', background='#D5D0CD')
+        self.tv.tag_configure('conflicting', background='#A30B37')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
     def OnDoubleClick(self, event):
@@ -836,25 +794,14 @@ class analyse_pedigree_file(tk.Frame):
         self.warning_window.title("")
         self.warningbox = tk.Text(self.warning_window, height=10, width=65)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
-
-        warning = self.master.file_content[7][int(self.tv.item(item,"text"))-1]
-
-        if (int(self.tv.item(item,"text"))-1) in self.rawindex:
-            writeout = self.all_write_out[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
-            status = self.checkstatus[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
-            if status in ('checked','conflicting'):
-                self.warningbox.insert(tk.END, writeout)
-            else:
-                self.warningbox.insert(tk.END, 'This relationship is already in the database')
-
+        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][4]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
+        if flag == 8:
+            self.warningbox.insert(tk.END, 'This relationship is already in the database')
         else:
-            if warning != []:
-                for w in warning:
-                    self.warningbox.insert(tk.END, w+'\n')
-            else:
-                self.warningbox.insert(tk.END, "No problem with this relationship.")
+            for w in warning:
+                self.warningbox.insert(tk.END, w)
         self.warningbox.config(state=tk.DISABLED)
-
 
     def write_sql(self):
         folder = askdirectory(title='Choose SQL file directory...')
