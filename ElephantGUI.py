@@ -23,7 +23,7 @@ class MainApplication(tk.Frame):
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
-        self.master.geometry("600x700")
+        self.master.geometry("500x500")
         self.master.resizable(False, False)
 
 
@@ -31,21 +31,43 @@ class MainApplication(tk.Frame):
         self.master.menubar = tk.Menu(self)
 
         filemenu = tk.Menu(self.master.menubar, tearoff=0)
-        # filemenu.add_separator()
         filemenu.add_command(label="Import elephants", command=self.read_elephants_prompt)
         filemenu.add_command(label="Import pedigrees", command=self.read_pedigree_prompt)
+        filemenu.add_command(label="Import events", command=self.notimplemented)
+        filemenu.add_command(label="Import measures", command=self.notimplemented)
+        filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit)
         self.master.menubar.add_cascade(label="File", menu=filemenu)
         self.master.menubar.entryconfig("File", state='disabled')
 
         searchmenu = tk.Menu(self.master.menubar, tearoff=0)
         searchmenu.add_command(label="Find an elephant", command=self.gofindeleph)
-        searchmenu.add_command(label="Advanced search", command=self.gofindeleph)
+        searchmenu.add_command(label="Find a relationship", command=self.notimplemented)
+        searchmenu.add_command(label="Find an event", command=self.notimplemented)
+        searchmenu.add_command(label="Find a measure", command=self.notimplemented)
+        searchmenu.add_separator()
+        searchmenu.add_command(label="Make a measure set", command=self.notimplemented)
+        searchmenu.add_separator()
+        searchmenu.add_command(label="Advanced search", command=self.notimplemented)
         self.master.menubar.add_cascade(label="Search", menu=searchmenu)
         self.master.menubar.entryconfig("Search", state='disabled')
 
+        addmenu = tk.Menu(self.master.menubar, tearoff=0)
+        addmenu.add_command(label="Add an elephant", command=self.notimplemented)
+        addmenu.add_command(label="Add a relationship", command=self.notimplemented)
+        addmenu.add_command(label="Add an event", command=self.notimplemented)
+        addmenu.add_command(label="Add a measure", command=self.notimplemented)
+        addmenu.add_separator()
+        addmenu.add_command(label="Add a measure type", command=self.notimplemented)
+        addmenu.add_command(label="Add an event type", command=self.notimplemented)
+        addmenu.add_separator()
+        addmenu.add_command(label="Update living status", command=self.notimplemented)
+        self.master.menubar.add_cascade(label="Add", menu=addmenu)
+        self.master.menubar.entryconfig("Add", state='disabled')
+
         dbmenu = tk.Menu(self.master.menubar, tearoff = 0)
         dbmenu.add_command(label="Connexion", command=self.goconnect)
+        dbmenu.add_command(label="MySQL dump", command=self.notimplemented)
         self.master.menubar.add_cascade(label="Database", menu=dbmenu)
 
         self.master.config(menu=self.master.menubar)
@@ -61,6 +83,9 @@ class MainApplication(tk.Frame):
 
     def gofindeleph(self):
         findeleph(self.master, back = 0)
+
+    def notimplemented(self):
+        print("Not implemented yet")
 
 ################################################################################
 ## SQL connexion window                                                       ##
@@ -111,6 +136,7 @@ class dbconnect(tk.Frame):
         self.grid_rowconfigure(8, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(3, weight=1)
+        self.bind('<Return>', self.connect_to_db)
 
     def connect_to_db(self):
         try:
@@ -125,6 +151,7 @@ class dbconnect(tk.Frame):
             print("Impossible to connect to database.")
         self.master.menubar.entryconfig("File", state='normal')
         self.master.menubar.entryconfig("Search", state='normal')
+        self.master.menubar.entryconfig("Add", state='normal')
         self.disconnectbutton.config(state="normal")
         self.connectbutton.config(state="disabled")
 
@@ -135,6 +162,7 @@ class dbconnect(tk.Frame):
             self.connectbutton.config(state="normal")
             self.master.menubar.entryconfig("File", state='disabled')
             self.master.menubar.entryconfig("Search", state='disabled')
+            self.master.menubar.entryconfig("Add", state='normal')
         except:
             print("You are not connected to any database.")
 
@@ -233,7 +261,7 @@ class show_matriline(tk.Frame):
         self.master = master
         tk.Frame.__init__(self, self.master)
         self.configure_gui()
-        self.clear_frame()
+        # self.clear_frame()
         self.create_widgets()
 
     def configure_gui(self):
@@ -245,10 +273,18 @@ class show_matriline(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
+        self.view_window = tk.Toplevel(self.master)
+        self.view_window.title("Pedigree view")
+        self.view_window.grid_columnconfigure(0, weight=1)
+        self.view_window.grid_columnconfigure(2, weight=1)
+        self.view_window.grid_rowconfigure(0, weight=1)
+        self.view_window.grid_rowconfigure(2, weight=1)
+        self.view_window.geometry("600x700")
+        self.view_window.resizable(False, False)
+
         img = Image.open('./tree.png','r')
         img_w, img_h = img.size
         if img_h > img_w:
-
             newsize= round(600*(600/img_h)),600
             img = img.resize(newsize, Image.ANTIALIAS)
             img.save('./tree.png')
@@ -258,15 +294,16 @@ class show_matriline(tk.Frame):
         offset = (round((bg_w - img_w) / 2), round((bg_h - img_h) / 2))
         self.background.paste(img, offset)
         self.background.save('./tree.png')
-        self.treebox = tk.Text(self.master, height=50, width=100)
+
+        self.treebox = tk.Text(self.view_window, height=50, width=100)
         self.tree=tk.PhotoImage(file='./tree.png')
         self.treebox.image_create(tk.END, image=self.tree)
         self.treebox.grid(row=2, column = 1, columnspan=4)
-        self.backbutton = tk.Button(self.master, text='<< Back', width=20, command=self.back_to_find)
+        self.backbutton = tk.Button(self.view_window, text='Close', width=20, command=self.view_window.destroy)
         self.backbutton.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
-        self.saveimgbutton = tk.Button(self.master, width=20, text='Save as Image', command=self.save_tree)
+        self.saveimgbutton = tk.Button(self.view_window, width=20, text='Save as Image', command=self.save_tree)
         self.saveimgbutton.grid(row=1, column=4, sticky=tk.EW, padx=5, pady=5)
-        self.savenexbutton = tk.Button(self.master, text='Save as Nexus', width=20, command=self.save_newick)
+        self.savenexbutton = tk.Button(self.view_window, text='Save as Nexus', width=20, command=self.save_newick)
         self.savenexbutton.grid(row=1, column=3, sticky=tk.EW, padx=5, pady=5)
 
 
@@ -551,7 +588,7 @@ class analyse_elephant_file(tk.Frame):
             self.warningbox.insert(tk.END, 'This elephant is already in the database')
         else:
             for w in warning:
-                self.warningbox.insert(tk.END, w)
+                self.warningbox.insert(tk.END, w+'\n')
         self.warningbox.config(state=tk.DISABLED)
 
 
@@ -650,7 +687,7 @@ class read_pedigree_file(tk.Frame):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master)
         self.warning_window.title("")
-        warning = self.master.file_content[7][int(self.tv.item(item,"text"))-1]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
         self.warningbox = tk.Text(self.warning_window, height=5, width=45)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
         if warning != []:
@@ -780,12 +817,15 @@ class analyse_pedigree_file(tk.Frame):
                 self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('known',))
             elif row[4] == 1:
                 self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('rejected',))
+            elif 6 in break_flag(row[4]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('missing',))
             else:
                 self.tv.insert('','end',text=str(i+1), values=row[0:3], tags = ('conflicting',))
 
         self.tv.tag_configure('rejected', background='#E08E45')
         self.tv.tag_configure('known', background='#D5D0CD')
         self.tv.tag_configure('conflicting', background='#A30B37')
+        self.tv.tag_configure('missing', background='#B3B3F1')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
     def OnDoubleClick(self, event):
@@ -797,10 +837,10 @@ class analyse_pedigree_file(tk.Frame):
         flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][4]
         warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
         if flag == 8:
-            self.warningbox.insert(tk.END, 'This relationship is already in the database')
+            self.warningbox.insert(tk.END, 'This relationship is already in the database.')
         else:
             for w in warning:
-                self.warningbox.insert(tk.END, w)
+                self.warningbox.insert(tk.END, w+'\n')
         self.warningbox.config(state=tk.DISABLED)
 
     def write_sql(self):

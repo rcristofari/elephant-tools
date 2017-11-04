@@ -26,6 +26,11 @@ from eletools.Utilities import *
 # 4096: 'alive',
 # 8192: 'research'
 
+# For the pedigree class:
+# 16: sex
+# 32 : birth
+# 64 : missing elephant
+
    ##########################################################################
  ##############################################################################
 ###                                                                          ###
@@ -527,7 +532,6 @@ class elephant: ##MAKE A __repr__ function !!
             self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 2
-                self.__toggle_write_flag = 1
 
         ########## If the elephant has been checked and there is no conflict, write an update statement.
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
@@ -536,7 +540,6 @@ class elephant: ##MAKE A __repr__ function !!
             if all(x in (1,3,4) for x in self.status):
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 8
-                    self.__toggle_write_flag = 1
                 self.out = "This elephant is already in the database, nothing to change."
                 pass
             else:
@@ -544,7 +547,7 @@ class elephant: ##MAKE A __repr__ function !!
                 self.out = self.__db.update_elephant(wnum, wname, wcalf_num, wsex, wbirth, wcw, wcaught, wcamp, walive, wresearch, self.__db_commits, self.__db_id)
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 4
-                    self.__toggle_write_flag = 1
+
         ########## If there is a pending conflict, we write out the conflicts and build the corresponding flag
         else:
 
@@ -556,7 +559,6 @@ class elephant: ##MAKE A __repr__ function !!
                 # Set the 2-power flag:
                 for n in i:
                     self.flag = self.flag + 2**(n+4)
-                    self.__toggle_write_flag = 1
 
             # Make a string of conflict field names for the warning field
             f = ('num','name','calf_num','sex','birth','cw','age of capture','camp','alive','research')
@@ -574,6 +576,7 @@ class elephant: ##MAKE A __repr__ function !!
                 self.out = ("[Conflict] Calf number "+str(self.calf_num)+": you need to solve conflicts for: "+conflicts)
 
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
+        self.__toggle_write_flag = 1
         output_row = [self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, self.flag, self.out]
         return(output_row)
 
@@ -635,6 +638,9 @@ class pedigree:
         self.__xsex=None
         self.__xbirth=None
 
+# A list to gather warnings for each line:
+        self.warnings = []
+
 ################################################################################
 ## 'source' function reads the pedigree from the database if it exists        ##
 ################################################################################
@@ -644,7 +650,7 @@ class pedigree:
         self.__db=db
         self.__db_eleph_1 = None
         self.__db_eleph_2 = None
-        elephant_absent = 0
+        self.elephant_absent = 0
 
         try:
             el1 = self.__db.get_elephant(self.eleph_1)
@@ -658,8 +664,16 @@ class pedigree:
             self.__db_id2 = self.__db_eleph_2[0]
 
         except TypeError:
-            print("Impossible to find elephants", self.eleph_1, "and/or", self.eleph_2, "in the database.")
-            elephant_absent = 1
+            missing = ''
+            if self.__db.get_elephant(self.eleph_1) is None and self.__db.get_elephant(self.eleph_2) is None:
+                missing = ("Impossible to find elephant ", self.eleph_1+" nor "+self.eleph_2+" in the database.")
+            if self.__db.get_elephant(self.eleph_1) is None and self.__db.get_elephant(self.eleph_2) is not None:
+                missing = ("Impossible to find elephant "+self.eleph_1+" in the database.")
+            if self.__db.get_elephant(self.eleph_1) is not None and self.__db.get_elephant(self.eleph_2) is None:
+                missing = ("Impossible to find elephant "+self.eleph_2+" in the database.")
+            self.warnings.append(missing)
+            print(missing)
+            self.elephant_absent = 1
 
         if self.__db.get_pedigree(self.__db_id1, self.__db_id2):
             self.__rel_1 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[0]
@@ -686,63 +700,72 @@ class pedigree:
                     #Testing the consistency of the relationship as entered in the database.
                     #Testing that the age difference is at least 7 years (should be tuned better).
                     #In case of problem, self.__sourced reverts to 0.
-
+                    agewarning = None
                     if self.__rel_1[4] == 'mother':
                         if delta > -10:
                             self.__sourced = 0
-                            print("Mother too young (", round(abs(delta)), " years old)", sep="")
+                            agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
                         elif delta < -70:
                             self.__sourced = 0
-                            print("Mother too old (", round(abs(delta)), " years old)", sep="")
-                        else:
-                            pass
-                    if self.__rel_2[4] == 'mother':
-                        if delta < 10:
-                            self.__sourced = 0
-                            print("Mother too young (", round(abs(delta)), " years old)", sep="")
-                        elif delta > 10:
-                            self.__sourced = 0
-                            print("Mother too old (", round(abs(delta)), " years old)", sep="")
-                        else:
-                            pass
-                    elif self.__rel_1[4] == 'father':
-                        if delta > -10:
-                            self.__sourced = 0
-                            print("Father too young (", round(abs(delta)), " years old)", sep="")
-                        elif delta < -70:
-                            self.__sourced = 0
-                            print("Father too old (", round(abs(delta)), " years old)", sep="")
-                        else:
-                            pass
-                    elif self.__rel_2[4] == 'father':
-                        if delta < 10:
-                            self.__sourced = 0
-                            print("Father too young (", round(abs(delta)), " years old)", sep="")
-                        elif delta > 70:
-                            self.__sourced = 0
-                            print("Father too old (", round(abs(delta)), " years old)", sep="")
-                        else:
-                            pass
-                    elif self.__rel_1[4] == 'offspring':
-                        if delta < 10:
-                            self.__sourced = 0
-                            print("Parent too young (", round(abs(delta)), " years old)", sep="")
-                        elif delta > 70:
-                            self.__sourced = 0
-                            print("Parent too old (", round(abs(delta)), " years old)", sep="")
-                        else:
-                            pass
-                    elif self.__rel_2[4] == 'offspring':
-                        if delta > -10:
-                            self.__sourced = 0
-                            print("Parent too young (", round(abs(delta)), " years old)", sep="")
-                        elif delta < -70:
-                            self.__sourced = 0
-                            print("Parent too old (", round(abs(delta)), " years old)", sep="")
+                            agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
                         else:
                             pass
 
-            if elephant_absent == 1:
+                    if self.__rel_2[4] == 'mother':
+                        if delta < 10:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
+                        elif delta > 10:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
+                        else:
+                            pass
+
+                    elif self.__rel_1[4] == 'father':
+                        if delta > -10:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
+                        elif delta < -70:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
+                        else:
+                            pass
+
+                    elif self.__rel_2[4] == 'father':
+                        if delta < 10:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
+                        elif delta > 70:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
+                        else:
+                            pass
+
+                    elif self.__rel_1[4] == 'offspring':
+                        if delta < 10:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
+                        elif delta > 70:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
+                        else:
+                            pass
+
+                    elif self.__rel_2[4] == 'offspring':
+                        if delta > -10:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
+                        elif delta < -70:
+                            self.__sourced = 0
+                            agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
+                        else:
+                            pass
+
+                    if agewarning is not None:
+                        print(agewarning)
+                        self.warnings.append(agewarning)
+
+            if self.elephant_absent == 1:
                 self.__sourced = 0
 
             if self.__sourced == 1:
@@ -752,7 +775,7 @@ class pedigree:
                 print("This relationship is present but incorreclty entered in the database.\nCheck it manually (relationship id: ",
                       self.__rel_1[1], ", elephant ids ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
 
-        elif self.__rel_1 is None and self.__rel_2 is None and elephant_absent != 1:
+        elif self.__rel_1 is None and self.__rel_2 is None and self.elephant_absent != 1:
             self.__sourced = 2
             print("This relationship is not in the database yet. You can proceed to check()")
 
@@ -762,13 +785,15 @@ class pedigree:
 
     def check(self):
 
+### THIS HERE POSES A PROBLEM
         if self.__sourced == 0:
             self.__checked = 3
-            print("\nCheck: This relationship is present in the database with an error. Please correct it manually")
+            print("\nThis relationship is present in the database with an error. Please correct it manually")
+#####################################
 
         elif self.__sourced == 1:
             self.__checked = 2
-            print("\nCheck: This relationship is already correctly entered in the database, nothing to do.")
+            print("\nThis relationship is already correctly entered in the database, nothing to do.")
 
         elif self.__sourced == 2:
             self.__checked = 1
@@ -780,31 +805,34 @@ class pedigree:
             print("\nThe proposed relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1], "), born on ", self.__db_eleph_1[2],
                     ", is the ", self.rel, " of elephant ", self.eleph_2, " (", self.__db_eleph_2[1], "), born on ", self.__db_eleph_2[2], ".\n", sep="")
 
-
             #Check that this elephant does not already have a father or mother.
+            redundancywarning = None
             if self.rel == "mother": # elephant 2 should not already have a mother or a father.
                 if self.__db.get_mother(self.eleph_2) is not None:
                     self.__checked = 0
-                    print("Elephant ", self.eleph_2, " already has a registered mother (", self.__db.get_mother(self.eleph_2), ").", sep="")
+                    redundancywarning = ("Elephant "+self.eleph_2+" already has a registered mother ("+self.__db.get_mother(self.eleph_2)+").")
             elif self.rel == "father":
                 if self.__db.get_father(self.eleph_2) is not None:
                     self.__checked = 0
-                    print("Elephant ", self.eleph_2, " already has a registered father (", self.__db.get_father(self.eleph_2), ").", sep="")
+                    redundancywarning = ("Elephant "+self.eleph_2+" already has a registered father ("+self.__db.get_father(self.eleph_2)+").")
+            if redundancywarning is not None:
+                print(redundancywarning)
+                self.warnings.append(redundancywarning)
 
-
-            if self.rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 7 and 90 years age difference)
+            structurewarning = None
+            if self.rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 10 and 70 years age difference)
                 if self.__db_eleph_1[1] != 'F':
                     self.__xsex = 0
                     self.__checked = 0
-                    print("Not registered as female in the database, you cannot declare it as 'mother' here.")
+                    structurewarning = (self.eleph_1+" is not a female in the database, you cannot declare it as 'mother' here.")
                 elif delta < 10:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Mother too young (", round(delta), " years old)", sep="")
+                    structurewarning = ("Mother too young ("+str(round(abs(delta)))+" years old)")
                 elif delta > 70:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Mother too old (", round(abs(delta)), " years old)", sep="")
+                    structurewarning = ("Mother too old ("+str(round(abs(delta)))+" years old)")
                 else:
                     pass
 
@@ -812,15 +840,15 @@ class pedigree:
                 if self.__db_eleph_1[1] != 'M':
                     self.__xsex = 0
                     self.__checked = 0
-                    print("Not registered as male in the database, you cannot declare it as 'father' here.")
+                    structurewarning = (self.eleph_2+" is not a male in the database, you cannot declare it as 'father' here.")
                 elif delta < 10:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Father too young (", round(delta), " years old)", sep="")
+                    structurewarning = ("Father too young ("+str(round(abs(delta)))+" years old)")
                 elif delta > 70:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Father too old (", round(abs(delta)), " years old)", sep="")
+                    structurewarning = ("Father too old ("+str(round(abs(delta)))+" years old)")
                 else:
                     pass
 
@@ -828,13 +856,17 @@ class pedigree:
                 if delta > -10:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Parent too young (", round(abs(delta)), " years old)", sep="")
+                    structurewarning = ("Parent too young ("+str(round(abs(delta)))+" years old)")
                 elif delta < -70:
                     self.__xbirth = 0
                     self.__checked = 0
-                    print("Parent too old (", round(abs(delta)), " years old)", sep="")
+                    structurewarning = ("Parent too old ("+str(round(abs(delta)))+" years old)")
                 else:
                     pass
+
+            if structurewarning is not None:
+                print(structurewarning)
+                self.warnings.append(structurewarning)
 
             else:
                 pass
@@ -885,24 +917,25 @@ class pedigree:
             self.out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 2
-                self.__toggle_write_flag = 1
 
         elif self.__checked == 2:
             self.out = "This relationship is already in the database, nothing to change."
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 8
-                self.__toggle_write_flag = 1
 
         elif self.__checked == 3:
-            self.out = ("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": this relationship exists in the database, but with an error.")
-            if self.__toggle_write_flag == 0:
-                self.flag = self.flag + 16
-                self.__toggle_write_flag = 1
+            if self.elephant_absent == 0:
+                self.out = ("[Conflict] Elephants number " + self.eleph_1 + " and " + self.eleph_2 + ": this relationship exists in the database, but with an error.")
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 2**7
+            elif self.elephant_absent == 1:
+                self.out = ("[Conflict] Elephants number " + self.eleph_1 + " and " + self.eleph_2 + ": this relationship involves an unknown elephant.")
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 2**6
 
         elif self.__checked == 0:
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 16
-                self.__toggle_write_flag = 1
             status_array = np.array(self.status)
             conflicts_array = np.where(status_array == 0)
             i = tuple(map(tuple, conflicts_array))[0]
@@ -910,16 +943,18 @@ class pedigree:
                 # Set the 2-power flag:
                 for n in i:
                     self.flag = self.flag + 2**(n+4)
-                    self.__toggle_write_flag = 1
 
             f = ['sex','birth date']
             conflicts = str()
             for x in i:
                 conflicts = conflicts+f[x]
-            self.out = ("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": you need to solve conflicts for " + conflicts)
+            self.out = ("[Conflict] Elephants number " + self.eleph_1 + " and " + self.eleph_2 + ": you need to solve conflicts for " + conflicts)
 
+        print(self.flag)
+        self.__toggle_write_flag = 1
+        self.warnings.append(self.out)
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
-        output_row = [self.eleph_1, self.eleph_2, self.rel, self.coef, self.flag, self.out]
+        output_row = [self.eleph_1, self.eleph_2, self.rel, self.coef, self.flag, self.warnings]
         return(output_row)
 
 
