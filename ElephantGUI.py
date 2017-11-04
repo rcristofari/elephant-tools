@@ -3,6 +3,8 @@ import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 import tkinter.ttk as ttk
 from PIL import Image
+import os
+import re
 from datetime import datetime
 from eletools import *
 
@@ -329,9 +331,11 @@ class read_elephant_file(tk.Frame):
             self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
         self.master.shortname=os.path.split(self.name)[1]
         self.master.file_content = read_elephants(self.name, ',')
+
         n_accepted = self.master.file_content[1].__len__()
         n_rejected = self.master.file_content[3].__len__()
         parse_reads(self.master.file_content, prefix=(self.name.partition('.')[0]))
+
         self.result.config(state=tk.NORMAL)
         self.result.delete(1.0,tk.END)
         self.result_text = ("\n  The file contains "+str(n_accepted+n_rejected)+" lines:\n"
@@ -345,15 +349,10 @@ class read_elephant_file(tk.Frame):
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
-    # Open an extra window with the scrollable pedigree file contents
-    # Should ADD FUNCTION to color row that contain an error in red.
     def show_file_content(self):
         rows = self.master.file_content[5]
-        isvalid = self.master.file_content[6]
         self.view_window = tk.Toplevel(self.master)
         self.view_window.title("Elephant file "+self.master.shortname)
-        # self.view_window.geometry("600x700")
-        # self.view_window.resizable(False, False)
         self.view_window.grid_columnconfigure(0, weight=1)
         self.view_window.grid_columnconfigure(2, weight=1)
         self.view_window.grid_rowconfigure(0, weight=1)
@@ -365,49 +364,24 @@ class read_elephant_file(tk.Frame):
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
 
-        self.tv.heading('num', text='num')
-        self.tv.column('num', anchor='w', width=100)
-
-        self.tv.heading('name', text='name')
-        self.tv.column('name', anchor='w', width=150)
-
-        self.tv.heading('calf_num', text='calf_num')
-        self.tv.column('calf_num', anchor='w', width=100)
-
-        self.tv.heading('sex', text='sex')
-        self.tv.column('sex', anchor='center', width=100)
-
-        self.tv.heading('birth', text='birth')
-        self.tv.column('birth', anchor='center', width=100)
-
-        self.tv.heading('cw', text='coef')
-        self.tv.column('cw', anchor='center', width=100)
-
-        self.tv.heading('caught', text='caught')
-        self.tv.column('caught', anchor='center', width=100)
-
-        self.tv.heading('camp', text='camp')
-        self.tv.column('camp', anchor='center', width=100)
-
-        self.tv.heading('alive', text='alive')
-        self.tv.column('alive', anchor='center', width=100)
-
-        self.tv.heading('research', text='research')
-        self.tv.column('research', anchor='center', width=100)
+        # Create fields
+        for c in self.tv['columns']:
+            self.tv.heading(c, text=c)
+            self.tv.column(c, anchor='w', width=100)
 
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
         for i,row in enumerate(rows):
-            self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (isvalid[i],))
+            self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (row[10],))
 
-        self.tv.tag_configure('rejected', background='orange')
+        self.tv.tag_configure(1, background='orange')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master)
         self.warning_window.title("")
-        warning = self.master.file_content[7][int(self.tv.item(item,"text"))-1]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][11]
         self.warningbox = tk.Text(self.warning_window, height=5, width=45)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
         if warning != []:
@@ -437,10 +411,12 @@ class analyse_elephant_file(tk.Frame):
         self.master = master
         tk.Frame.__init__(self, self.master)
         self.name = None
+
         if solved==1:
             self.solved='Y'
         else:
             self.solved='N'
+
         self.break_loop = 0
         self.configure_gui()
         self.clear_frame()
@@ -473,55 +449,52 @@ class analyse_elephant_file(tk.Frame):
         self.break_loop = 1
 
     def call_analyse_elephants(self):
-        sV=0
-        sC=0
-        sK=0
-        self.elephants = self.master.file_content[1]
-        #del self.master.file_content
-        n_elephs = self.elephants.__len__()
-        self.checkstatus = []
-        self.all_write_out = []
+        sV=0 # Number of valid elephants so far
+        sC=0 # Number of conflicting elephants so far
+        sK=0 # Number of known elephants sor far
+        # We scan over all elephants, including the ones flagged out during the reading process
+        # These will simply be ignored.
+        self.elephants = self.master.file_content[5]
+        # Noumber of valid elephants is read from the partial list 'Accepted'
+        n_elephs = self.master.file_content[1].__len__()
+
         for i,row in enumerate(self.elephants):
+            # Evaluating and displaying the counter
             statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow)
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+            # Toggle for the "stop" button to abort a long import
             if self.break_loop != 0:
                 break
-            num = row[0]
-            name = row[1]
-            calf_num = row[2]
-            sex = row[3]
-            birth = row[4]
-            cw = row[5]
-            caught = row[6]
-            camp = row[7]
-            alive = row[8]
-            research = row[9]
-            ele = elephant(num,name,calf_num,sex,birth,cw,caught,camp,alive,research, solved=self.solved)
-            ele.source(self.master.db)
-            ele.check()
-            w = ele.write(self.master.db)
-            self.all_write_out.append(w)
-            if re.search(r"^INSERT", str(w)):
-                say = 'valid'
-                sV += 1
-                self.checkstatus.append('checked')
-            elif re.search(r"^UPDATE", str(w)):
-                say = 'valid'
-                sV += 1
-                self.checkstatus.append('checked')
-            elif re.search(r"Conflict", str(w)):
-                say = 'conflicting'
-                sC += 1
-                self.checkstatus.append('conflicting')
+
+            # In case that row has been flagged off at the import stage
+            if row[10] == 1:
+                pass
+
             else:
-                say = 'known'
-                sK += 1
-                self.checkstatus.append('known')
-            self.master.common_out.append(w)
-            self.result.insert(tk.END, ("\tAnalysing elephant number "+num+"\t\t("+str(i+1)+" of "+str(n_elephs)+"): "+say+"\n"))
-            self.result.update()
-            self.result.see(tk.END)
+                # Setting the values from the current row
+                num, name, calf_num, sex, birth, cw, caught, camp, alive, research = row[0:10]
+                ele = elephant(num, name, calf_num, sex, birth, cw, caught, camp, alive, research, solved=self.solved)
+                ele.source(self.master.db)
+                ele.check()
+                w = ele.write(self.master.db)
+                print(row)
+                # Add up the flag values
+                row[10] = row[10] + w[10]
+                # Add the warnings field
+                row[11] = w[11]
+                if 1 in break_flag(row[10]) or 2 in break_flag(row[10]):
+                    say = 'valid'
+                    sV += 1
+                elif 3 in break_flag(row[10]):
+                    say = 'known'
+                    sK += 1
+                else:
+                    say = 'conflicting'
+                    sC += 1
+                self.result.insert(tk.END, ("\tAnalysing elephant number "+num+"\t\t("+str(i+1)+" of "+str(n_elephs)+"): "+say+"\n"))
+                self.result.update()
+                self.result.see(tk.END)
 
         if self.break_loop == 0:
             self.result.insert(tk.END, ("\n\tFinished..!\n"))
@@ -530,74 +503,41 @@ class analyse_elephant_file(tk.Frame):
         else:
             self.result.insert(tk.END, ("\n\tStopped.\n"))
             self.stopbutton.config(state="disabled")
+
         self.result.update()
         self.result.see(tk.END)
 
     def show_conflicts(self):
         rows = self.master.file_content[5]
-        self.isvalid = self.master.file_content[6]
-        self.rawindex = self.master.file_content[8]
 
         self.view_window = tk.Toplevel(self.master)
         self.view_window.title("Elephant file "+self.master.shortname)
-        # self.view_window.geometry("600x700")
-        # self.view_window.resizable(False, False)
         self.view_window.grid_columnconfigure(0, weight=1)
         self.view_window.grid_columnconfigure(2, weight=1)
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
-
         self.tv = ttk.Treeview(self.view_window, height=32)
         self.tv['columns'] = ('num','name','calf_num','sex','birth','cw','caught','camp','alive','research')
-
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
-
-        self.tv.heading('num', text='num')
-        self.tv.column('num', anchor='w', width=100)
-
-        self.tv.heading('name', text='name')
-        self.tv.column('name', anchor='w', width=150)
-
-        self.tv.heading('calf_num', text='calf_num')
-        self.tv.column('calf_num', anchor='w', width=100)
-
-        self.tv.heading('sex', text='sex')
-        self.tv.column('sex', anchor='center', width=100)
-
-        self.tv.heading('birth', text='birth')
-        self.tv.column('birth', anchor='center', width=100)
-
-        self.tv.heading('cw', text='coef')
-        self.tv.column('cw', anchor='center', width=100)
-
-        self.tv.heading('caught', text='caught')
-        self.tv.column('caught', anchor='center', width=100)
-
-        self.tv.heading('camp', text='camp')
-        self.tv.column('camp', anchor='center', width=100)
-
-        self.tv.heading('alive', text='alive')
-        self.tv.column('alive', anchor='center', width=100)
-
-        self.tv.heading('research', text='research')
-        self.tv.column('research', anchor='center', width=100)
-
+        for c in self.tv['columns']:
+            self.tv.heading(c, text=c)
+            self.tv.column(c, anchor='w', width=100)
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
-        k = 0
         for i,row in enumerate(rows):
-
-            if i in self.rawindex:
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.checkstatus[k]))
-                k+=1
-
+            if 1 in break_flag(row[10]) or 2 in break_flag(row[10]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('valid',))
+            elif 3 in break_flag(row[10]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('known',))
+            elif row[10] == 1:
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('rejected',))
             else:
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (self.isvalid[i],)) #Orange if failed at read()
+                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('conflicting',))
 
-        self.tv.tag_configure('rejected', background='orange')
-        self.tv.tag_configure('known', background='grey')
-        self.tv.tag_configure('conflicting', background='red')
+        self.tv.tag_configure('rejected', background='#E08E45')
+        self.tv.tag_configure('known', background='#D5D0CD')
+        self.tv.tag_configure('conflicting', background='#A30B37')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
     def OnDoubleClick(self, event):
@@ -606,23 +546,13 @@ class analyse_elephant_file(tk.Frame):
         self.warning_window.title("")
         self.warningbox = tk.Text(self.warning_window, height=10, width=65)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
-
-        warning = self.master.file_content[7][int(self.tv.item(item,"text"))-1]
-
-        if (int(self.tv.item(item,"text"))-1) in self.rawindex:
-            writeout = self.all_write_out[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
-            status = self.checkstatus[self.rawindex.index(int(self.tv.item(item,"text"))-1)]
-            if status in ('checked','conflicting'):
-                self.warningbox.insert(tk.END, writeout)
-            else:
-                self.warningbox.insert(tk.END, 'This elephant is already in the database')
-
+        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][10]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][11]
+        if flag == 8:
+            self.warningbox.insert(tk.END, 'This elephant is already in the database')
         else:
-            if warning != []:
-                for w in warning:
-                    self.warningbox.insert(tk.END, w+'\n')
-            else:
-                self.warningbox.insert(tk.END, "No problem with this elephant.")
+            for w in warning:
+                self.warningbox.insert(tk.END, w)
         self.warningbox.config(state=tk.DISABLED)
 
 

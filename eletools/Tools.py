@@ -1,5 +1,6 @@
 import string
 from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
+from eletools.Utilities import *
 
 ####################################################################################
 ##  matriline_tree() function builds a Newick tree string around an individual    ##

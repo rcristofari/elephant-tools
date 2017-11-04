@@ -4,6 +4,7 @@ import numpy as np
 import re
 import os
 import csv
+from eletools.Utilities import *
 
 ####################################################################################
 ##  read_elephants() READ ELEPHANTS DEFINTION FILE                                 ##
@@ -14,20 +15,13 @@ import csv
 # field names irrelevant, but order necessary
 
 def read_elephants(elefile, sep=';'):
-    num = []
-    name = []
-    calf_num = []
-    sex = []
-    birth = []
-    cw = []
-    caught = []
-    camp = []
-    alive = []
-    research = []
+    # Prepare empty list for column-wise parsing
+    num, name, calf_num, sex, birth, cw, caught, camp, alive, research = [], [], [], [], [], [], [], [], [], []
 
+    ########## Store the header in a list, and then each variable in its own column
     with open(elefile) as elefile:
         eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
-        fields = next(eleread)[0:8]
+        fields = next(eleread)[0:10]
         for row in eleread:
             num.append(row[0])
             name.append(row[1])
@@ -40,100 +34,76 @@ def read_elephants(elefile, sep=';'):
             alive.append(row[8])
             research.append(row[9])
 
-    # Lowercase Name and Camp
-    lcname = []
-    lccamp = []
+    ########## Format to lowercase Name and Camp
+    lcname, lccamp = [], []
     for n in name:
         lcname.append(string.capwords(n))
     for c in camp:
         lccamp.append(string.capwords(c))
-    name = lcname
-    camp = lccamp
-    del lcname
-    del lccamp
+    name, camp = lcname, lccamp
+    del lcname, lccamp
 
-    # Try to guess sex, origin, alive and research
-    sx = []
-    cwx = []
-    ax = []
-    rx = []
+    ########## Try to guess sex, origin, alive and research
+    sx, cwx, ax, rx = [], [], [], []
     for x in sex:
-        if x.casefold().strip().strip() in ('male','m','males'):
+        if x.casefold().strip() in ('male','m','males'):
             sx.append('M')
-        elif x.casefold().strip().strip() in ('female','f','females'):
+        elif x.casefold().strip() in ('female','f','females'):
             sx.append('F')
-        elif x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
             sx.append('UKN')
         else:
             sx.append(x)
-
     for x in cw:
-        if x.casefold().strip().strip() in ('c','captive'):
+        if x.casefold().strip() in ('c','captive'):
             cwx.append('captive')
-        elif x.casefold().strip().strip() in ('w','wild'):
+        elif x.casefold().strip() in ('w','wild'):
             cwx.append('wild')
-        elif x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
             cwx.append('UKN')
         else:
             cwx.append(x)
-
     for x in alive:
-        if x.casefold().strip().strip() in ('y','yes','alive'):
+        if x.casefold().strip() in ('y','yes','alive'):
             ax.append('Y')
-        elif x.casefold().strip().strip() in ('n','no','dead'):
+        elif x.casefold().strip() in ('n','no','dead'):
             ax.append('N')
-        elif x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
             ax.append('UKN')
         else:
             ax.append(x)
-
     for x in research:
-        if x.casefold().strip().strip() in ('y','yes'):
+        if x.casefold().strip() in ('y','yes'):
             rx.append('Y')
-        elif x.casefold().strip().strip() in ('n','no','','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('n','no','','none','na','null','unknown','ukn','n/a'):
             rx.append('N')
         else:
             rx.append(x)
+    sex, cw, alive, research = sx, cwx, ax, rx
+    del sx, cwx, ax, rx
 
-    sex = sx
-    cw = cwx
-    alive = ax
-    research = rx
-    del sx
-    del cwx
-    del ax
-    del rx
-
-    #reformat as rows
+    ########## Reformat as rows
     rows=[]
-
     for i,r in enumerate(num):
         row=[num[i],name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i]]
         rows.append(row)
 
-    # Check data types row by row
-    valid = []
-    remarks = []
-    rejected = []
-    issues = []
-    isvalid = []
-    allwarnings = []
-    rawindex = []
+    ########## Check data types row by row
+    valid, remarks, rejected, issues = [], [], [], []
 
     for i,row in enumerate(rows):
-#        print(row)
         reject = 0
         warnings = []
 
         ########## Sort out missing values
         for j,x in enumerate(row):
-            if x.casefold().strip().strip() in ('','none','na','null','unknown','ukn','n/a'):
+            if x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
                 row[j] = None
             else:
                 pass
 
     ########## num
-        if re.search(r"^[0-9]+$", str(row[0])):
+        if re.search(r"^[0-9a-zA-Z]+$", str(row[0])):
             pass
         elif row[0] is None and row[2] is not None:
             warnings.append("Missing number at line " + str(i+1))
@@ -233,20 +203,24 @@ def read_elephants(elefile, sep=';'):
             warnings.append("Format problem with living status: " + str(row[9]) + " at line " + str(i+1))
             reject = 1
 
-    ######### send out to the correct list
-        allwarnings.append(warnings)
+    ######### Send out to the correct lists for writing to file
+    ######### Set the Flag field (1 if the row is rejected, 0 if it can go further)
+
+        # allwarnings.append(warnings)
         if reject == 0:
+            row.append(0)
             if warnings != []:
                 remarks.append(warnings)
             valid.append(row)
-            isvalid.append('valid')
-            rawindex.append(i)
         elif reject == 1:
+            row.append(1)
             issues.append(warnings)
             rejected.append(row)
-            isvalid.append('rejected')
 
-    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings, rawindex]
+    ######### In all cases, append the warnings to the row.
+        row.append(warnings)
+
+    return[fields, valid, remarks, rejected, issues, rows]
 
 ####################################################################################
 ##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##

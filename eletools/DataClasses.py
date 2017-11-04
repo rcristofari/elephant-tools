@@ -2,6 +2,29 @@
 from datetime import datetime
 import string
 import numpy as np
+from eletools.Utilities import *
+
+# General flagging system:
+# - A 'flag' field works on a 2-power basis.
+#    - 0 means there is nothing to say about the data (initial state)
+#    - 1 means the line has been rejected at "read"
+#    - 2 means the data can go into the database (INSERT)
+#    - 4 means the database will be updated (UPDATE)
+#    - 8 means the data is already known
+#    - 16,32,64... means the data is conflicting and rejected (code henceforth depending on the class)
+# - A 'Output' field gives additional information (warnings and/or SQL statements)
+
+# For the elephant class, the specific conflict flags are:
+# 16: 'num',
+# 32: 'name',
+# 64: 'calf_num'
+# 128: 'sex',
+# 256: 'birth',
+# 512: 'cw',
+# 1024: 'age of capture',
+# 2048: 'camp',
+# 4096: 'alive',
+# 8192: 'research'
 
    ##########################################################################
  ##############################################################################
@@ -13,7 +36,7 @@ import numpy as np
 
 class elephant: ##MAKE A __repr__ function !!
 
-    def __init__(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, solved='N'):
+    def __init__(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, solved='N', flag=0):
 
 # Some execution parameters
         #Is the input file a conflict resolution (Y/N)? If Y, name and camp will be appended.
@@ -50,6 +73,7 @@ class elephant: ##MAKE A __repr__ function !!
             self.camp=string.capwords(camp)
         else:
             self.camp=camp
+        self.flag = flag
         self.alive=alive
         self.research=research
 
@@ -72,7 +96,7 @@ class elephant: ##MAKE A __repr__ function !!
         self.__checked=0
         self.status=None #Result of the check() function
         self.statement=None #SQL statement issued by the write() function
-
+        self.__toggle_write_flag=0
 # __x variables describe state of the comparison db/input
         self.__xnum=0
         self.__xcalf_num=0
@@ -413,10 +437,10 @@ class elephant: ##MAKE A __repr__ function !!
                 self.research = None
                 print("If you wish to remove this elephant's research status, do it manually.")
             elif self.research == 'Y' and (self.__db_research == 'N' or self.__db_research is None):
-                self.xresearch = 2
+                self.__xresearch = 2
                 print("Not yet a research elephant in the database, updating database.")
             elif self.research is None and self.__db_research is not None:
-                self.xresearch = 4
+                self.__xresearch = 4
                 if self.__db_research == 'N':
                     print("In the database, it is not a research elephant - no change")
                 elif self.__db_research == 'Y':
@@ -450,6 +474,7 @@ class elephant: ##MAKE A __repr__ function !!
     def write(self, db):
 
         self.__db=db
+
         if self.__xnum == 2:
             wnum = self.__num
         else:
@@ -491,44 +516,66 @@ class elephant: ##MAKE A __repr__ function !!
         else:
             wresearch = None
 
-        #The elephant must have been checked in the database
+        ########## The elephant must have been checked in the database
         if self.__sourced == 0:
             print("\nWrite: You must check that the elephant is absent from the database first.")
 
-        #If this elephant is not in the database yet, write an insert statement (consistency of data assumed).
+        ########## If this elephant is not in the database yet,
+        # write an insert statement (consistency of data assumed).
         elif self.__sourced == 2 and self.__num is not None and self.birth is not None:
             #this is outsourced to mysqlconnect
-            out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
-            return(out)
+            self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 2
+                self.__toggle_write_flag = 1
 
-        #If the elephant has been checked and there is no conflict, write an update statement.
+        ########## If the elephant has been checked and there is no conflict, write an update statement.
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
-            if all(x in (1,3,4) for x in self.status): #All fields are matching, no update
+
+        ########## All fields are matching, no update (special case as "data already known")
+            if all(x in (1,3,4) for x in self.status):
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 8
+                    self.__toggle_write_flag = 1
+                self.out = "This elephant is already in the database, nothing to change."
                 pass
             else:
                 #this is outsourced to mysqlconnect
-                out = self.__db.update_elephant(wnum, wname, wcalf_num, wsex, wbirth, wcw, wcaught, wcamp, walive, wresearch, self.__db_commits, self.__db_id)
-                return(out)
-
-        #If there is a pending conflict, we write out a csv-type line.
+                self.out = self.__db.update_elephant(wnum, wname, wcalf_num, wsex, wbirth, wcw, wcaught, wcamp, walive, wresearch, self.__db_commits, self.__db_id)
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 4
+                    self.__toggle_write_flag = 1
+        ########## If there is a pending conflict, we write out the conflicts and build the corresponding flag
         else:
+
+            # Check which fileds are conflicting
             status_array = np.array(self.status)
             conflicts_array = np.where(status_array == 0)
             i = tuple(map(tuple, conflicts_array))[0]
+            if self.__toggle_write_flag == 0:
+                # Set the 2-power flag:
+                for n in i:
+                    self.flag = self.flag + 2**(n+4)
+                    self.__toggle_write_flag = 1
+
+            # Make a string of conflict field names for the warning field
             f = ('num','name','calf_num','sex','birth','cw','age of capture','camp','alive','research')
             conflicts = ''
             for x in i:
                 conflicts = conflicts+', '+f[x]
             c = conflicts.rstrip(', ')
             conflicts = c[2:]+"."
-            if self.__sourced == 2:
-                return("[Conflict] Elephant number "+str(self.__num)+" is not in the database yet, but you must provide at least number and birth date")
-            elif self.__sourced != 2 and self.__num is not None:
-                return("[Conflict] Elephant number "+str(self.__num)+": you need to solve conflicts for: "+conflicts)
-            elif self.__sourced != 2 and self.__num is None:
-                return("[Conflict] Calf number "+str(self.calf_num)+": you need to solve conflicts for: "+conflicts)
 
-            #return(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+            if self.__sourced == 2:
+                self.out = ("[Conflict] Elephant number "+str(self.__num)+" is not in the database yet, but you must provide at least number and birth date")
+            elif self.__sourced != 2 and self.__num is not None:
+                self.out = ("[Conflict] Elephant number "+str(self.__num)+": you need to solve conflicts for: "+conflicts)
+            elif self.__sourced != 2 and self.__num is None:
+                self.out = ("[Conflict] Calf number "+str(self.calf_num)+": you need to solve conflicts for: "+conflicts)
+
+        # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
+        output_row = [self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, self.flag, self.out]
+        return(output_row)
 
 
             ##Add a light check here to see that a captive elephant has no age at capture.
