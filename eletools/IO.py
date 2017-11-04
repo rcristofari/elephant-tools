@@ -229,10 +229,7 @@ def read_elephants(elefile, sep=';'):
 # elephant_1_id, elephant_2_id, rel, coef
 
 def read_pedigree(elefile, sep=';'):
-    elephant_1_id = []
-    elephant_2_id = []
-    rel = []
-    coef = []
+    elephant_1_id, elephant_2_id, rel, coef = [], [], [], []
 
     with open(elefile) as elefile:
         eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
@@ -244,8 +241,7 @@ def read_pedigree(elefile, sep=';'):
             coef.append(row[3])
 
     # Try to guess the rel and coef fields (the latter, only if it's been assigned "NA" or the like)
-    rx = []
-    cx = []
+    rx, cx = [], []
     for x in rel:
         if x.casefold().strip() in ('mother','m'):
             rx.append('mother')
@@ -262,19 +258,11 @@ def read_pedigree(elefile, sep=';'):
             cx.append('')
         else:
             cx.append(x)
-    rel = rx
-    coef = cx
-    del rx
-    del cx
+    rel, coef = rx, cx
+    del rx, cx
 
     # Check data types row by row
-    valid = []
-    remarks = []
-    rejected = []
-    issues = []
-    isvalid = []
-    allwarnings = []
-    rawindex = []
+    valid, remarks, rejected, issues = [], [], [], []
 
     #reformat as rows
     rows=[]
@@ -333,19 +321,17 @@ def read_pedigree(elefile, sep=';'):
                     reject = 1
 
     ######### send out to the correct list
-        allwarnings.append(warnings)
         if reject == 0:
+            row.append(0)
             if warnings != []:
                 remarks.append(warnings)
             valid.append(row)
-            isvalid.append('valid')
-            rawindex.append(i)
         elif reject == 1:
+            row.append(1)
             issues.append(warnings)
             rejected.append(row)
-            isvalid.append('rejected')
-
-    return[fields, valid, remarks, rejected, issues, rows, isvalid, allwarnings,rawindex]
+        row.append(warnings)
+    return[fields, valid, remarks, rejected, issues, rows]
 
 
 ####################################################################################
@@ -462,7 +448,6 @@ def read_measures(elefile, sep=';', solved='N'):
         return(output)
     else:
        return(warnings)
-
 
 ####################################################################################
 ##  read_events() READ EVENT LIST FILE                                             ##

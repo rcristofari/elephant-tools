@@ -38,7 +38,7 @@ class elephant: ##MAKE A __repr__ function !!
 
     def __init__(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, solved='N', flag=0):
 
-# Some execution parameters
+        # Some execution parameters
         #Is the input file a conflict resolution (Y/N)? If Y, name and camp will be appended.
         if solved in ('Y','y','YES','yes'):
             self.__solved='Y'
@@ -46,7 +46,7 @@ class elephant: ##MAKE A __repr__ function !!
             self.__solved='N'
         self.__interactive=1 # Not implemented so far
 
-# Non-prefixed parameters describe user input
+        # Non-prefixed parameters describe user input
         if num is not None:
             self.__num=str(num) #kept private since it is the primary key for the input. Has a getter function.
         else:
@@ -260,7 +260,7 @@ class elephant: ##MAKE A __repr__ function !!
                     print("Different name in database. You need to solve the conflict manually.")
                 if self.__solved =='Y':
                     self.name = self.__db_name + ", " + self.name
-                    self.__xname = 2   ###JUST CHANGED FROM 1 TO 2
+                    self.__xname = 2
                     print("Alias name appended to database")
 
 ############ Sex
@@ -624,6 +624,8 @@ class pedigree:
         self.__checked=0
         self.status=None #Result of the check() function
         self.statement=None #SQL statement issued by the write() function
+        self.flag=0
+        self.__toggle_write_flag=0
 
 # __x variables describe state of the comparison db/input
         self.__x1=None
@@ -758,7 +760,7 @@ class pedigree:
 ## 'check' function, checks consistency between database and new data         ##
 ################################################################################
 
-    def check(self):  ###CHECK THAT THIS ELEPHANT DOESN'T ALREADY HAVE A MOTHER/A FATHER!!!
+    def check(self):
 
         if self.__sourced == 0:
             self.__checked = 3
@@ -780,7 +782,6 @@ class pedigree:
 
 
             #Check that this elephant does not already have a father or mother.
-
             if self.rel == "mother": # elephant 2 should not already have a mother or a father.
                 if self.__db.get_mother(self.eleph_2) is not None:
                     self.__checked = 0
@@ -881,27 +882,46 @@ class pedigree:
             self.coef=quote(self.coef)
 
         if self.__checked == 1:
-            out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
-            return(out)
+            self.out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 2
+                self.__toggle_write_flag = 1
 
         elif self.__checked == 2:
-            pass
+            self.out = "This relationship is already in the database, nothing to change."
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 8
+                self.__toggle_write_flag = 1
 
         elif self.__checked == 3:
-            return("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": this relationship exists in the database, but with an error.")
-
+            self.out = ("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": this relationship exists in the database, but with an error.")
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 16
+                self.__toggle_write_flag = 1
 
         elif self.__checked == 0:
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 16
+                self.__toggle_write_flag = 1
             status_array = np.array(self.status)
             conflicts_array = np.where(status_array == 0)
             i = tuple(map(tuple, conflicts_array))[0]
+            if self.__toggle_write_flag == 0:
+                # Set the 2-power flag:
+                for n in i:
+                    self.flag = self.flag + 2**(n+4)
+                    self.__toggle_write_flag = 1
+
             f = ['sex','birth date']
             conflicts = str()
             for x in i:
                 conflicts = conflicts+f[x]
-            return("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": you need to solve conflicts for " + conflicts)
+            self.out = ("[Conflict] Elephant number " + self.eleph_1 + " and/or " + self.eleph_2 + ": you need to solve conflicts for " + conflicts)
 
-            #return(self.eleph_1, self.__db_eleph_1[1], self.__db_eleph_1[2], self.eleph_2, self.__db_eleph_2[1], self.__db_eleph_2[2])
+        # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
+        output_row = [self.eleph_1, self.eleph_2, self.rel, self.coef, self.flag, self.out]
+        return(output_row)
+
 
     ##########################################################################
  ##############################################################################
