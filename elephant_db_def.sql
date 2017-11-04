@@ -30,19 +30,6 @@ descript TEXT,
 commits TEXT
 );
 
-
--- -- not necessary -> as a view.
--- CREATE TABLE breeding (
--- id INT(12) NOT NULL primary key auto_increment,
--- elephant_id INT(10) NOT NULL,
--- date DATE NOT NULL,
--- loc VARCHAR(64) NOT NULL,
--- offspring_id INT(10), #Needs to refer to elephants.id but can be null if offspring unknown / dead before id
--- offspring_alive ENUM('Y','N','U'), #Need to look at data -> needed here if offspring not in table 'elephants'. So data here should be something like survived to age X
--- descript TEXT,
--- commits TEXT
--- );
-
 CREATE TABLE pedigree (
 id INT(12) NOT NULL primary key auto_increment,
 rel_id INT(12) NOT NULL,
