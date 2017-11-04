@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 import tkinter.ttk as ttk
 from PIL import Image
-from ElephantTools import *
+from datetime import datetime
+from eletools import *
 
 ################################################################################
 ## Main application window                                                    ##
