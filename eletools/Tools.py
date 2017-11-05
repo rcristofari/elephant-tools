@@ -102,7 +102,7 @@ def matriline_tree(id, db):
                 n.img_style["vt_line_width"] = 1
                 n.img_style["hz_line_width"] = 1
                 n.img_style["shape"] = "circle"
-                n.img_style["fgcolor"] = "red"
+                n.img_style["fgcolor"] = "#A30B37"
                 n.dist = int(branch_length[i-1][1])
             else:
                 n.img_style["size"] = 0.

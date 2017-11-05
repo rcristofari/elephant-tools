@@ -1,0 +1,10 @@
+#This file must be placed in /usr/share/applications
+
+[Desktop Entry]
+Type=Application
+Terminal=false
+Name=ElephantTools
+Exec=/home/parallels/elephants/elephant-tools/ElephantGUI.py
+Path=/home/parallels/elephants/elephant-tools/
+Icon=/home/parallels/elephants/elephant-tools/__resources/icon.png
+StartupWMClass=eletools

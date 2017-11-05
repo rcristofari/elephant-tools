@@ -20,11 +20,15 @@ class MainApplication(tk.Frame):
         self.configure_gui()
         self.create_widgets()
         self.master.common_out = [] #This will be the main MySQL and error out
+        self.goconnect()
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
         self.master.geometry("500x500")
         self.master.resizable(False, False)
+        self.master.background_image = tk.PhotoImage(file='./__resources/background.png')
+        self.master.background_label = tk.Label(self.master, image=self.master.background_image)
+        self.master.background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
 
     def create_widgets(self):
@@ -37,6 +41,7 @@ class MainApplication(tk.Frame):
         filemenu.add_command(label="Import measures", command=self.notimplemented)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit)
+        filemenu.config(bg="#E08E45", fg="#A30B37")
         self.master.menubar.add_cascade(label="File", menu=filemenu)
         self.master.menubar.entryconfig("File", state='disabled')
 
@@ -49,11 +54,12 @@ class MainApplication(tk.Frame):
         searchmenu.add_command(label="Make a measure set", command=self.notimplemented)
         searchmenu.add_separator()
         searchmenu.add_command(label="Advanced search", command=self.notimplemented)
+        searchmenu.config(bg="#E08E45", fg="#A30B37")
         self.master.menubar.add_cascade(label="Search", menu=searchmenu)
         self.master.menubar.entryconfig("Search", state='disabled')
 
         addmenu = tk.Menu(self.master.menubar, tearoff=0)
-        addmenu.add_command(label="Add an elephant", command=self.notimplemented)
+        addmenu.add_command(label="Add an elephant", command=self.call_add_elephants)
         addmenu.add_command(label="Add a relationship", command=self.notimplemented)
         addmenu.add_command(label="Add an event", command=self.notimplemented)
         addmenu.add_command(label="Add a measure", command=self.notimplemented)
@@ -62,15 +68,19 @@ class MainApplication(tk.Frame):
         addmenu.add_command(label="Add an event type", command=self.notimplemented)
         addmenu.add_separator()
         addmenu.add_command(label="Update living status", command=self.notimplemented)
+        addmenu.config(bg="#E08E45", fg="#A30B37")
         self.master.menubar.add_cascade(label="Add", menu=addmenu)
         self.master.menubar.entryconfig("Add", state='disabled')
 
         dbmenu = tk.Menu(self.master.menubar, tearoff = 0)
         dbmenu.add_command(label="Connexion", command=self.goconnect)
         dbmenu.add_command(label="MySQL dump", command=self.notimplemented)
+        dbmenu.config(bg="#E08E45", fg="#A30B37")
         self.master.menubar.add_cascade(label="Database", menu=dbmenu)
 
+        self.master.menubar.config(bg="#E08E45", fg="#A30B37")
         self.master.config(menu=self.master.menubar)
+
 
     def goconnect(self):
         dbconnect(self.master)
@@ -83,6 +93,9 @@ class MainApplication(tk.Frame):
 
     def gofindeleph(self):
         findeleph(self.master, back = 0)
+
+    def call_add_elephants(self):
+        add_elephants(self.master)
 
     def notimplemented(self):
         print("Not implemented yet")
@@ -109,11 +122,11 @@ class dbconnect(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
-        self.userlabel = tk.Label(self.master, text="User:").grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
-        self.pwdlabel = tk.Label(self.master, text="Password:").grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
-        self.hostlabel = tk.Label(self.master, text="Host:").grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
-        self.dblabel = tk.Label(self.master, text="Database:").grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
-        self.dblabel = tk.Label(self.master, text="Port:").grid(row=5, column=1, sticky=tk.W, padx=5, pady=5)
+        self.userlabel = tk.Label(self.master, text="User:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        self.pwdlabel = tk.Label(self.master, text="Password:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
+        self.hostlabel = tk.Label(self.master, text="Host:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
+        self.dblabel = tk.Label(self.master, text="Database:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
+        self.dblabel = tk.Label(self.master, text="Port:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=5, column=1, sticky=tk.W, padx=5, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e2 = tk.Entry(self.master, show='*')
         self.e3 = tk.Entry(self.master)
@@ -127,12 +140,12 @@ class dbconnect(tk.Frame):
         self.e3.grid(row=3, column=2, sticky=tk.E, padx=5, pady=5)
         self.e4.grid(row=4, column=2, sticky=tk.E, padx=5, pady=5)
         self.e5.grid(row=5, column=2, sticky=tk.E, padx=5, pady=5)
-        self.detailslabel = tk.Label(self.master, text="Details (optional, if entering new data):")
+        self.detailslabel = tk.Label(self.master, text="Details (optional, if entering new data):", bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.detailslabel.grid(row=6, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
         self.details = tk.Text(self.master, height=5, width=45)
         self.details.grid(row=7, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
-        self.connectbutton = tk.Button(self.master, text='Connect', width=15, command=self.connect_to_db)
-        self.disconnectbutton = tk.Button(self.master, text='Disconnect', width=15, command=self.disconnect_from_db)
+        self.connectbutton = tk.Button(self.master, text='Connect', width=15, command=self.connect_to_db, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.disconnectbutton = tk.Button(self.master, text='Disconnect', width=15, command=self.disconnect_from_db, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.connectbutton.grid(row=8, column=1, sticky=tk.W, padx=5, pady=5)
         self.disconnectbutton.grid(row=8, column=2, sticky=tk.E, padx=5, pady=5)
         self.disconnectbutton.config(state="disabled")
@@ -198,18 +211,18 @@ class findeleph(tk.Frame):
 
     def create_widgets(self):
 
-        self.numlabel = tk.Label(self.master, text="Number:")
+        self.numlabel = tk.Label(self.master, text="Number:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=0, pady=5)
 
-        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1)
+        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
-        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2)
+        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
 
-        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant).grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
-        self.treebutton = tk.Button(self.master, text='Show tree', width=15, command=self.call_show_matriline).grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant, bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
+        self.treebutton = tk.Button(self.master, text='Show tree', width=15, command=self.call_show_matriline, bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
 
         self.result = tk.Text(self.master, height=15, width=45)
         self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
@@ -277,8 +290,9 @@ class show_matriline(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
-        self.view_window = tk.Toplevel(self.master)
+        self.view_window = tk.Toplevel(self.master, bg="#A30B37")
         self.view_window.title("Pedigree view")
+        # self.view_window.group(self.master)
         self.view_window.grid_columnconfigure(0, weight=1)
         self.view_window.grid_columnconfigure(2, weight=1)
         self.view_window.grid_rowconfigure(0, weight=1)
@@ -303,11 +317,11 @@ class show_matriline(tk.Frame):
         self.tree=tk.PhotoImage(file='./tree.png')
         self.treebox.image_create(tk.END, image=self.tree)
         self.treebox.grid(row=2, column = 1, columnspan=4)
-        self.backbutton = tk.Button(self.view_window, text='Close', width=20, command=self.view_window.destroy)
+        self.backbutton = tk.Button(self.view_window, text='Close', width=20, command=self.view_window.destroy, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.backbutton.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
-        self.saveimgbutton = tk.Button(self.view_window, width=20, text='Save as Image', command=self.save_tree)
+        self.saveimgbutton = tk.Button(self.view_window, width=20, text='Save as Image', command=self.save_tree, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.saveimgbutton.grid(row=1, column=4, sticky=tk.EW, padx=5, pady=5)
-        self.savenexbutton = tk.Button(self.view_window, text='Save as Nexus', width=20, command=self.save_newick)
+        self.savenexbutton = tk.Button(self.view_window, text='Save as Nexus', width=20, command=self.save_newick, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.savenexbutton.grid(row=1, column=3, sticky=tk.EW, padx=5, pady=5)
 
 
@@ -355,17 +369,17 @@ class read_elephant_file(tk.Frame):
         self.result = tk.Text(self.master, height=15, width=45)
         self.result.grid(row=1, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
 
-        self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file)
+        self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.reloadbutton.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
 
-        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_file_content)
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_file_content, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.showfilebutton.grid(row=2, column=2, sticky=tk.EW, padx=5, pady=5)
 
-        self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse)
+        self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.analysebutton.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
 
-        self.radio1 = tk.Radiobutton(self.master, text="This data has already been verified", variable=self.solved, value=1)
-        self.radio1.grid(row=3, column=2, columnspan=2, sticky=tk.E, padx=5, pady=5)
+        self.radio1 = tk.Radiobutton(self.master, text="This data has already been verified", variable=self.solved, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.radio1.grid(row=3, column=2, columnspan=2, sticky=tk.W, padx=5, pady=5)
 
     def call_read_elephants(self):
         if self.name is None:
@@ -392,7 +406,7 @@ class read_elephant_file(tk.Frame):
 
     def show_file_content(self):
         rows = self.master.file_content[5]
-        self.view_window = tk.Toplevel(self.master)
+        self.view_window = tk.Toplevel(self.master, bg="#E08E45")
         self.view_window.title("Elephant file "+self.master.shortname)
         self.view_window.grid_columnconfigure(0, weight=1)
         self.view_window.grid_columnconfigure(2, weight=1)
@@ -476,13 +490,13 @@ class analyse_elephant_file(tk.Frame):
         self.result = tk.Text(self.master, height=25, width=65)
         self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
-        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop)
+        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
 
-        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts)
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.showfilebutton.grid(row=3, column=2, sticky=tk.EW, padx=5, pady=5)
 
-        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql)
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql, bg="#E08E45", fg="#A30B37", highlightthickness=0)
         self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
@@ -502,7 +516,7 @@ class analyse_elephant_file(tk.Frame):
         for i,row in enumerate(self.elephants):
             # Evaluating and displaying the counter
             statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
-            self.statelabel = tk.Label(self.master, text=statenow)
+            self.statelabel = tk.Label(self.master, text=statenow, bg="#E08E45", fg="#A30B37", highlightthickness=0, bd=5)
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
             # Toggle for the "stop" button to abort a long import
             if self.break_loop != 0:
@@ -550,7 +564,7 @@ class analyse_elephant_file(tk.Frame):
     def show_conflicts(self):
         rows = self.master.file_content[5]
 
-        self.view_window = tk.Toplevel(self.master)
+        self.view_window = tk.Toplevel(self.master, bg="#E08E45")
         self.view_window.title("Elephant file "+self.master.shortname)
         self.view_window.grid_columnconfigure(0, weight=1)
         self.view_window.grid_columnconfigure(2, weight=1)
@@ -854,15 +868,216 @@ class analyse_pedigree_file(tk.Frame):
         self.result.update()
         self.result.see(tk.END)
 
+
+################################################################################
+## Manually add some elephants                                                ##
+################################################################################
+
+class add_elephants(tk.Frame):
+
+    def __init__(self, master):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.sex = tk.StringVar()
+        self.cw = tk.StringVar()
+        self.alive = tk.StringVar()
+        self.research = tk.StringVar()
+        self.stringvar1 = tk.StringVar()
+        self.stringvar1.trace("w", self.valid_entry)
+        self.stringvar2 = tk.StringVar()
+        self.stringvar2.trace("w", self.valid_entry)
+        self.stringvar3 = tk.StringVar()
+        self.stringvar3.trace("w", self.valid_entry)
+        self.stringvar4 = tk.StringVar()
+        self.stringvar4.trace("w", self.valid_entry)
+        self.sex.set('UKN')
+        self.cw.set('UKN')
+        self.alive.set('UKN')
+        self.research.set('N')
+        self.rows = []
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        ########## First column:
+        self.numlabel = tk.Label(self.master, text="Number:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.numlabel.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        self.numentry = tk.Entry(self.master, width=10, textvariable=self.stringvar1)
+        self.numentry.grid(row=1, column=2, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+
+        self.namelabel = tk.Label(self.master, text="Name:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.namelabel.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
+        self.nameentry = tk.Entry(self.master, width=10)
+        self.nameentry.grid(row=2, column=2, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+
+        self.calfnumlabel = tk.Label(self.master, text="Calf number:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.calfnumlabel.grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
+        self.calfnumentry = tk.Entry(self.master, width=10)
+        self.calfnumentry.grid(row=3, column=2, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+
+        self.sexlabel = tk.Label(self.master, text="Sex:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.sexlabel.grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
+        self.sexradio1 = tk.Radiobutton(self.master, text="F", variable=self.sex, value='F', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.sexradio1.grid(row=4, column=2, sticky=tk.W)
+        self.sexradio2 = tk.Radiobutton(self.master, text="M", variable=self.sex, value='M', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.sexradio2.grid(row=4, column=3, sticky=tk.E)
+        self.sexradio3 = tk.Radiobutton(self.master, text="?", variable=self.sex, value='UKN', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.sexradio3.grid(row=4, column=4, sticky=tk.E)
+
+        self.birthlabel = tk.Label(self.master, text="Birth (DMY):", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.birthlabel.grid(row=5, column=1, sticky=tk.W, padx=5, pady=5)
+        self.birthDD = tk.Entry(self.master, width=2, textvariable=self.stringvar2)
+        self.birthDD.grid(row=5, column=2, columnspan=1, sticky=tk.W, padx=1, pady=5)
+        self.birthMM = tk.Entry(self.master, width=2, textvariable=self.stringvar3)
+        self.birthMM.grid(row=5, column=3, columnspan=1, sticky=tk.W, padx=1, pady=5)
+        self.birthYYYY = tk.Entry(self.master, width=4, textvariable=self.stringvar4)
+        self.birthYYYY.grid(row=5, column=4, columnspan=1, sticky=tk.EW, padx=1, pady=5)
+
+        ########## Second column:
+        self.cwlabel = tk.Label(self.master, text="Captive:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.cwlabel.grid(row=1, column=5, sticky=tk.W, padx=5, pady=5)
+        self.cwradio1 = tk.Radiobutton(self.master, text="C", variable=self.cw, value='captive', command=self.disable_caught, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.cwradio1.grid(row=1, column=6, sticky=tk.W)
+        self.cwradio2 = tk.Radiobutton(self.master, text="W", variable=self.cw, value='wild', command=self.enable_caught, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.cwradio2.grid(row=1, column=7, sticky=tk.E)
+        self.cwradio3 = tk.Radiobutton(self.master, text="?", variable=self.cw, value='UKN', command=self.disable_caught, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.cwradio3.grid(row=1, column=8, sticky=tk.E)
+
+        self.caughtlabel = tk.Label(self.master, text="Age caught:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.caughtlabel.grid(row=2, column=5, sticky=tk.W, padx=5, pady=5)
+        self.caughtentry = tk.Entry(self.master, width=10)
+        self.caughtentry.grid(row=2, column=6, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+        self.caughtentry.config(state="disabled")
+
+        self.camplabel = tk.Label(self.master, text="Camp:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.camplabel.grid(row=3, column=5, sticky=tk.W, padx=5, pady=5)
+        self.campentry = tk.Entry(self.master, width=10)
+        self.campentry.grid(row=3, column=6, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+
+        self.alivelabel = tk.Label(self.master, text="Alive:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.alivelabel.grid(row=4, column=5, sticky=tk.W, padx=5, pady=5)
+        self.aliveradio1 = tk.Radiobutton(self.master, text="Y", variable=self.alive, value='Y', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.aliveradio1.grid(row=4, column=6, sticky=tk.W)
+        self.aliveradio2 = tk.Radiobutton(self.master, text="N", variable=self.alive, value='N', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.aliveradio2.grid(row=4, column=7, sticky=tk.E)
+        self.aliveradio3 = tk.Radiobutton(self.master, text="?", variable=self.alive, value='UKN', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.aliveradio3.grid(row=4, column=8, sticky=tk.E)
+
+        self.researchlabel = tk.Label(self.master, text="Research:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.researchlabel.grid(row=5, column=5, sticky=tk.W, padx=5, pady=5)
+        self.researchradio1 = tk.Radiobutton(self.master, text="Y", variable=self.research, value='Y', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.researchradio1.grid(row=5, column=6, sticky=tk.W)
+        self.researchradio2 = tk.Radiobutton(self.master, text="N", variable=self.research, value='N', bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.researchradio2.grid(row=5, column=7, sticky=tk.W)
+        # self.researchradio3 = tk.Radiobutton(self.master, text="?", variable=self.research, value=3, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        # self.researchradio3.grid(row=5, column=8, sticky=tk.E)
+
+        self.addbutton = tk.Button(self.master, text='Add', width=15, command=self.add_row, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.addbutton.grid(row=6, column=1, columnspan=4, sticky=tk.EW, padx=5, pady=5)
+        self.checkbutton = tk.Button(self.master, text='Verify', width=15, command=self.check_entries, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.rmbutton.grid(row=6, column=5, columnspan=4, sticky=tk.EW, padx=5, pady=5)
+
+        self.tv = ttk.Treeview(self.master, height=6)
+        self.tv['columns'] = ('Num','Name','Calf','S','B','CW','Cg','Cp','A','R')
+        self.tv.heading("#0", text='#')
+        self.tv.column("#0", anchor='center', width=20)
+        # Create fields
+        for c in self.tv['columns']:
+            self.tv.heading(c, text=c)
+            self.tv.column(c, anchor='w', width=25)
+        self.tv.grid(row=7, column=1, columnspan=8, padx=5, pady=5, sticky=tk.EW)
+
+        self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+    def valid_entry(self, *args):
+        s1 = self.stringvar1.get()
+        s2 = self.stringvar2.get()
+        s3 = self.stringvar3.get()
+        s4 = self.stringvar4.get()
+        if s1 and s2 and s3 and s4:
+            self.addbutton.config(state='normal')
+        else:
+            self.addbutton.config(state='disabled')
+
+    def disable_caught(self):
+        self.caughtentry.config(state="disabled")
+        self.caughtentry.update()
+
+    def enable_caught(self):
+        self.caughtentry.config(state="normal")
+        self.caughtentry.update()
+
+    def add_row(self):
+        birth = str(self.birthYYYY.get())+'-'+str(self.birthMM.get())+'-'+str(self.birthDD.get())
+        row = [self.numentry.get(), self.nameentry.get(), self.calfnumentry.get(), self.sex.get(), birth, self.cw.get(), self.caughtentry.get(), self.campentry.get(), self.alive.get(), self.research.get()]
+        self.rows.append(row)
+        for item in self.tv.get_children():
+            self.tv.delete(item)
+        i = 1
+        for row in self.rows:
+            i += 1
+            self.tv.insert('','end',text=str(i), values=row[0:10], tags = ('smalltext',))
+        self.tv.tag_configure('smalltext', font=('Helvetica',8))
+        self.clear_entries()
+
+    def clear_entries(self):
+        self.numentry.delete(0, tk.END)
+        self.nameentry.delete(0, tk.END)
+        self.calfnumentry.delete(0, tk.END)
+        self.birthYYYY.delete(0, tk.END)
+        self.birthMM.delete(0, tk.END)
+        self.birthDD.delete(0, tk.END)
+        self.caughtentry.delete(0, tk.END)
+        self.campentry.delete(0, tk.END)
+        self.sex.set('UKN')
+        self.cw.set('UKN')
+        self.alive.set('UKN')
+        self.research.set('N')
+
+    def OnDoubleClick(self, event):
+        item = self.tv.selection()[0]
+        # self.tv.delete(item)
+        r = self.rows.pop(int(self.tv.item(item,"text"))-2)
+        for item in self.tv.get_children():
+            self.tv.delete(item)
+        i = 1
+        for row in self.rows:
+            i += 1
+            self.tv.insert('','end',text=str(i), values=row[0:10], tags = ('smalltext',))
+        self.clear_entries()
+        self.numentry.insert(10,r[0])
+        self.nameentry.insert(10,r[1])
+        self.calfnumentry.insert(10,r[2])
+        self.sex.set(r[3])
+        self.birthYYYY.insert(10, r[4].partition('-')[0])
+        self.birthMM.insert(10, r[4].partition('-')[2].partition('-')[0])
+        self.birthDD.insert(10, r[4].partition('-')[2].partition('-')[0])
+        self.cw.set(r[5])
+        self.caughtentry.insert(10, r[6])
+        self.campentry.insert(10, r[7])
+        self.alive.set(r[8])
+        self.research.set(r[9])
+
+    def check_entries(self):
+        pass
 ################################################################################
 ## Call the main application                                                  ##
 ################################################################################
 
 if __name__ == '__main__':
-   root = tk.Tk()
+   root = tk.Tk(className='eletools')
    main_app =  MainApplication(root).grid(sticky="nsew")
    root.grid_rowconfigure(0, weight=1)
    root.grid_columnconfigure(0, weight=1)
    root.grid_rowconfigure(9, weight=1)
-   root.grid_columnconfigure(4, weight=1)
+   root.grid_columnconfigure(9, weight=1)
    root.mainloop()
