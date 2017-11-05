@@ -113,6 +113,7 @@ class dbconnect(tk.Frame):
         self.pwdlabel = tk.Label(self.master, text="Password:").grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
         self.hostlabel = tk.Label(self.master, text="Host:").grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
         self.dblabel = tk.Label(self.master, text="Database:").grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
+        self.dblabel = tk.Label(self.master, text="Port:").grid(row=5, column=1, sticky=tk.W, padx=5, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e2 = tk.Entry(self.master, show='*')
         self.e3 = tk.Entry(self.master)
