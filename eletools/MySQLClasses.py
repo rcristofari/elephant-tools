@@ -17,12 +17,13 @@ from eletools.Utilities import *
 
 class mysqlconnect:
 
-    def __init__(self, usr, pwd, host='localhost', db='mep'):
+    def __init__(self, usr, pwd, host='localhost', db='mep', port='3306'):
         self.__usr=usr
         self.__pwd=pwd
         self.__host=host
         self.__db=db
-        self.__db = pms.connect(self.__host, self.__usr, self.__pwd, self.__db)
+        self.__port=port
+        self.__db = pms.connect(host=self.__host, user=self.__usr, passwd=self.__pwd, db=self.__db, port=self.__port)
         self.__cursor = self.__db.cursor()
 
     def __del__(self):
