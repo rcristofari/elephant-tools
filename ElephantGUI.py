@@ -144,7 +144,7 @@ class dbconnect(tk.Frame):
 
     def connect_to_db(self):
         try:
-            self.master.db = mysqlconnect(user=self.e1.get(), passwd=self.e2.get(), host=self.e3.get(), db=self.e4.get(), port=self.e5.get())
+            self.master.db = mysqlconnect(usr=self.e1.get(), pwd=self.e2.get(), host=self.e3.get(), db=self.e4.get(), port=self.e5.get())
             if self.details.get("1.0", tk.END) is not None:
                 self.master.stamp = self.master.db.stamp(details=self.details.get("1.0", tk.END)) #SEND THAT TO BE WRITTEN TO OUTPUT DIRECTLY
             else:
