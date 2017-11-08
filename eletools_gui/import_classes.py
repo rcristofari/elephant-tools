@@ -7,6 +7,10 @@ import os
 import re
 from datetime import datetime
 from eletools import *
+# from eletools_gui.master import *
+# from eletools_gui.db_classes import *
+# from eletools_gui.add_classes import *
+# from eletools_gui.search_classes import *
 
 ################################################################################
 ## Batch read an elephant file                                                ##
@@ -37,26 +41,35 @@ class read_elephant_file(tk.Frame):
         self.result = tk.Text(self.master, height=15, width=45)
         self.result.grid(row=1, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
 
-        self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.reloadbutton.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
 
-        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_file_content, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_file_content, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.showfilebutton.grid(row=2, column=2, sticky=tk.EW, padx=5, pady=5)
 
-        self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.analysebutton.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
 
-        self.radio1 = tk.Radiobutton(self.master, text="This data has already been verified", variable=self.solved, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.radio1 = tk.Radiobutton(self.master, text="This data has already been verified", variable=self.solved, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.radio1.grid(row=3, column=2, columnspan=2, sticky=tk.W, padx=5, pady=5)
 
     def call_read_elephants(self):
-        if self.name is None:
+        if self.name is None and self.master.manual_add_elephant is None:
             self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
-        self.master.shortname=os.path.split(self.name)[1]
-        self.master.file_content = read_elephants(self.name, ',')
+            self.master.shortname=os.path.split(self.name)[1]
+            self.master.file_content = read_elephants(self.name, ',', is_file = True)
+
+        elif self.master.manual_add_elephant is not None and self.master.pass_from_add_elephant is True:
+            self.master.file_content = read_elephants(self.master.manual_add_elephant, ',', is_file = False)
+            self.name=asksaveasfilename(initialdir=self.master.wdir, defaultextension='.csv')
+            self.master.shortname=os.path.split(self.name)[1]
+        else:
+            self.master.shortname=os.path.split(self.name)[1]
+            self.master.file_content = read_elephants(self.name, ',', is_file = True)
 
         n_accepted = self.master.file_content[1].__len__()
         n_rejected = self.master.file_content[3].__len__()
+
         parse_reads(self.master.file_content, prefix=(self.name.partition('.')[0]))
 
         self.result.config(state=tk.NORMAL)
@@ -158,13 +171,13 @@ class analyse_elephant_file(tk.Frame):
         self.result = tk.Text(self.master, height=25, width=65)
         self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
-        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
 
-        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.showfilebutton.grid(row=3, column=2, sticky=tk.EW, padx=5, pady=5)
 
-        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
@@ -530,7 +543,7 @@ class analyse_pedigree_file(tk.Frame):
         self.warningbox.config(state=tk.DISABLED)
 
     def write_sql(self):
-        folder = askdirectory(title='Choose SQL file directory...')
+        folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
         parse_output(self.master.common_out, self.master.db, folder)
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()

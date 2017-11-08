@@ -7,6 +7,10 @@ import os
 import re
 from datetime import datetime
 from eletools import *
+# from eletools_gui.master import *
+# from eletools_gui.import_classes import *
+# from eletools_gui.add_classes import *
+# from eletools_gui.search_classes import *
 
 ################################################################################
 ## SQL connexion window                                                       ##
@@ -40,9 +44,11 @@ class dbconnect(tk.Frame):
         self.e3 = tk.Entry(self.master)
         self.e4 = tk.Entry(self.master)
         self.e5 = tk.Entry(self.master)
-        self.e3.insert(10,"localhost")
-        self.e4.insert(10,"mep")
-        self.e5.insert(10,"3306")
+        self.e1.insert(10,self.master.params_usr)
+        self.e2.insert(10,self.master.params_pwd)
+        self.e3.insert(10,self.master.params_host)
+        self.e4.insert(10,self.master.params_db)
+        self.e5.insert(10,self.master.params_port)
         self.e1.grid(row=1, column=2, sticky=tk.E, padx=5, pady=5)
         self.e2.grid(row=2, column=2, sticky=tk.E, padx=5, pady=5)
         self.e3.grid(row=3, column=2, sticky=tk.E, padx=5, pady=5)
@@ -52,8 +58,8 @@ class dbconnect(tk.Frame):
         self.detailslabel.grid(row=6, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
         self.details = tk.Text(self.master, height=5, width=45)
         self.details.grid(row=7, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
-        self.connectbutton = tk.Button(self.master, text='Connect', width=15, command=self.connect_to_db, bg="#E08E45", fg="#A30B37", highlightthickness=0)
-        self.disconnectbutton = tk.Button(self.master, text='Disconnect', width=15, command=self.disconnect_from_db, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.connectbutton = tk.Button(self.master, text='Connect', width=15, command=self.connect_to_db, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
+        self.disconnectbutton = tk.Button(self.master, text='Disconnect', width=15, command=self.disconnect_from_db, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.connectbutton.grid(row=8, column=1, sticky=tk.W, padx=5, pady=5)
         self.disconnectbutton.grid(row=8, column=2, sticky=tk.E, padx=5, pady=5)
         self.disconnectbutton.config(state="disabled")
@@ -61,7 +67,7 @@ class dbconnect(tk.Frame):
         self.grid_rowconfigure(9, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(3, weight=1)
-        self.bind('<Return>', self.connect_to_db)
+        self.bind("<Return>", self.connect_to_db)
 
     def connect_to_db(self):
         try:

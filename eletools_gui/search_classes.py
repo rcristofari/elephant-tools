@@ -7,6 +7,10 @@ import os
 import re
 from datetime import datetime
 from eletools import *
+# from eletools_gui.master import *
+# from eletools_gui.db_classes import *
+# from eletools_gui.import_classes import *
+# from eletools_gui.add_classes import *
 
 ################################################################################
 ## Search for an elephant                                                     ##
@@ -36,18 +40,18 @@ class findeleph(tk.Frame):
 
     def create_widgets(self):
 
-        self.numlabel = tk.Label(self.master, text="Number:", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.numlabel = tk.Label(self.master, text="Number:", bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=0, pady=5)
 
-        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
-        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
 
-        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant, bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
-        self.treebutton = tk.Button(self.master, text='Show tree', width=15, command=self.call_show_matriline, bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45").grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
+        self.treebutton = tk.Button(self.master, text='Show tree', width=15, command=self.call_show_matriline, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45").grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
 
         self.result = tk.Text(self.master, height=15, width=45)
         self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
@@ -142,11 +146,11 @@ class show_matriline(tk.Frame):
         self.tree=tk.PhotoImage(file='./tree.png')
         self.treebox.image_create(tk.END, image=self.tree)
         self.treebox.grid(row=2, column = 1, columnspan=4)
-        self.backbutton = tk.Button(self.view_window, text='Close', width=20, command=self.view_window.destroy, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.backbutton = tk.Button(self.view_window, text='Close', width=20, command=self.view_window.destroy, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.backbutton.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
-        self.saveimgbutton = tk.Button(self.view_window, width=20, text='Save as Image', command=self.save_tree, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.saveimgbutton = tk.Button(self.view_window, width=20, text='Save as Image', command=self.save_tree, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.saveimgbutton.grid(row=1, column=4, sticky=tk.EW, padx=5, pady=5)
-        self.savenexbutton = tk.Button(self.view_window, text='Save as Nexus', width=20, command=self.save_newick, bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.savenexbutton = tk.Button(self.view_window, text='Save as Nexus', width=20, command=self.save_newick, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.savenexbutton.grid(row=1, column=3, sticky=tk.EW, padx=5, pady=5)
 
 
@@ -158,9 +162,9 @@ class show_matriline(tk.Frame):
         findeleph(self.master, back = 1)
 
     def save_tree(self):
-        treefile = asksaveasfilename(title='Save tree image...', initialdir='~', defaultextension='.png')
+        treefile = asksaveasfilename(title='Save tree image...', initialdir=self.master.wdir, defaultextension='.png')
         self.background.save(treefile)
 
     def save_newick(self):
-        nexusfile = asksaveasfilename(title='Save tree definition...', initialdir='~', defaultextension='.nex')
+        nexusfile = asksaveasfilename(title='Save tree definition...', initialdir=self.master.wdir, defaultextension='.nex')
         nexus_tree(self.master.newick, nexusfile)

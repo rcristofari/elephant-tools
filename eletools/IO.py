@@ -14,15 +14,29 @@ from eletools.Utilities import *
 # num, name, calf_num, sex, birth, cw, caught, camp, alive, research
 # field names irrelevant, but order necessary
 
-def read_elephants(elefile, sep=';'):
+def read_elephants(elefile, sep=';', is_file=True):
     # Prepare empty list for column-wise parsing
     num, name, calf_num, sex, birth, cw, caught, camp, alive, research = [], [], [], [], [], [], [], [], [], []
 
+    if is_file == True:
     ########## Store the header in a list, and then each variable in its own column
-    with open(elefile) as elefile:
-        eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
-        fields = next(eleread)[0:10]
-        for row in eleread:
+        with open(elefile) as elefile:
+            eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
+            fields = next(eleread)[0:10]
+            for row in eleread:
+                num.append(row[0])
+                name.append(row[1])
+                calf_num.append(row[2])
+                sex.append(row[3])
+                birth.append(row[4])
+                cw.append(row[5])
+                caught.append(row[6])
+                camp.append(row[7])
+                alive.append(row[8])
+                research.append(row[9])
+    elif is_file == False:
+        fields = ['num', 'name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research']
+        for row in elefile:
             num.append(row[0])
             name.append(row[1])
             calf_num.append(row[2])
@@ -33,7 +47,6 @@ def read_elephants(elefile, sep=';'):
             camp.append(row[7])
             alive.append(row[8])
             research.append(row[9])
-
     ########## Format to lowercase Name and Camp
     lcname, lccamp = [], []
     for n in name:
