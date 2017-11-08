@@ -1,5 +1,6 @@
 #! /usr/bin/python3
 import tkinter as tk
+import pymysql as pms
 from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 import tkinter.ttk as ttk
 from PIL import Image
@@ -19,6 +20,6 @@ if __name__ == '__main__':
    main_app =  MainApplication(root).grid(sticky="nsew")
    root.grid_rowconfigure(0, weight=1)
    root.grid_columnconfigure(0, weight=1)
-   root.grid_rowconfigure(9, weight=1)
+   root.grid_rowconfigure(10, weight=1)
    root.grid_columnconfigure(9, weight=1)
    root.mainloop()

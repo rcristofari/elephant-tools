@@ -24,7 +24,6 @@ class MainApplication(tk.Frame):
         self.configure_gui()
         self.create_widgets()
         self.master.common_out = [] #This will be the main MySQL and error out
-        self.read_parmfile()
         self.goconnect()
 
 
@@ -97,20 +96,6 @@ class MainApplication(tk.Frame):
     def goconnect(self):
         dbconnect(self.master)
 
-    def read_parmfile(self):
-        params = []
-        with open('./parmfile') as parmfile:
-            for line in parmfile:
-                params.append(line.partition('=')[2].rstrip('\n'))
-        self.master.params_usr = params[1]
-        self.master.params_pwd = params[2]
-        self.master.params_host = params[3]
-        self.master.params_db = params[4]
-        self.master.params_port = params[5]
-        self.master.wdir = params[6]
-        if self.master.wdir == '':
-            self.master.wdir = '~'
-
     def read_elephants_prompt(self):
         read_elephant_file(self.master)
 
@@ -120,13 +105,13 @@ class MainApplication(tk.Frame):
     def set_wdir(self):
         self.master.wdir = askdirectory(initialdir=self.master.wdir, title='Choose a project folder...')
         with open('./parmfile', 'w') as parmfile:
-            parmfile.write("##eletools parmfile"+'\n')
-            parmfile.write("##username="+self.master.params_usr+'\n')
-            parmfile.write("##password="+self.master.params_pwd+'\n')
-            parmfile.write("##host="+self.master.params_host+'\n')
-            parmfile.write("##database="+self.master.params_db+'\n')
-            parmfile.write("##port="+self.master.params_port+'\n')
-            parmfile.write("##wdir="+self.master.wdir+'\n')
+            parmfile.write("//connexion parameters"+'\n')
+            parmfile.write("username="+self.master.params_usr+'\n')
+            parmfile.write("password="+self.master.params_pwd+'\n')
+            parmfile.write("host="+self.master.params_host+'\n')
+            parmfile.write("database="+self.master.params_db+'\n')
+            parmfile.write("port="+self.master.params_port+'\n')
+            parmfile.write("wdir="+self.master.wdir+'\n')
 
     def gofindeleph(self):
         findeleph(self.master, back = 0)

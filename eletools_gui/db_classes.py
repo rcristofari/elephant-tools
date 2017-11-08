@@ -23,7 +23,9 @@ class dbconnect(tk.Frame):
         tk.Frame.__init__(self, self.master)
         self.configure_gui()
         self.clear_frame()
+        self.read_parmfile()
         self.create_widgets()
+
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
@@ -34,6 +36,8 @@ class dbconnect(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
+        self.save_config_radio = tk.IntVar()
+        self.save_config_radio.set(0)
         self.userlabel = tk.Label(self.master, text="User:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
         self.pwdlabel = tk.Label(self.master, text="Password:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
         self.hostlabel = tk.Label(self.master, text="Host:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
@@ -63,6 +67,9 @@ class dbconnect(tk.Frame):
         self.connectbutton.grid(row=8, column=1, sticky=tk.W, padx=5, pady=5)
         self.disconnectbutton.grid(row=8, column=2, sticky=tk.E, padx=5, pady=5)
         self.disconnectbutton.config(state="disabled")
+        self.radio = tk.Radiobutton(self.master, text="Save configuration", variable=self.save_config_radio, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
+        self.radio.grid(row=9, column=2, sticky=tk.NE, padx=5, pady=5)
+
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(9, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -78,13 +85,18 @@ class dbconnect(tk.Frame):
                 self.master.stamp = self.master.db.stamp() #SEND THAT TO BE WRITTEN TO OUTPUT DIRECTLY
             self.master.common_out.append(self.master.stamp)
             print("You are connected!")
+            self.master.menubar.entryconfig("File", state='normal')
+            self.master.menubar.entryconfig("Search", state='normal')
+            self.master.menubar.entryconfig("Add", state='normal')
+            self.disconnectbutton.config(state="normal")
+            self.connectbutton.config(state="disabled")
+            self.radio.config(state="disabled")
         except: #still an error here.
             print("Impossible to connect to database.")
-        self.master.menubar.entryconfig("File", state='normal')
-        self.master.menubar.entryconfig("Search", state='normal')
-        self.master.menubar.entryconfig("Add", state='normal')
-        self.disconnectbutton.config(state="normal")
-        self.connectbutton.config(state="disabled")
+
+        if self.save_config_radio.get() == 1:
+            self.save_config()
+            self.save_config_radio.set(0)
 
     def disconnect_from_db(self):
         try:
@@ -94,5 +106,30 @@ class dbconnect(tk.Frame):
             self.master.menubar.entryconfig("File", state='disabled')
             self.master.menubar.entryconfig("Search", state='disabled')
             self.master.menubar.entryconfig("Add", state='normal')
+            self.radio.config(state="normal")
         except:
             print("You are not connected to any database.")
+
+    def read_parmfile(self):
+        params = []
+        with open('./parmfile') as parmfile:
+            for line in parmfile:
+                params.append(line.partition('=')[2].rstrip('\n'))
+        self.master.params_usr = params[1]
+        self.master.params_pwd = params[2]
+        self.master.params_host = params[3]
+        self.master.params_db = params[4]
+        self.master.params_port = params[5]
+        self.master.wdir = params[6]
+        if self.master.wdir == '' or self.master.wdir is None:
+            self.master.wdir = '~'
+
+    def save_config(self):
+        with open('./parmfile', 'w') as parmfile:
+            parmfile.write("//connexion parameters"+'\n')
+            parmfile.write("username="+self.e1.get()+'\n')
+            parmfile.write("password="+self.e2.get()+'\n')
+            parmfile.write("host="+self.e3.get()+'\n')
+            parmfile.write("database="+self.e4.get()+'\n')
+            parmfile.write("port="+self.e5.get()+'\n')
+            parmfile.write("wdir="+self.master.wdir+'\n')
