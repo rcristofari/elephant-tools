@@ -65,11 +65,14 @@ class MainApplication(tk.Frame):
         searchmenu = tk.Menu(self.master.menubar, tearoff=0)
         searchmenu.add_command(label="Find an elephant", command=self.gofindeleph)
         searchmenu.add_command(label="Find a relationship", command=self.notimplemented)
-        searchmenu.add_command(label="Find an event", command=self.notimplemented)
-        searchmenu.add_command(label="Find a measure", command=self.notimplemented)
+        searchmenu.add_command(label="Find an event", command=self.call_find_event)
+        searchmenu.add_command(label="Find a measure", command=self.call_find_measure)
         searchmenu.add_separator()
         searchmenu.add_command(label="Make a measure set", command=self.notimplemented)
+        searchmenu.add_command(label="Make a time series", command=self.notimplemented)
+        searchmenu.add_command(label="Make a stud book", command=self.notimplemented)
         searchmenu.add_separator()
+        searchmenu.add_command(label="Control birth gaps", command=self.call_age_gaps)
         searchmenu.add_command(label="Advanced search", command=self.notimplemented)
         searchmenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.menubar.add_cascade(label="Search", menu=searchmenu)
@@ -108,6 +111,9 @@ class MainApplication(tk.Frame):
     def read_pedigree_prompt(self):
         read_pedigree_file(self.master)
 
+    def call_age_gaps(self):
+        age_gaps(self.master)
+
     def set_wdir(self):
         self.master.wdir = askdirectory(initialdir=self.master.wdir, title='Choose a project folder...')
         with open('./parmfile', 'w') as parmfile:
@@ -121,6 +127,12 @@ class MainApplication(tk.Frame):
 
     def gofindeleph(self):
         findeleph(self.master, back = 0)
+
+    def call_find_measure(self):
+        find_measure(self.master)
+
+    def call_find_event(self):
+        find_event(self.master)
 
     def call_add_elephants(self):
         add_elephants(self.master)

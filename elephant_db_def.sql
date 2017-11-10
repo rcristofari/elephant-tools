@@ -18,14 +18,14 @@ id INT(12) NOT NULL primary key auto_increment,
 elephant_id INT(10) NOT NULL,
 date DATE NOT NULL,
 loc VARCHAR(64),
-type ENUM('capture','accident','disease','death','alive') NOT NULL,
 code INT(4) NOT NULL,
 commits TEXT
 );
 
 CREATE TABLE event_code (
 id INT(4) NOT NULL primary key auto_increment,
-code VARCHAR(12) NOT NULL UNIQUE,
+class ENUM('capture','accident','disease','death','alive') NOT NULL,
+type VARCHAR(12) NOT NULL UNIQUE,
 descript TEXT,
 commits TEXT
 );
@@ -68,7 +68,6 @@ details TEXT
 ALTER TABLE `elephants` ENGINE = InnoDB ;
 ALTER TABLE `events` ENGINE = InnoDB ;
 ALTER TABLE `event_code` ENGINE = InnoDB ;
-ALTER TABLE `breeding` ENGINE = InnoDB ;
 ALTER TABLE `pedigree` ENGINE = InnoDB ;
 ALTER TABLE `measures` ENGINE = InnoDB ;
 ALTER TABLE `measure_code` ENGINE = InnoDB ;

@@ -531,7 +531,7 @@ class mysqlconnect:
 ## 'get_all_offsprings' function                                              ##
 ################################################################################
 
-    def get_all_offsprings(self, num=None, id=None, age_gap=False, pairs = True):
+    def get_all_offsprings(self, num=None, id=None, age_gap=False, pairs = True, limit_age = 28):
 
         if age_gap is False:
             pairs = False
@@ -569,7 +569,7 @@ class mysqlconnect:
 
             else:
                 diff_array = np.array(differences)
-                suspicious_array = np.where(diff_array < 28)
+                suspicious_array = np.where(diff_array < limit_age)
                 out = list(map(list, suspicious_array))[0]
 
                 index = [0]
@@ -589,7 +589,56 @@ class mysqlconnect:
                     else:
                         e_out.append(e)
 
-
-
-
                 return(e_out)
+
+################################################################################
+## 'get_measure_list' function                                                ##
+################################################################################
+
+    def get_measure_list(self):
+        sql = "SELECT code, unit, descript FROM measure_code;"
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        for r in  result:
+            line = list(r)
+            out.append(line)
+        return(out)
+
+################################################################################
+## 'get_measures' function                                              ##
+################################################################################
+
+    def get_measure_values(self, num, measurelist):
+        sql = "SELECT measures.measure_id, measure_code.code, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.code IN %s;" % (num, measurelist)
+        print(sql)
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        for r in result:
+            line = list(r)
+            out.append(line)
+        return(out)
+
+################################################################################
+## 'get_event_list' function                                                ##
+################################################################################
+
+    def get_event_list(self):
+        sql = "SELECT class, type, descript FROM event_code;"
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        for r in  result:
+            line = list(r)
+            out.append(line)
+        return(out)
