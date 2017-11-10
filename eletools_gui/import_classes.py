@@ -55,7 +55,7 @@ class read_elephant_file(tk.Frame):
 
     def call_read_elephants(self):
         if self.name is None and self.master.manual_add_elephant is None:
-            self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
+            self.name = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
             self.master.shortname=os.path.split(self.name)[1]
             self.master.file_content = read_elephants(self.name, ',', is_file = True)
 
@@ -287,7 +287,7 @@ class analyse_elephant_file(tk.Frame):
             self.warningbox.insert(tk.END, 'This elephant is already in the database')
         else:
             for w in warning:
-                self.warningbox.insert(tk.END, w+'\n')
+                self.warningbox.insert(tk.END, w)
         self.warningbox.config(state=tk.DISABLED)
 
 
@@ -325,19 +325,19 @@ class read_pedigree_file(tk.Frame):
         self.result = tk.Text(self.master, height=15, width=45)
         self.result.grid(row=1, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
 
-        self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file)
+        self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.reloadbutton.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
 
-        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_file_content)
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_file_content, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.showfilebutton.grid(row=2, column=2, sticky=tk.EW, padx=5, pady=5)
 
-        self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse)
+        self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.analysebutton.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
 
     def call_read_pedigree(self):
 
         if self.name is None:
-            self.name = askopenfilename(initialdir="~", filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose a pedigree definition file")
+            self.name = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose a pedigree definition file")
         self.master.shortname = os.path.split(self.name)[1]
 
         self.master.file_content = read_pedigree(self.name, ',')
@@ -361,7 +361,7 @@ class read_pedigree_file(tk.Frame):
 
     def show_file_content(self):
         rows = self.master.file_content[5]
-        self.view_window = tk.Toplevel(self.master)
+        self.view_window = tk.Toplevel(self.master, bg="#E08E45")
         self.view_window.title("Pedigree file "+self.master.shortname)
         self.view_window.geometry("600x700")
         self.view_window.resizable(False, False)
@@ -434,13 +434,13 @@ class analyse_pedigree_file(tk.Frame):
         self.result = tk.Text(self.master, height=25, width=65)
         self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
-        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop)
+        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
 
-        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts)
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.showfilebutton.grid(row=3, column=2, sticky=tk.EW, padx=5, pady=5)
 
-        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql)
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
         self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
@@ -455,7 +455,7 @@ class analyse_pedigree_file(tk.Frame):
         n_pedigree = self.pedigrees.__len__()
         for i,row in enumerate(self.pedigrees):
             statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
-            self.statelabel = tk.Label(self.master, text=statenow)
+            self.statelabel = tk.Label(self.master, text=statenow, bg="#E08E45", fg="#A30B37", highlightthickness=2, highlightbackground="#A30B37")
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
             if self.break_loop != 0:
                 break
@@ -494,7 +494,7 @@ class analyse_pedigree_file(tk.Frame):
 
     def show_conflicts(self):
         rows = self.master.file_content[5]
-        self.view_window = tk.Toplevel(self.master)
+        self.view_window = tk.Toplevel(self.master, bg="#E08E45")
         self.view_window.title("Pedigree file "+self.master.shortname)
         self.view_window.grid_columnconfigure(0, weight=1)
         self.view_window.grid_columnconfigure(2, weight=1)

@@ -2,6 +2,8 @@
 import pymysql as pms
 import string
 import re
+import numpy as np
+from datetime import datetime
 
 # Cross-dependencies:
 from eletools.Utilities import *
@@ -523,3 +525,71 @@ class mysqlconnect:
             statement = "INSERT INTO event_code (code, descript, commits) VALUES (%s, %s, %s);" % (quote(code), quote(descript), newcommits)
 
             return(statement)
+
+
+################################################################################
+## 'get_all_offsprings' function                                              ##
+################################################################################
+
+    def get_all_offsprings(self, num=None, id=None, age_gap=False, pairs = True):
+
+        if age_gap is False:
+            pairs = False
+
+        if num is None and id is None:
+            print("You must provide one identifier")
+        elif num is not None and id is None:
+            sql = "SELECT a.num AS MotherNum, b.num AS OffspringNum, b.id AS OffspringId, b.birth AS OffspringBirth FROM pedigree AS p LEFT JOIN elephants AS a ON p.elephant_1_id = a.id LEFT JOIN elephants AS b ON p.elephant_2_id = b.id WHERE p.rel = 'mother' AND a.num=%s ORDER BY b.birth ASC;" % (str(num))
+        elif num is None and id is not None:
+            sql = "SELECT a.id AS MotherId, b.num AS OffspringNum, b.id AS OffspringId, b.birth AS OffspringBirth FROM pedigree AS p LEFT JOIN elephants AS a ON p.elephant_1_id = a.id LEFT JOIN elephants AS b ON p.elephant_2_id = b.id WHERE p.rel = 'mother' AND a.id=%s ORDER BY b.birth ASC;" % (id)
+
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+
+        if age_gap is False:
+            return(result)
+        else:
+            ages = []
+            ids = []
+            nums = []
+            for r in result:
+                ids.append(r[1])
+                nums.append(r[2])
+                ages.append(r[3])
+            differences = []
+            for i in range(result.__len__()-1):
+                difference = round((ages[i+1]-ages[i]).days/30.5)
+                differences.append(difference)
+
+            if pairs is False:
+                return(differences)
+
+            else:
+                diff_array = np.array(differences)
+                suspicious_array = np.where(diff_array < 28)
+                out = list(map(list, suspicious_array))[0]
+
+                index = [0]
+                for d in differences:
+                    index.append(d)
+
+                elephants = []
+                for i,j in enumerate(index):
+                    line = [ids[i], nums[i], ages[i],j,0]
+                    elephants.append(line)
+
+                e_out = []
+                for i,e in enumerate(elephants):
+                    if any(x == i for x in out) or any(x == i-1 for x in out):
+                        e[4] = 1
+                        e_out.append(e)
+                    else:
+                        e_out.append(e)
+
+
+
+
+                return(e_out)

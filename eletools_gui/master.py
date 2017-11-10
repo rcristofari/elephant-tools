@@ -21,6 +21,10 @@ class MainApplication(tk.Frame):
     def __init__(self, master):
         self.master = master
         tk.Frame.__init__(self, self.master)
+        # Graphical parameters:
+        self.master.lightcolour = "#E08E45"
+        self.master.darkcolour = "#A30B37"
+
         self.configure_gui()
         self.create_widgets()
         self.master.common_out = [] #This will be the main MySQL and error out
@@ -30,6 +34,8 @@ class MainApplication(tk.Frame):
         # These are "flow data" (to be passed on from manual add to the file-based pipeline)
         self.master.manual_add_elephant = None
         self.master.pass_from_add_elephant = False
+
+
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
@@ -52,7 +58,7 @@ class MainApplication(tk.Frame):
         filemenu.add_command(label="Set project folder", command=self.set_wdir)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit)
-        filemenu.config(bg="#E08E45", fg="#A30B37", activebackground="#A30B37", activeforeground="#E08E45")
+        filemenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.menubar.add_cascade(label="File", menu=filemenu)
         self.master.menubar.entryconfig("File", state='disabled')
 
@@ -65,7 +71,7 @@ class MainApplication(tk.Frame):
         searchmenu.add_command(label="Make a measure set", command=self.notimplemented)
         searchmenu.add_separator()
         searchmenu.add_command(label="Advanced search", command=self.notimplemented)
-        searchmenu.config(bg="#E08E45", fg="#A30B37", activebackground="#A30B37", activeforeground="#E08E45")
+        searchmenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.menubar.add_cascade(label="Search", menu=searchmenu)
         self.master.menubar.entryconfig("Search", state='disabled')
 
@@ -79,17 +85,17 @@ class MainApplication(tk.Frame):
         addmenu.add_command(label="Add an event type", command=self.notimplemented)
         addmenu.add_separator()
         addmenu.add_command(label="Update living status", command=self.notimplemented)
-        addmenu.config(bg="#E08E45", fg="#A30B37", activebackground="#A30B37", activeforeground="#E08E45")
+        addmenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.menubar.add_cascade(label="Add", menu=addmenu)
         self.master.menubar.entryconfig("Add", state='disabled')
 
         dbmenu = tk.Menu(self.master.menubar, tearoff = 0)
         dbmenu.add_command(label="Connexion", command=self.goconnect)
         dbmenu.add_command(label="MySQL dump", command=self.notimplemented)
-        dbmenu.config(bg="#E08E45", fg="#A30B37", activebackground="#A30B37", activeforeground="#E08E45")
+        dbmenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.menubar.add_cascade(label="Database", menu=dbmenu)
 
-        self.master.menubar.config(bg="#E08E45", fg="#A30B37", activebackground="#A30B37", activeforeground="#E08E45")
+        self.master.menubar.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.config(menu=self.master.menubar)
 
 
