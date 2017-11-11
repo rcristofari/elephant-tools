@@ -416,6 +416,8 @@ class find_event(tk.Frame):
         self.stringvar.trace("w", self.enable_search)
         self.create_widgets()
         self.classes_types = []
+        self.available_types = []
+        self.available_classes = []
         self.selected_types = []
         self.selected_classes = []
         self.type_buffer = []
@@ -504,12 +506,12 @@ class find_event(tk.Frame):
 
         # Retrieve the classes ('disease','accident',...) and types (detailed events)
         self.classes_types = self.master.db.get_event_list()
+
         classes_all = []
         for c in self.classes_types:
             classes_all.append(c[0])
         self.classes = list(set(classes_all))
         self.classes.sort(key=lambda k: (k[0]))
-        self.classes_list = list(set(classes_all))
 
         self.types = []
         for t in self.classes_types:
@@ -518,9 +520,16 @@ class find_event(tk.Frame):
             else:
                 self.types.append(t)
 
-        for c in self.classes_list:
-            globals()[c] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
+        self.available_classes = [] #This is to break the vicious binding
+        for c in self.classes:
+            self.available_classes.append(c)
+        self.available_types = []
         for t in self.types:
+            self.available_types.append(t)
+
+        for c in self.available_classes:
+            globals()[c] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
+        for t in self.available_types:
             name = t[0]
             self.tv1.insert(globals()[name], "end", text=t[1], values=(t[2],), tags = ('type',))
 
@@ -533,136 +542,163 @@ class find_event(tk.Frame):
         item = self.tv1.selection()[0]
         selection = self.tv1.item(item, "text")
 
-        if selection in self.classes_list: # Then a main category has been clicked, move all subcategories too
+        #Clear the boxes
+        for item in self.tv1.get_children():
+            self.tv1.delete(item)
+        for item in self.tv2.get_children():
+            self.tv2.delete(item)
 
+        if selection in self.classes: # Then a main category has been clicked, move all subcategories too
             # Isolate the clicked class
-            index=None
-            select_class = self.tv1.item(item, "text")
-            for i,c in enumerate(self.classes):
-                if c == select_class:
-                    index = i
-            transfer = self.classes.pop(index)
+            for i,c in enumerate(self.available_classes):
+                if c == selection:
+                    break
+            transfer = self.available_classes.pop(i)
             self.selected_classes.append(transfer)
             self.selected_classes.sort(key=lambda k: (k[0]))
 
-            #Clear the boxes
-            for item in self.tv1.get_children():
-                self.tv1.delete(item)
-            for item in self.tv2.get_children():
-                self.tv2.delete(item)
-
             # Fill back the classes:
-            for c in self.classes:
-                globals()[c] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
+            for c in self.available_classes:
+                globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
             for c in self.selected_classes:
-                globals()[c] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
+                globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
 
             # Add in the types:
-            self.type_buffer = []
-            for i,t in enumerate(self.types):
+            at=[]
+            st=[]
+            for t in self.types:
+                if t[0] in self.available_classes:
+                    at.append(t)
+                elif t[0] in self.selected_classes:
+                    st.append(t)
+
+            self.available_types = at
+            self.available_types.sort(key=lambda k: (k[1]))
+            self.selected_types = st
+            self.selected_types.sort(key=lambda k: (k[1]))
+
+            for t in self.available_types:
                 name = t[0]
-                if t[0] in self.selected_classes:
-                    self.selected_types.append(t)
-                else:
-                    self.type_buffer.append(t)
-                    self.tv1.insert(globals()[name], "end", text=t[1], values=(t[2],), tags = ('type',))
-            self.types = self.type_buffer
-            for st in self.selected_types:
-                sname = st[0]
-                self.tv2.insert(globals()[sname], "end", text=st[1], values=(st[2],), tags = ('type',))
+                self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
+            for t in self.selected_types:
+                name = t[0]
+                self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
         else:
-            select_type = self.tv1.item(item, "text")
-            index=None
-            for i,t in enumerate(self.types):
-                if t[1] == select_type:
-                    index = i
-            transfer = self.types.pop(index)
+
+            for i,t in enumerate(self.available_types):
+                if t[1] == selection:
+                    break
+            transfer = self.available_types.pop(i)
             self.selected_types.append(transfer)
             self.selected_types.sort(key=lambda k: (k[1]))
-            for item in self.tv1.get_children():
-                self.tv1.delete(item)
-            for item in self.tv2.get_children():
-                self.tv2.delete(item)
-            for c in self.classes:
-                globals()[c] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
-            for t in self.types:
+
+            # Rebuild the *_classes lists
+            ac=[]
+            sc=[]
+            for t in self.available_types:
+                ac.append(t[0])
+            self.available_classes = list(set(ac))
+            self.available_classes.sort(key=lambda k: (k[0]))
+            for t in self.selected_types:
+                sc.append(t[0])
+            self.selected_classes = list(set(sc))
+            self.selected_classes.sort(key=lambda k: (k[0]))
+
+            for c in self.available_classes:
+                globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
+            for c in self.selected_classes:
+                globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
+
+            for t in self.available_types:
                 name = t[0]
-                self.tv1.insert(globals()[name], "end", text=t[1], values=(t[2],), tags = ('type',))
-            for c in self.classes:
-                globals()[c] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
+                self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
+
             for t in self.selected_types:
                 name = t[0]
-                self.tv2.insert(globals()[name], "end", text=t[1], values=(t[2],), tags = ('type',))
+                self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
+
 
     def OnDoubleClick2(self, event):
+
         item = self.tv2.selection()[0]
         selection = self.tv2.item(item, "text")
-        print(selection, self.classes_list)
-        if selection in self.classes_list:
-            # Isolate the clicked class
-            index=None
-            select_class = self.tv2.item(item, "text")
-            for i,c in enumerate(self.selected_classes):
-                if c == select_class:
-                    index = i
-            transfer = self.selected_classes.pop(index)
-            self.classes.append(transfer)
-            self.classes.sort(key=lambda k: (k[0]))
 
-            #Clear the boxes
-            for item in self.tv1.get_children():
-                self.tv1.delete(item)
-            for item in self.tv2.get_children():
-                self.tv2.delete(item)
+        #Clear the boxes
+        for item in self.tv1.get_children():
+            self.tv1.delete(item)
+        for item in self.tv2.get_children():
+            self.tv2.delete(item)
+
+        if selection in self.classes: # Then a main category has been clicked, move all subcategories too
+            # Isolate the clicked class
+            for i,c in enumerate(self.selected_classes):
+                if c == selection:
+                    break
+            transfer = self.selected_classes.pop(i)
+            self.available_classes.append(transfer)
+            self.available_classes.sort(key=lambda k: (k[0]))
 
             # Fill back the classes:
-            for c in self.classes:
-                globals()[c] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
+            for c in self.available_classes:
+                globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
             for c in self.selected_classes:
-                globals()[c] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
+                globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
 
             # Add in the types:
-            self.type_buffer = []
+            at=[]
+            st=[]
+            for t in self.types:
+                if t[0] in self.available_classes:
+                    at.append(t)
+                elif t[0] in self.selected_classes:
+                    st.append(t)
+
+            self.available_types = at
+            self.available_types.sort(key=lambda k: (k[1]))
+            self.selected_types = st
+            self.selected_types.sort(key=lambda k: (k[1]))
+
+            for t in self.available_types:
+                name = t[0]
+                self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
             for t in self.selected_types:
                 name = t[0]
-                if name in self.classes:
-                    self.types.append(t)
-                else:
-                    self.type_buffer.append(t)
-                    self.tv2.insert(globals()[name], "end", text=st[1], values=(st[2],), tags = ('type',))
-
-            self.selected_types = self.type_buffer
-
-            for st in self.types:
-                sname = st[0]
-                self.tv1.insert(globals()[sname], "end", text=st[1], values=(st[2],), tags = ('type',))
+                self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
         else:
-            select_type = self.tv2.item(item, "text")
-            index=None
-            for i,t in enumerate(self.selected_types):
-                if t[1] == select_type:
-                    index = i
-            transfer = self.selected_types.pop(index)
-            self.types.append(transfer)
-            self.types.sort(key=lambda k: (k[1]))
-            for item in self.tv1.get_children():
-                self.tv1.delete(item)
-            for item in self.tv2.get_children():
-                self.tv2.delete(item)
-                    #Change the classes / selected classes by a clearer available/selected classes
-            for c in self.classes:
-                globals()[c] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
-            for c in self.classes:
-                globals()[c] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
 
-            for t in self.types:
+            for i,t in enumerate(self.selected_types):
+                if t[1] == selection:
+                    break
+            transfer = self.selected_types.pop(i)
+            self.available_types.append(transfer)
+            self.available_types.sort(key=lambda k: (k[1]))
+
+            # Rebuild the *_classes lists
+            ac=[]
+            sc=[]
+            for t in self.available_types:
+                ac.append(t[0])
+            self.available_classes = list(set(ac))
+            self.available_classes.sort(key=lambda k: (k[0]))
+            for t in self.selected_types:
+                sc.append(t[0])
+            self.selected_classes = list(set(sc))
+            self.selected_classes.sort(key=lambda k: (k[0]))
+
+            for c in self.available_classes:
+                globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
+            for c in self.selected_classes:
+                globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
+
+            for t in self.available_types:
                 name = t[0]
-                self.tv1.insert(globals()[name], "end", text=t[1], values=(t[2],), tags = ('type',))
+                self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
+
             for t in self.selected_types:
                 name = t[0]
-                self.tv2.insert(globals()[name], "end", text=t[1], values=(t[2],), tags = ('type',))
+                self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
     def fetch_values(self):
         measure_str = '('
