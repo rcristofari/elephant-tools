@@ -86,7 +86,7 @@ class mysqlconnect:
         self.__calf_num=calf_num
         self.__id=id
         if self.__num is not None and self.__id is None:
-            sql = "SELECT * FROM elephants WHERE num = %s;" % (self.__num)
+            sql = "SELECT * FROM elephants WHERE num = %s;" % (quote(self.__num))
         elif self.__num is None and self.__calf_num is not None and self.__id is None:
             sql = "SELECT * FROM elephants WHERE calfnum = %s;" % (self.__calf_num) ##Will open to a problem when several calves have the same ID and no adult ID...fix by matching on dates
         elif self.__num is None and self.__calf_num is None and self.__id is not None:
@@ -609,11 +609,12 @@ class mysqlconnect:
         return(out)
 
 ################################################################################
-## 'get_measures' function                                              ##
+## 'get_measure_values' function                                              ##
 ################################################################################
 
     def get_measure_values(self, num, measurelist):
-        sql = "SELECT measures.measure_id, measure_code.code, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.code IN %s;" % (num, measurelist)
+        result = None
+        sql = "SELECT measures.measure_id, measure_code.code, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.code IN %s ORDER BY measures.date DESC;" % (num, measurelist)
         print(sql)
         try:
             self.__cursor.execute(sql)
@@ -621,10 +622,11 @@ class mysqlconnect:
         except:
             print("Impossible to connect to the database")
         out = []
-        for r in result:
-            line = list(r)
-            out.append(line)
-        return(out)
+        if result:
+            for r in result:
+                line = list(r)
+                out.append(line)
+            return(out)
 
 ################################################################################
 ## 'get_event_list' function                                                ##
@@ -639,6 +641,24 @@ class mysqlconnect:
             print("Impossible to connect to the database")
         out = []
         for r in  result:
+            line = list(r)
+            out.append(line)
+        return(out)
+
+################################################################################
+## 'get_event_values' function                                              ##
+################################################################################
+
+    def get_event_values(self, num, eventlist):
+        sql = "SELECT events.date, events.loc, event_code.class, event_code.type FROM events INNER JOIN event_code ON events.code = event_code.id INNER JOIN elephants ON events.elephant_id = elephants.id WHERE elephants.num=%s AND event_code.type IN %s ORDER BY events.date ASC;" % (num, eventlist)
+        print(sql)
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        for r in result:
             line = list(r)
             out.append(line)
         return(out)

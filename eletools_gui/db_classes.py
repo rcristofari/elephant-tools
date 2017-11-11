@@ -38,11 +38,11 @@ class dbconnect(tk.Frame):
     def create_widgets(self):
         self.save_config_radio = tk.IntVar()
         self.save_config_radio.set(0)
-        self.userlabel = tk.Label(self.master, text="User:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
-        self.pwdlabel = tk.Label(self.master, text="Password:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
-        self.hostlabel = tk.Label(self.master, text="Host:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
-        self.dblabel = tk.Label(self.master, text="Database:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
-        self.dblabel = tk.Label(self.master, text="Port:", bg="#E08E45", fg="#A30B37", highlightthickness=0).grid(row=5, column=1, sticky=tk.W, padx=5, pady=5)
+        self.userlabel = tk.Label(self.master, text="User:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0).grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        self.pwdlabel = tk.Label(self.master, text="Password:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0).grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
+        self.hostlabel = tk.Label(self.master, text="Host:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0).grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
+        self.dblabel = tk.Label(self.master, text="Database:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0).grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
+        self.dblabel = tk.Label(self.master, text="Port:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0).grid(row=5, column=1, sticky=tk.W, padx=5, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e2 = tk.Entry(self.master, show='*')
         self.e3 = tk.Entry(self.master)
@@ -58,16 +58,16 @@ class dbconnect(tk.Frame):
         self.e3.grid(row=3, column=2, sticky=tk.E, padx=5, pady=5)
         self.e4.grid(row=4, column=2, sticky=tk.E, padx=5, pady=5)
         self.e5.grid(row=5, column=2, sticky=tk.E, padx=5, pady=5)
-        self.detailslabel = tk.Label(self.master, text="Details (optional, if entering new data):", bg="#E08E45", fg="#A30B37", highlightthickness=0)
+        self.detailslabel = tk.Label(self.master, text="Details (optional, if entering new data):", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0)
         self.detailslabel.grid(row=6, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
         self.details = tk.Text(self.master, height=5, width=45)
         self.details.grid(row=7, column=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
-        self.connectbutton = tk.Button(self.master, text='Connect', width=15, command=self.connect_to_db, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
-        self.disconnectbutton = tk.Button(self.master, text='Disconnect', width=15, command=self.disconnect_from_db, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
+        self.connectbutton = tk.Button(self.master, text='Connect', width=15, command=self.connect_to_db, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.disconnectbutton = tk.Button(self.master, text='Disconnect', width=15, command=self.disconnect_from_db, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.connectbutton.grid(row=8, column=1, sticky=tk.W, padx=5, pady=5)
         self.disconnectbutton.grid(row=8, column=2, sticky=tk.E, padx=5, pady=5)
         self.disconnectbutton.config(state="disabled")
-        self.radio = tk.Radiobutton(self.master, text="Save configuration", variable=self.save_config_radio, value=1, bg="#E08E45", fg="#A30B37", highlightthickness=0, activebackground="#A30B37", activeforeground="#E08E45")
+        self.radio = tk.Radiobutton(self.master, text="Save configuration", variable=self.save_config_radio, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.radio.grid(row=9, column=2, sticky=tk.NE, padx=5, pady=5)
 
         self.grid_rowconfigure(0, weight=1)
@@ -79,7 +79,7 @@ class dbconnect(tk.Frame):
     def connect_to_db(self):
         try:
             self.master.db = mysqlconnect(usr=self.e1.get(), pwd=self.e2.get(), host=self.e3.get(), db=self.e4.get(), port=self.e5.get())
-            if self.details.get("1.0", tk.END) is not None:
+            if self.details.get("1.0", tk.END) !='\n':
                 self.master.stamp = self.master.db.stamp(details=self.details.get("1.0", tk.END)) #SEND THAT TO BE WRITTEN TO OUTPUT DIRECTLY
             else:
                 self.master.stamp = self.master.db.stamp() #SEND THAT TO BE WRITTEN TO OUTPUT DIRECTLY

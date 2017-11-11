@@ -7,10 +7,6 @@ import os
 import re
 from datetime import datetime
 from eletools import *
-# from eletools_gui.master import *
-# from eletools_gui.db_classes import *
-# from eletools_gui.import_classes import *
-# from eletools_gui.add_classes import *
 
 ################################################################################
 ## Search for an elephant                                                     ##
@@ -388,7 +384,7 @@ class find_measure(tk.Frame):
         self.view_window.destroy()
 
     def write_csv(self):
-        filename = asksaveasfilename(initialdir=self.master.wdir, defaultextension='.csv')
+        filename = asksaveasfilename(initialdir=self.master.wdir, initialfile=('E_'+str(self.e1.get())+'_measures.csv'), defaultextension='.csv')
         with open(filename,"w") as f:
             f.write("Set,Measure,Date,Value,Unit\n")
             for x in self.measures:
@@ -415,11 +411,11 @@ class find_event(tk.Frame):
         self.stringvar = tk.StringVar()
         self.stringvar.trace("w", self.enable_search)
         self.create_widgets()
-        self.classes_types = []
-        self.available_types = []
-        self.available_classes = []
-        self.selected_types = []
-        self.selected_classes = []
+        self.__classes_types = []
+        self.__available_types = []
+        self.__available_classes = []
+        self.__selected_types = []
+        self.__selected_classes = []
         self.type_buffer = []
 
     def configure_gui(self):
@@ -505,42 +501,41 @@ class find_event(tk.Frame):
         self.donebutton.grid(row=3, column=2, sticky=tk.E, padx=5, pady=5)
 
         # Retrieve the classes ('disease','accident',...) and types (detailed events)
-        self.classes_types = self.master.db.get_event_list()
+        self.__classes_types = self.master.db.get_event_list()
 
         classes_all = []
-        for c in self.classes_types:
+        for c in self.__classes_types:
             classes_all.append(c[0])
-        self.classes = list(set(classes_all))
-        self.classes.sort(key=lambda k: (k[0]))
+        self.__classes = list(set(classes_all))
+        self.__classes.sort(key=lambda k: (k[0]))
 
-        self.types = []
-        for t in self.classes_types:
-            if t in self.types:
+        self.__types = []
+        for t in self.__classes_types:
+            if t in self.__types:
                 pass
             else:
-                self.types.append(t)
+                self.__types.append(t)
 
-        self.available_classes = [] #This is to break the vicious binding
-        for c in self.classes:
-            self.available_classes.append(c)
-        self.available_types = []
-        for t in self.types:
-            self.available_types.append(t)
+        self.__available_classes = [] #This is to break the vicious binding
+        for c in self.__classes:
+            self.__available_classes.append(c)
+        self.__available_types = []
+        for t in self.__types:
+            self.__available_types.append(t)
 
-        for c in self.available_classes:
+        for c in self.__available_classes:
             globals()[c] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
-        for t in self.available_types:
+        for t in self.__available_types:
             name = t[0]
             self.tv1.insert(globals()[name], "end", text=t[1], values=(t[2],), tags = ('type',))
 
         self.tv1.bind("<Double-1>", self.OnDoubleClick1)
         self.tv2.bind("<Double-1>", self.OnDoubleClick2)
 
-
     def OnDoubleClick1(self, event):
 
         item = self.tv1.selection()[0]
-        selection = self.tv1.item(item, "text")
+        __selection = self.tv1.item(item, "text")
 
         #Clear the boxes
         for item in self.tv1.get_children():
@@ -548,81 +543,81 @@ class find_event(tk.Frame):
         for item in self.tv2.get_children():
             self.tv2.delete(item)
 
-        if selection in self.classes: # Then a main category has been clicked, move all subcategories too
+        if __selection in self.__classes: # Then a main category has been clicked, move all subcategories too
             # Isolate the clicked class
-            for i,c in enumerate(self.available_classes):
-                if c == selection:
+            for i,c in enumerate(self.__available_classes):
+                if c == __selection:
                     break
-            transfer = self.available_classes.pop(i)
-            self.selected_classes.append(transfer)
-            self.selected_classes.sort(key=lambda k: (k[0]))
+            transfer = self.__available_classes.pop(i)
+            self.__selected_classes.append(transfer)
+            self.__selected_classes.sort(key=lambda k: (k[0]))
 
             # Fill back the classes:
-            for c in self.available_classes:
+            for c in self.__available_classes:
                 globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
-            for c in self.selected_classes:
+            for c in self.__selected_classes:
                 globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
 
             # Add in the types:
             at=[]
-            st=[]
-            for t in self.types:
-                if t[0] in self.available_classes:
+            # st=[]
+            for t in self.__available_types:
+                if t[0] in self.__available_classes:
                     at.append(t)
-                elif t[0] in self.selected_classes:
-                    st.append(t)
+                elif t[0] in self.__selected_classes:
+                    self.__selected_types.append(t)
 
-            self.available_types = at
-            self.available_types.sort(key=lambda k: (k[1]))
-            self.selected_types = st
-            self.selected_types.sort(key=lambda k: (k[1]))
 
-            for t in self.available_types:
+            self.__available_types = at
+            self.__available_types.sort(key=lambda k: (k[1]))
+            # self.__selected_types = st
+            self.__selected_types.sort(key=lambda k: (k[1]))
+
+            for t in self.__available_types:
                 name = t[0]
                 self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
-            for t in self.selected_types:
+            for t in self.__selected_types:
                 name = t[0]
                 self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
         else:
 
-            for i,t in enumerate(self.available_types):
-                if t[1] == selection:
+            for i,t in enumerate(self.__available_types):
+                if t[1] == __selection:
                     break
-            transfer = self.available_types.pop(i)
-            self.selected_types.append(transfer)
-            self.selected_types.sort(key=lambda k: (k[1]))
+            transfer = self.__available_types.pop(i)
+            self.__selected_types.append(transfer)
+            self.__selected_types.sort(key=lambda k: (k[1]))
 
             # Rebuild the *_classes lists
             ac=[]
             sc=[]
-            for t in self.available_types:
+            for t in self.__available_types:
                 ac.append(t[0])
-            self.available_classes = list(set(ac))
-            self.available_classes.sort(key=lambda k: (k[0]))
-            for t in self.selected_types:
+            self.__available_classes = list(set(ac))
+            self.__available_classes.sort(key=lambda k: (k[0]))
+            for t in self.__selected_types:
                 sc.append(t[0])
-            self.selected_classes = list(set(sc))
-            self.selected_classes.sort(key=lambda k: (k[0]))
+            self.__selected_classes = list(set(sc))
+            self.__selected_classes.sort(key=lambda k: (k[0]))
 
-            for c in self.available_classes:
+            for c in self.__available_classes:
                 globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
-            for c in self.selected_classes:
+            for c in self.__selected_classes:
                 globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
 
-            for t in self.available_types:
+            for t in self.__available_types:
                 name = t[0]
                 self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
-            for t in self.selected_types:
+            for t in self.__selected_types:
                 name = t[0]
                 self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
-
 
     def OnDoubleClick2(self, event):
 
         item = self.tv2.selection()[0]
-        selection = self.tv2.item(item, "text")
+        __selection = self.tv2.item(item, "text")
 
         #Clear the boxes
         for item in self.tv1.get_children():
@@ -630,96 +625,108 @@ class find_event(tk.Frame):
         for item in self.tv2.get_children():
             self.tv2.delete(item)
 
-        if selection in self.classes: # Then a main category has been clicked, move all subcategories too
+        if __selection in self.__classes: # Then a main category has been clicked, move all subcategories too
             # Isolate the clicked class
-            for i,c in enumerate(self.selected_classes):
-                if c == selection:
+            for i,c in enumerate(self.__selected_classes):
+                if c == __selection:
                     break
-            transfer = self.selected_classes.pop(i)
-            self.available_classes.append(transfer)
-            self.available_classes.sort(key=lambda k: (k[0]))
+            transfer = self.__selected_classes.pop(i)
+            self.__available_classes.append(transfer)
+            self.__available_classes.sort(key=lambda k: (k[0]))
 
             # Fill back the classes:
-            for c in self.available_classes:
+            for c in self.__available_classes:
                 globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
-            for c in self.selected_classes:
+            for c in self.__selected_classes:
                 globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
 
             # Add in the types:
-            at=[]
-            st=[]
-            for t in self.types:
-                if t[0] in self.available_classes:
-                    at.append(t)
-                elif t[0] in self.selected_classes:
-                    st.append(t)
+            # __at=[]
+            __st=[]
+            for t in self.__selected_types:
+                if t[0] in self.__available_classes:
+                    self.__available_types.append(t)
+                elif t[0] in self.__selected_classes:
+                    __st.append(t)
 
-            self.available_types = at
-            self.available_types.sort(key=lambda k: (k[1]))
-            self.selected_types = st
-            self.selected_types.sort(key=lambda k: (k[1]))
+            # self.__available_types = __at
+            self.__available_types.sort(key=lambda k: (k[1]))
+            self.__selected_types = __st
+            self.__selected_types.sort(key=lambda k: (k[1]))
 
-            for t in self.available_types:
+            for t in self.__available_types:
                 name = t[0]
                 self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
-            for t in self.selected_types:
+            for t in self.__selected_types:
                 name = t[0]
                 self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
         else:
 
-            for i,t in enumerate(self.selected_types):
-                if t[1] == selection:
+            for i,t in enumerate(self.__selected_types):
+                if t[1] == __selection:
                     break
-            transfer = self.selected_types.pop(i)
-            self.available_types.append(transfer)
-            self.available_types.sort(key=lambda k: (k[1]))
+            transfer = self.__selected_types.pop(i)
+            self.__available_types.append(transfer)
+            self.__available_types.sort(key=lambda k: (k[1]))
 
             # Rebuild the *_classes lists
-            ac=[]
-            sc=[]
-            for t in self.available_types:
-                ac.append(t[0])
-            self.available_classes = list(set(ac))
-            self.available_classes.sort(key=lambda k: (k[0]))
-            for t in self.selected_types:
-                sc.append(t[0])
-            self.selected_classes = list(set(sc))
-            self.selected_classes.sort(key=lambda k: (k[0]))
+            __ac=[]
+            __sc=[]
+            for t in self.__available_types:
+                __ac.append(t[0])
+            self.__available_classes = list(set(__ac))
+            self.__available_classes.sort(key=lambda k: (k[0]))
+            for t in self.__selected_types:
+                __sc.append(t[0])
+            self.__selected_classes = list(set(__sc))
+            self.__selected_classes.sort(key=lambda k: (k[0]))
 
-            for c in self.available_classes:
+            for c in self.__available_classes:
                 globals()[c+'a'] = self.tv1.insert("", "end", text=c, open = True, tags = ('class',))
-            for c in self.selected_classes:
+            for c in self.__selected_classes:
                 globals()[c+'s'] = self.tv2.insert("", "end", text=c, open = True, tags = ('class',))
 
-            for t in self.available_types:
+            for t in self.__available_types:
                 name = t[0]
                 self.tv1.insert(globals()[name+'a'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
-            for t in self.selected_types:
+            for t in self.__selected_types:
                 name = t[0]
                 self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=(t[2],), tags = ('type',))
 
     def fetch_values(self):
-        measure_str = '('
-        for m in self.selected_measures:
-            measure_str = measure_str+"'"+m[0]+"',"
-        measure_str = measure_str.rstrip(',')+')'
-        self.measures = self.master.db.get_measure_values(self.e1.get(), measure_str)
+        self.__fetch_types = []
+        for t in self.__selected_types:
+            self.__fetch_types.append(t[1])
+        print(self.__fetch_types)
+
+        __event_str = '('
+        for e in self.__fetch_types:
+            __event_str = __event_str+"'"+e+"',"
+        __event_str = __event_str.rstrip(',')+')'
+
+        self.__events = self.master.db.get_event_values(self.e1.get(), __event_str)
+
         for item in self.tv.get_children():
             self.tv.delete(item)
-        for i,m in enumerate(self.measures):
-            self.tv.insert('','end',text=str(i+1), values=m[0:6])
+
+        for i,e in enumerate(self.__events):
+            self.tv.insert('','end',text=str(i+1), values=e[0:4])
+
         self.view_window.destroy()
+        self.__available_types = []
+        self.__selected_types = []
+        self.__available_classes = []
+        self.__selected_classes = []
 
     def write_csv(self):
-        filename = asksaveasfilename(initialdir=self.master.wdir, defaultextension='.csv')
+        filename = asksaveasfilename(initialdir=self.master.wdir, initialfile=('E_'+str(self.e1.get())+'_events.csv'), defaultextension='.csv')
         with open(filename,"w") as f:
-            f.write("Set,Measure,Date,Value,Unit\n")
-            for x in self.measures:
+            f.write("Date,Place,Class,Type\n")
+            for x in self.__events:
                 f.write(str(x[0])+',')
                 f.write(str(x[1])+',')
-                f.write(str(x[2].strftime('%Y-%m-%d'))+',')
-                f.write(str(x[3])+',')
-                f.write(str(x[4]))
+                f.write(str(x[2]+','))
+                f.write(str(x[3]))
                 f.write('\n')

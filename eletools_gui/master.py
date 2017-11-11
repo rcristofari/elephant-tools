@@ -11,6 +11,7 @@ from eletools_gui.db_classes import *
 from eletools_gui.import_classes import *
 from eletools_gui.add_classes import *
 from eletools_gui.search_classes import *
+from eletools_gui.make_classes import *
 
 ################################################################################
 ## Main application window                                                    ##
@@ -35,7 +36,7 @@ class MainApplication(tk.Frame):
         self.master.manual_add_elephant = None
         self.master.pass_from_add_elephant = False
 
-
+        self.master.current_search_num = None # This is to keep the same elephant's number between searches
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
@@ -68,9 +69,9 @@ class MainApplication(tk.Frame):
         searchmenu.add_command(label="Find an event", command=self.call_find_event)
         searchmenu.add_command(label="Find a measure", command=self.call_find_measure)
         searchmenu.add_separator()
-        searchmenu.add_command(label="Make a measure set", command=self.notimplemented)
+        searchmenu.add_command(label="Make a measure set", command=self.call_make_measure_set)
         searchmenu.add_command(label="Make a time series", command=self.notimplemented)
-        searchmenu.add_command(label="Make a stud book", command=self.notimplemented)
+        searchmenu.add_command(label="Make a log book", command=self.notimplemented)
         searchmenu.add_separator()
         searchmenu.add_command(label="Control birth gaps", command=self.call_age_gaps)
         searchmenu.add_command(label="Advanced search", command=self.notimplemented)
@@ -133,6 +134,9 @@ class MainApplication(tk.Frame):
 
     def call_find_event(self):
         find_event(self.master)
+
+    def call_make_measure_set(self):
+        make_measure_set(self.master)
 
     def call_add_elephants(self):
         add_elephants(self.master)
