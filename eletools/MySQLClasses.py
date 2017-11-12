@@ -615,7 +615,6 @@ class mysqlconnect:
     def get_measure_values(self, num, measurelist):
         result = None
         sql = "SELECT measures.measure_id, measure_code.code, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.code IN %s ORDER BY measures.date DESC;" % (num, measurelist)
-        print(sql)
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
@@ -625,6 +624,25 @@ class mysqlconnect:
         if result:
             for r in result:
                 line = list(r)
+                out.append(line)
+            return(out)
+
+################################################################################
+## 'get_mean_measure' function                                                ##
+################################################################################
+
+    def get_mean_measure(self, num, measure):
+        result = None
+        sql = "SELECT AVG(measures.value) FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num = %s AND measure_code.code = %s GROUP BY measures.elephant_id;" % (num, measure)
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        if result:
+            for r in result:
+                line = r[0]
                 out.append(line)
             return(out)
 
@@ -651,7 +669,6 @@ class mysqlconnect:
 
     def get_event_values(self, num, eventlist):
         sql = "SELECT events.date, events.loc, event_code.class, event_code.type FROM events INNER JOIN event_code ON events.code = event_code.id INNER JOIN elephants ON events.elephant_id = elephants.id WHERE elephants.num=%s AND event_code.type IN %s ORDER BY events.date ASC;" % (num, eventlist)
-        print(sql)
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
@@ -660,5 +677,23 @@ class mysqlconnect:
         out = []
         for r in result:
             line = list(r)
+            out.append(line)
+        return(out)
+
+################################################################################
+## 'get_measured_elephants_list' function (used to make measure sets)         ##
+################################################################################
+
+    def get_measured_elephants_list(self):
+        sql = "SELECT DISTINCT(measures.elephant_id), elephants.num FROM measures INNER JOIN elephants ON measures.elephant_id = elephants.id ORDER BY elephants.num;"
+
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        for r in result:
+            line = r[1]
             out.append(line)
         return(out)

@@ -74,9 +74,11 @@ class dbconnect(tk.Frame):
         self.grid_rowconfigure(9, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(3, weight=1)
-        self.bind("<Return>", self.connect_to_db)
 
-    def connect_to_db(self):
+        self.master.focus_set()
+        self.master.bind("<Return>", self.connect_to_db)
+
+    def connect_to_db(self, *args):
         try:
             self.master.db = mysqlconnect(usr=self.e1.get(), pwd=self.e2.get(), host=self.e3.get(), db=self.e4.get(), port=self.e5.get())
             if self.details.get("1.0", tk.END) !='\n':

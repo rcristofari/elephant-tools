@@ -52,7 +52,11 @@ class findeleph(tk.Frame):
         self.result = tk.Text(self.master, height=15, width=45)
         self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
-    def call_get_elephant(self):
+        self.master.focus_set()
+        self.master.bind("<Return>", self.call_get_elephant)
+        self.master.bind("<space>", self.call_show_matriline)
+
+    def call_get_elephant(self, *args):
         self.result.config(state=tk.NORMAL)
         if self.back == 0:
             if self.age.get() == 1:
@@ -90,7 +94,7 @@ class findeleph(tk.Frame):
             self.result.update()
             self.result.config(state=tk.DISABLED)
 
-    def call_show_matriline(self):
+    def call_show_matriline(self, *args):
         self.master.newick = matriline_tree(id=self.eleph[0], db=self.master.db)
         show_matriline(self.master)
 
@@ -143,20 +147,23 @@ class show_matriline(tk.Frame):
         self.tree=tk.PhotoImage(file='./tree.png')
         self.treebox.image_create(tk.END, image=self.tree)
         self.treebox.grid(row=2, column = 1, columnspan=4)
-        self.backbutton = tk.Button(self.view_window, text='Close', width=20, command=self.view_window.destroy, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.backbutton = tk.Button(self.view_window, text='Close', width=20, command=self.close_tree, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.backbutton.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
         self.saveimgbutton = tk.Button(self.view_window, width=20, text='Save as Image', command=self.save_tree, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.saveimgbutton.grid(row=1, column=4, sticky=tk.EW, padx=5, pady=5)
         self.savenexbutton = tk.Button(self.view_window, text='Save as Nexus', width=20, command=self.save_newick, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.savenexbutton.grid(row=1, column=3, sticky=tk.EW, padx=5, pady=5)
 
+        self.view_window.focus_set()
+        self.view_window.bind("<Escape>", self.close_tree)
+
 
     def call_show_matriline(self):
         matriline_tree(id=self.eleph[0], db=self.master.db)
         show_matriline(self.master)
 
-    def back_to_find(self):
-        findeleph(self.master, back = 1)
+    def close_tree(self, *args):
+        self.view_window.destroy()
 
     def save_tree(self):
         treefile = asksaveasfilename(title='Save tree image...', initialdir=self.master.wdir, defaultextension='.png')

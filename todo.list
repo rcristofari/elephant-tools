@@ -1,3 +1,0 @@
-DataClasses:
-  pedigree.source:
-    Add a check for the gender of the parent when the relationship is already in the db
