@@ -288,9 +288,10 @@ class mysqlconnect:
 ################################################################################
 ## 'get_last_alive' function                                                  ##
 ################################################################################
+# Should include all event dates (apart from death)
 
     def get_last_alive(self, id):
-        sql = "SELECT MAX(date) FROM events WHERE id = %s AND type != 'death';" % (id)
+        sql = "SELECT MAX(date) FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND event_code.class != 'death';" % (id)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:

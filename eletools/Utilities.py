@@ -1,10 +1,11 @@
 import string
+from calendar import isleap
 
-# A simple function to double-quote strings for mysql queries:
+########## A function to double-quote strings for mysql queries:
 def quote(string):
     return("'"+str(string)+"'")
 
-# A function to break down 2-power flags into their individual components
+########## A function to break down 2-power flags into their individual components
 def break_flag(flag):
     try:
         flag = int(flag)
@@ -27,3 +28,14 @@ def break_flag(flag):
         n -= 1
     flags.sort()
     return(flags)
+
+########## A function to add years to a datetime object
+def add_years(d, years):
+    new_year = d.year + years
+    try:
+        return d.replace(year=new_year)
+    except ValueError:
+        if (d.month == 2 and d.day == 29 and # leap day
+            isleap(d.year) and not isleap(new_year)):
+            return d.replace(year=new_year, day=28)
+        raise

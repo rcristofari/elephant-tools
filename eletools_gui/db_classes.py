@@ -36,7 +36,6 @@ class dbconnect(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
-        print("State is ", self.master.db_state)
         self.save_config_radio = tk.IntVar()
         self.save_config_radio.set(0)
         self.userlabel = tk.Label(self.master, text="User:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0).grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
@@ -141,7 +140,7 @@ class dbconnect(tk.Frame):
 
     def read_parmfile(self):
         params = []
-        with open('./parmfile') as parmfile:
+        with open('./__resources/parmfile') as parmfile:
             for line in parmfile:
                 params.append(line.partition('=')[2].rstrip('\n'))
         self.master.params_usr = params[1]
@@ -154,7 +153,7 @@ class dbconnect(tk.Frame):
             self.master.wdir = '~'
 
     def save_config(self):
-        with open('./parmfile', 'w') as parmfile:
+        with open('./__resources/parmfile', 'w') as parmfile:
             parmfile.write("//connexion parameters"+'\n')
             parmfile.write("username="+self.e1.get()+'\n')
             parmfile.write("password="+self.e2.get()+'\n')

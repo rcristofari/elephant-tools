@@ -60,22 +60,23 @@ class MainApplication(tk.Frame):
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Set project folder", command=self.set_wdir)
         self.filemenu.add_separator()
-        self.filemenu.add_command(label="Quit", command=self.quit)
+        self.filemenu.add_command(label="Quit", command=self.shutdown, underline=0, accelerator="Ctrl+q")
         self.filemenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.menubar.add_cascade(label="File", menu=self.filemenu)
         self.master.menubar.entryconfig("File", state='disabled')
 
         self.searchmenu = tk.Menu(self.master.menubar, tearoff=0)
-        self.searchmenu.add_command(label="Find an elephant", command=self.gofindeleph)
-        self.searchmenu.add_command(label="Find a relationship", command=self.notimplemented)
-        self.searchmenu.add_command(label="Find an event", command=self.call_find_event)
-        self.searchmenu.add_command(label="Find a measure", command=self.call_find_measure)
+        self.searchmenu.add_command(label="Find an elephant", command=self.gofindeleph, underline=0, accelerator="^E")
+        self.searchmenu.add_command(label="Find a relationship", command=self.notimplemented, underline=0, accelerator="^P")
+        self.searchmenu.add_command(label="Find an event", command=self.call_find_event, underline=1, accelerator="^V")
+        self.searchmenu.add_command(label="Find a measure", command=self.call_find_measure, underline=0, accelerator="^M")
         self.searchmenu.add_separator()
-        self.searchmenu.add_command(label="Make a measure set", command=self.call_make_measure_set)
+        self.searchmenu.add_command(label="Make a measure Set", command=self.call_make_measure_set, underline=15, accelerator="^S")
         self.searchmenu.add_command(label="Make a time series", command=self.notimplemented)
         self.searchmenu.add_command(label="Make a log book", command=self.notimplemented)
         self.searchmenu.add_separator()
-        self.searchmenu.add_command(label="Control birth gaps", command=self.call_age_gaps)
+        self.searchmenu.add_command(label="Control birth Gaps", command=self.call_age_gaps, underline=14, accelerator="^G")
+        self.searchmenu.add_command(label="Censoring date", command=self.call_censor_date, underline=0, accelerator="^C")
         self.searchmenu.add_command(label="Advanced search", command=self.notimplemented)
         self.searchmenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.menubar.add_cascade(label="Search", menu=self.searchmenu)
@@ -104,6 +105,22 @@ class MainApplication(tk.Frame):
         self.master.menubar.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.master.config(menu=self.master.menubar)
 
+        self.master.focus_set()
+        self.master.bind_all("<Control-q>", self.shutdown)
+        self.master.bind_all("<Shift-E>", self.gofindeleph)
+        self.master.bind_all("<Shift-V>", self.call_find_event)
+        self.master.bind_all("<Shift-M>", self.call_find_measure)
+        self.master.bind_all("<Shift-S>", self.call_make_measure_set)
+        self.master.bind_all("<Shift-G>", self.call_age_gaps)
+        self.master.bind_all("<Shift-C>", self.call_censor_date)
+
+    def shutdown(self, *args):
+        try:
+            os.remove('./tree.png')
+        except OSError:
+            pass
+        self.quit()
+
     def goconnect(self):
         dbconnect(self.master)
 
@@ -113,12 +130,15 @@ class MainApplication(tk.Frame):
     def read_pedigree_prompt(self):
         read_pedigree_file(self.master)
 
-    def call_age_gaps(self):
+    def call_age_gaps(self, *args):
         age_gaps(self.master)
+
+    def call_censor_date(self, *args):
+        censor_date(self.master)
 
     def set_wdir(self):
         self.master.wdir = askdirectory(initialdir=self.master.wdir, title='Choose a project folder...')
-        with open('./parmfile', 'w') as parmfile:
+        with open('./__resources/parmfile', 'w') as parmfile:
             parmfile.write("//connexion parameters"+'\n')
             parmfile.write("username="+self.master.params_usr+'\n')
             parmfile.write("password="+self.master.params_pwd+'\n')
@@ -127,16 +147,16 @@ class MainApplication(tk.Frame):
             parmfile.write("port="+self.master.params_port+'\n')
             parmfile.write("wdir="+self.master.wdir+'\n')
 
-    def gofindeleph(self):
+    def gofindeleph(self, *args):
         findeleph(self.master, back = 0)
 
-    def call_find_measure(self):
+    def call_find_measure(self, *args):
         find_measure(self.master)
 
-    def call_find_event(self):
+    def call_find_event(self, *args):
         find_event(self.master)
 
-    def call_make_measure_set(self):
+    def call_make_measure_set(self, *args):
         make_measure_set(self.master)
 
     def call_add_elephants(self):

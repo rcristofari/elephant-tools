@@ -5,6 +5,7 @@ import tkinter.ttk as ttk
 from PIL import Image
 import os
 import re
+import csv
 from datetime import datetime
 from eletools import *
 
@@ -36,7 +37,7 @@ class findeleph(tk.Frame):
 
     def create_widgets(self):
 
-        self.numlabel = tk.Label(self.master, text="Number:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.numlabel = tk.Label(self.master, text="Number:\t", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=0, pady=5)
@@ -173,7 +174,6 @@ class show_matriline(tk.Frame):
         nexusfile = asksaveasfilename(title='Save tree definition...', initialdir=self.master.wdir, defaultextension='.nex')
         nexus_tree(self.master.newick, nexusfile)
 
-
 ################################################################################
 ## Control age gaps between births                                            ##
 ################################################################################
@@ -232,7 +232,6 @@ class age_gaps(tk.Frame):
             elif r[4]==1:
                 self.tv.insert('','end',text=str(i+1), values=r[0:4], tags = ('conflict',))
         self.tv.tag_configure('conflict', background='#A30B37')
-
 
 ################################################################################
 ## Search for measures on an elephant                                         ##
@@ -403,7 +402,7 @@ class find_measure(tk.Frame):
                 f.write('\n')
 
 ################################################################################
-## Search for events on an elephant                                         ##
+## Search for events on an elephant                                           ##
 ################################################################################
 
 class find_event(tk.Frame):
@@ -737,3 +736,120 @@ class find_event(tk.Frame):
                 f.write(str(x[2]+','))
                 f.write(str(x[3]))
                 f.write('\n')
+
+################################################################################
+## Assess whether an elephant is alive or not now                             ##
+################################################################################
+
+class censor_date(tk.Frame):
+
+    def __init__(self, master):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.age = tk.IntVar()
+        self.age.set(1)
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+            widget.grid_forget()
+
+    def create_widgets(self):
+        self.load_survival()
+        self.numlabel = tk.Label(self.master, text="Number:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
+        self.e1 = tk.Entry(self.master)
+        self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=15, pady=5)
+        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
+        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
+        self.cutofflabel = tk.Label(self.master, text="P cut-off:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.cutofflabel.grid(row=3, column=1, sticky = tk.W, padx=0, pady=5)
+        self.e2 = tk.Entry(self.master, width=8)
+        self.e2.insert(10, 0.05)
+        self.e2.grid(row=3, column=2, columnspan=1, sticky = tk.EW, padx=15, pady=5)
+        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_censor_date, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.findbutton.grid(row=3, column=3, sticky=tk.EW, padx=0, pady=5)
+        self.result = tk.Text(self.master, height=15, width=45)
+        self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+        self.master.focus_set()
+        self.master.bind("<Return>", self.call_censor_date)
+
+    def load_survival(self):
+        self.__Sx = []
+        categories = ['SxFC','SxMC','SxFW','SxMW']
+        self.__descript = ['captive female','captive male','wild female','wild male']
+        with open('./__resources/Sx_curves') as sxfile:
+            sx = csv.reader(sxfile, delimiter = ',')
+            for s in sx:
+                self.__Sx.append(list(s))
+        for i,s in enumerate(self.__Sx):
+            if s[0] == categories[i]:
+                s.pop(0)
+                for j,x in enumerate(s):
+                    s[j] = float(x)
+        self.__SxFC = self.__Sx[0]
+        self.__SxMC = self.__Sx[1]
+        self.__SxFW = self.__Sx[2]
+        self.__SxMW = self.__Sx[3]
+
+
+    def call_censor_date(self, *args):
+        self.result.config(state=tk.NORMAL)
+        self.__id = None
+        self.__sex = None
+        self.__cw = None
+        self.__eleph = None
+        self.__cutoff = float(self.e2.get())
+        try:
+            if self.age.get() == 1:
+                self.__eleph = self.master.db.get_elephant(num = self.e1.get())
+            elif self.age.get() == 2:
+                self.__eleph = self.master.db.get_elephant(calf_num = self.e1.get())
+            else:
+                self.result.delete(1.0,tk.END)
+                self.result_text = ("This elephant does not exist in the database")
+                self.result.insert(tk.END, self.result_text)
+                self.result.config(state=tk.DISABLED)
+        except:
+            print("Impossible to connect to the database.")
+
+        if self.__eleph is not None:
+            self.__id = self.__eleph[0]
+            self.__sex = self.__eleph[4]
+            self.__cw = self.__eleph[6]
+
+        if self.__sex == 'F' and (self.__cw == 'captive'):
+            self.__survival = self.__SxFC
+            descript = self.__descript[0]
+        elif self.__sex == 'F' and (self.__cw == 'wild'):
+            self.__survival = self.__SxFW
+            descript = self.__descript[2]
+        elif self.__sex == 'F' and (self.__cw == 'UKN'):
+            self.__survival = self.__SxFC # Need a special curve here
+            descript = self.__descript[0]
+        elif self.__sex == 'M' and (self.__cw == 'captive'):
+            self.__survival = self.__SxMC
+            descript = self.__descript[1]
+        elif self.__sex == 'M' and (self.__cw == 'wild'):
+            self.__survival = self.__SxMW
+            descript = self.__descript[3]
+        elif self.__sex == 'M' and (self.__cw == 'UKN'):
+            self.__survival = self.__SxFC # Need a special curve here
+            descript = self.__descript[1]
+        else:
+            self.__survival = self.__SxMC # Need a "common" Sx model here instead
+            descript = self.__descript[1]
+
+        out = censor_elephant(self.master.db, self.__id, survival=self.__survival, cutoff=self.__cutoff)
+        self.result.delete(1.0,tk.END)
+        self.result.insert(tk.END, "Selected model: "+descript+'\n')
+        self.result.insert(tk.END, out)
+        self.result.config(state=tk.DISABLED)

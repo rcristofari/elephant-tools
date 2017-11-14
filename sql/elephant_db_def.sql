@@ -13,6 +13,12 @@ research ENUM('Y','N') NOT NULL DEFAULT 'N',
 commits TEXT
 );
 
+CREATE TABLE remarks (
+id INT(12) NOT NULL primary key auto_increment,
+elephant_id INT(10) NOT NULL,
+remark TEXT
+);
+
 CREATE TABLE events (
 id INT(12) NOT NULL primary key auto_increment,
 elephant_id INT(10) NOT NULL,
@@ -24,7 +30,7 @@ commits TEXT
 
 CREATE TABLE event_code (
 id INT(4) NOT NULL primary key auto_increment,
-class ENUM('capture','accident','disease','death','alive') NOT NULL,
+class ENUM('capture','accident','health','death','alive','metadata','') NOT NULL,
 type VARCHAR(12) NOT NULL UNIQUE,
 descript TEXT,
 commits TEXT
@@ -66,6 +72,7 @@ details TEXT
 );
 
 ALTER TABLE `elephants` ENGINE = InnoDB ;
+ALTER TABLE `remarks` ENGINE = InnoDB ;
 ALTER TABLE `events` ENGINE = InnoDB ;
 ALTER TABLE `event_code` ENGINE = InnoDB ;
 ALTER TABLE `pedigree` ENGINE = InnoDB ;
@@ -73,12 +80,14 @@ ALTER TABLE `measures` ENGINE = InnoDB ;
 ALTER TABLE `measure_code` ENGINE = InnoDB ;
 
 ALTER TABLE `events` ADD INDEX (`elephant_id`);
+ALTER TABLE `remarks` ADD INDEX (`elephant_id`);
 ALTER TABLE `events` ADD INDEX (`code`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_1_id`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_2_id`);
 ALTER TABLE `measures` ADD INDEX (`elephant_id`);
 ALTER TABLE `measures` ADD INDEX (`measure`);
 
+ALTER TABLE `remarks` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `events` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `events` ADD FOREIGN KEY (`code`) REFERENCES `event_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_1_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
