@@ -80,17 +80,19 @@ class findeleph(tk.Frame):
             now = datetime.now().date()
             age = round(((now - born).days / 365.25))
             self.result.delete(1.0,tk.END)
-            self.result_text = ("\nIndex:\t\t"+str(self.eleph[0])
-                +"\nNumber:\t\t"+str(self.eleph[1])
-                +"\nName:\t\t"+str(self.eleph[2])
-                +"\nCalf number:\t\t"+str(self.eleph[3])
-                +"\nSex:\t\t"+str(self.eleph[4])
-                +"\nBirth date:\t\t"+str(self.eleph[5])+" ("+str(age)+" y.b.p.)"
-                +"\nOrigin:\t\t"+str(self.eleph[6])
-                +"\nAge at capture:\t"+str(self.eleph[7])
-                +"\nCamp:\t\t"+str(self.eleph[8])
-                +"\nAlive:\t\t"+str(self.eleph[9])
-                +"\nResearch:\t\t"+str(self.eleph[10]))
+            self.result_text = ("\n Index:\t\t"+str(self.eleph[0])
+                +"\n--------------------------------------------------"
+                +"\n Number:\t\t"+str(self.eleph[1])
+                +"\n Name:\t\t"+str(self.eleph[2])
+                +"\n Calf number:\t\t"+str(self.eleph[3])
+                +"\n Sex:\t\t"+str(self.eleph[4])
+                +"\n Birth date:\t\t"+str(self.eleph[5])+" ("+str(age)+" y.b.p.)"
+                +"\n Origin:\t\t"+str(self.eleph[6])
+                +"\n Age at capture:\t"+str(self.eleph[7])
+                +"\n Camp:\t\t"+str(self.eleph[8])
+                +"\n Alive:\t\t"+str(self.eleph[9])
+                +"\n--------------------------------------------------"
+                +"\n Research:\t\t"+str(self.eleph[10]))
             self.result.insert(tk.END, self.result_text)
             self.result.update()
             self.result.config(state=tk.DISABLED)
@@ -765,7 +767,7 @@ class censor_date(tk.Frame):
         self.numlabel = tk.Label(self.master, text="Number:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
-        self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=15, pady=5)
+        self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=5, pady=5)
         self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
         self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
@@ -774,11 +776,11 @@ class censor_date(tk.Frame):
         self.cutofflabel.grid(row=3, column=1, sticky = tk.W, padx=0, pady=5)
         self.e2 = tk.Entry(self.master, width=8)
         self.e2.insert(10, 0.05)
-        self.e2.grid(row=3, column=2, columnspan=1, sticky = tk.EW, padx=15, pady=5)
+        self.e2.grid(row=3, column=2, columnspan=1, sticky = tk.EW, padx=5, pady=5)
         self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_censor_date, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.findbutton.grid(row=3, column=3, sticky=tk.EW, padx=0, pady=5)
-        self.result = tk.Text(self.master, height=15, width=45)
-        self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+        self.findbutton.grid(row=3, column=3, sticky=tk.EW, padx=5, pady=5)
+        self.result = tk.Text(self.master, height=9, width=47)
+        self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
         self.master.focus_set()
         self.master.bind("<Return>", self.call_censor_date)
 
@@ -848,8 +850,32 @@ class censor_date(tk.Frame):
             self.__survival = self.__SxMC # Need a "common" Sx model here instead
             descript = self.__descript[1]
 
-        out = censor_elephant(self.master.db, self.__id, survival=self.__survival, cutoff=self.__cutoff)
-        self.result.delete(1.0,tk.END)
-        self.result.insert(tk.END, "Selected model: "+descript+'\n')
-        self.result.insert(tk.END, out)
-        self.result.config(state=tk.DISABLED)
+        censor = censor_elephant(db=self.master.db, id=self.__id, survival=self.__survival, cutoff=self.__cutoff)
+
+        if censor is not None:
+            if censor[0] == 0: # The elephant has no known death date
+                out = ( "-----------------------------------------------"+
+                    "\n Birth date: "+censor[1].strftime('%Y-%m-%d')+
+                    "\n Last seen on: "+censor[2].strftime('%Y-%m-%d')+
+                    "\n Expected final bow: "+censor[3].strftime('%Y')+" (at "+str(censor[4])+" years)"+
+                    "\n-----------------------------------------------")
+
+                if censor[5] > self.__cutoff:
+                    verdict = ("\n Probability that it is alive today: "+str(round(censor[5],3)))
+                else:
+                    verdict = ("\n This elephant is certainly quite dead by now.")
+                self.result.delete(1.0,tk.END)
+                self.result.insert(tk.END, "\n Selected model: "+descript+'\n')
+                self.result.insert(tk.END, out)
+                self.result.insert(tk.END, verdict)
+                self.result.config(state=tk.DISABLED)
+
+            elif censor[0] == 1: # The elephant has a known death date
+                out = ("\n This elephant is quite dead."+
+                    "\n-----------------------------------------------"+
+                    "\n Birth date: "+censor[1].strftime('%Y-%m-%d')+
+                    "\n Final bow: "+censor[2].strftime('%Y-%m-%d')+" (at "+str(int((censor[2]-censor[1]).days//362.25))+" years)"+
+                    "\n-----------------------------------------------")
+                self.result.delete(1.0,tk.END)
+                self.result.insert(tk.END, out)
+                self.result.config(state=tk.DISABLED)

@@ -279,7 +279,7 @@ class mysqlconnect:
 ################################################################################
 
     def get_date_of_death(self, id):
-        sql = "SELECT date FROM events WHERE elephant_id = %s AND type = 'death';" % (id)
+        sql = "SELECT date FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND event_code.class = 'death';" % (id)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:

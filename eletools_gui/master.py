@@ -53,12 +53,12 @@ class MainApplication(tk.Frame):
         self.master.menubar = tk.Menu(self)
 
         self.filemenu = tk.Menu(self.master.menubar, tearoff=0)
-        self.filemenu.add_command(label="Import elephants", command=self.read_elephants_prompt)
-        self.filemenu.add_command(label="Import pedigrees", command=self.read_pedigree_prompt)
-        self.filemenu.add_command(label="Import events", command=self.notimplemented)
-        self.filemenu.add_command(label="Import measures", command=self.notimplemented)
+        self.filemenu.add_command(label="Import elephants", command=self.call_read_elephants, underline=7, accelerator="Ctrl+e")
+        self.filemenu.add_command(label="Import pedigrees", command=self.call_read_pedigree, underline=7, accelerator="Ctrl+p")
+        self.filemenu.add_command(label="Import events", command=self.call_read_events, underline=8, accelerator="Ctrl+v")
+        self.filemenu.add_command(label="Import measures", command=self.notimplemented, underline=7, accelerator="Ctrl+m")
         self.filemenu.add_separator()
-        self.filemenu.add_command(label="Set project folder", command=self.set_wdir)
+        self.filemenu.add_command(label="Set project folder", command=self.set_wdir, underline=12, accelerator="Ctrl+f")
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Quit", command=self.shutdown, underline=0, accelerator="Ctrl+q")
         self.filemenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
@@ -66,7 +66,7 @@ class MainApplication(tk.Frame):
         self.master.menubar.entryconfig("File", state='disabled')
 
         self.searchmenu = tk.Menu(self.master.menubar, tearoff=0)
-        self.searchmenu.add_command(label="Find an elephant", command=self.gofindeleph, underline=0, accelerator="^E")
+        self.searchmenu.add_command(label="Find an elephant", command=self.call_find_elephant, underline=0, accelerator="^E")
         self.searchmenu.add_command(label="Find a relationship", command=self.notimplemented, underline=0, accelerator="^P")
         self.searchmenu.add_command(label="Find an event", command=self.call_find_event, underline=1, accelerator="^V")
         self.searchmenu.add_command(label="Find a measure", command=self.call_find_measure, underline=0, accelerator="^M")
@@ -106,37 +106,39 @@ class MainApplication(tk.Frame):
         self.master.config(menu=self.master.menubar)
 
         self.master.focus_set()
+
         self.master.bind_all("<Control-q>", self.shutdown)
-        self.master.bind_all("<Shift-E>", self.gofindeleph)
+        self.master.bind_all("<Control-e>", self.call_read_elephants)
+        self.master.bind_all("<Control-p>", self.call_read_pedigree)
+        self.master.bind_all("<Control-v>", self.call_read_events)
+        self.master.bind_all("<Control-f>", self.set_wdir)
+
+        self.master.bind_all("<Shift-E>", self.call_find_elephant)
         self.master.bind_all("<Shift-V>", self.call_find_event)
         self.master.bind_all("<Shift-M>", self.call_find_measure)
         self.master.bind_all("<Shift-S>", self.call_make_measure_set)
         self.master.bind_all("<Shift-G>", self.call_age_gaps)
         self.master.bind_all("<Shift-C>", self.call_censor_date)
 
-    def shutdown(self, *args):
-        try:
-            os.remove('./tree.png')
-        except OSError:
-            pass
-        self.quit()
+###################################################
 
     def goconnect(self):
         dbconnect(self.master)
 
-    def read_elephants_prompt(self):
+###################################################
+
+    def call_read_elephants(self, *args):
         read_elephant_file(self.master)
 
-    def read_pedigree_prompt(self):
+    def call_read_pedigree(self, *args):
         read_pedigree_file(self.master)
 
-    def call_age_gaps(self, *args):
-        age_gaps(self.master)
+    def call_read_events(self, *args):
+        read_event_file(self.master)
 
-    def call_censor_date(self, *args):
-        censor_date(self.master)
+###################################################
 
-    def set_wdir(self):
+    def set_wdir(self, *args):
         self.master.wdir = askdirectory(initialdir=self.master.wdir, title='Choose a project folder...')
         with open('./__resources/parmfile', 'w') as parmfile:
             parmfile.write("//connexion parameters"+'\n')
@@ -147,7 +149,17 @@ class MainApplication(tk.Frame):
             parmfile.write("port="+self.master.params_port+'\n')
             parmfile.write("wdir="+self.master.wdir+'\n')
 
-    def gofindeleph(self, *args):
+
+    def shutdown(self, *args):
+        try:
+            os.remove('./tree.png')
+        except OSError:
+            pass
+        self.quit()
+
+###################################################
+
+    def call_find_elephant(self, *args):
         findeleph(self.master, back = 0)
 
     def call_find_measure(self, *args):
@@ -156,8 +168,20 @@ class MainApplication(tk.Frame):
     def call_find_event(self, *args):
         find_event(self.master)
 
+###################################################
+
     def call_make_measure_set(self, *args):
         make_measure_set(self.master)
+
+###################################################
+
+    def call_age_gaps(self, *args):
+        age_gaps(self.master)
+
+    def call_censor_date(self, *args):
+        censor_date(self.master)
+
+###################################################
 
     def call_add_elephants(self):
         add_elephants(self.master)

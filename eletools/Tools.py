@@ -147,6 +147,8 @@ def nexus_tree(newick, file):
 # Could be extended to include more cues
 
 def censor_elephant(db, id, survival=None, cutoff=0.05):
+    key = 0 # this means that we have no positive info so far about this elephant being dead
+    death = None
 
     # Get the birth date
     try:
@@ -154,87 +156,59 @@ def censor_elephant(db, id, survival=None, cutoff=0.05):
     except:
         print("Impossible to find that elephant in the database")
 
-    # Start by getting the last date we have data about that elephant
-    by_event = None
-    by_breeding = None
+    # Do we know a death date for this elephant ?
+    death = db.get_date_of_death(id = id)
+    if death is not None:
+        key = 1
 
-    by_event = db.get_last_alive(id)
-    by_breeding = db.get_last_breeding(id)
+    else:
+        # Start by getting the last date we have data about that elephant
+        by_event = None
+        by_breeding = None
+        by_event = db.get_last_alive(id)
+        by_breeding = db.get_last_breeding(id)
 
-    if by_event and by_breeding:
-        if by_event < by_breeding:
+        if by_event and by_breeding:
+            if by_event < by_breeding:
+                last_seen = by_breeding
+            else:
+                last_seen = by_event
+        elif by_event:
+            last_seen = by_event
+        elif by_breeding:
             last_seen = by_breeding
         else:
-            last_seen = by_event
-    elif by_event:
-        last_seen = by_event
-    elif by_breeding:
-        last_seen = by_breeding
-    else:
-        last_seen = birth
+            last_seen = birth
 
-    ## THIS IS IN THE "SUM" CASE    # If we provide no survival curve, we assume a completely unrealistic flat probability
-    # suddendly truncated at 100 years old. With a cutoff of 5%, this makes elephants live to 95.
-    # if survival is None:
-    #     survival = []
-    #     for s in range(100):
-    #         survival.append(1/100)
-    #     survival.append(0)
-    ##
+        # identify the maximum age in the curve (when survival falls to 0)
+        for i,s in enumerate(survival):
+            if s == 0:
+                break
+        max_age = i
+        age_last_seen = int((last_seen - birth).days // 365.25)
 
-    # identify the maximum age in the curve (when survival falls to 0)
-    for i,s in enumerate(survival):
-        if s == 0:
-            break
-    max_age = i
+        p, i = 1, age_last_seen # probability of being alive when last seen is 1
+        while p > cutoff:
+            p *= survival[i]
+            i += 1
+            # now, i is the age you should hope to reach
 
-    age_last_seen = int((last_seen - birth).days // 365.25)
+        age_now = int((datetime.now().date() - birth).days // 365.25)
+        if age_now >= max_age:
+            p_alive_now = 0
+        else:
+            p_alive_now = 1
+            for a in range(age_last_seen, age_now+1):
+                p_alive_now *= survival[a]
 
-    ## THIS IS IN THE "SUM" CASE
-    # p_forward = survival[age_last_seen+1:] # starting the next year (we assume you survive the year you're already engaged in)
-    # p_sum = sum(p_forward)
-    # scaling_given_seen = 1 / p_sum
-    # p_given_seen = []
-    # for p in p_forward:
-    #     p_given_seen.append(p * scaling_given_seen)
-    # p_given_seen is the probability of dying each year starting from the last_seen date.
-    # i = 0
-    # while sum(p_given_seen[i:]) > cutoff: # if i stays at zero, you should in fact die this year. Sorry.
-    #     i += 1
-    # now, i is the number of years you should survive from last_seen onwards.
-    ##
+        # print("\nBirth date: ", birth.strftime('%Y-%m-%d'),
+        #     "\nLast seen on:", last_seen.strftime('%Y-%m-%d'),
+        #     "\nExpected death year:", add_years(birth, i).strftime('%Y'), "(at", i, "years)"
+        #     "\nProbability that it is alive today:", round(p_alive_now,3))
 
-    ## IN THE Sx CASE:
-    p, i = 1, age_last_seen # probability of being alive when last seen is 1
-    while p > cutoff:
-        p *= survival[i]
-        i += 1
-    # print(i,p)
-        # now, i is the age you should hope to reach
+    if key == 0:
+        out = (key, birth, last_seen, add_years(birth, i), i, p_alive_now)
+    elif key == 1:
+        out = (key, birth, death)
 
-    age_now = int((datetime.now().date() - birth).days // 365.25)
-    if age_now >= max_age:
-        p_alive_now = 0
-
-    else:
-        p_alive_now = 1
-        for a in range(age_last_seen, age_now+1):
-            p_alive_now *= survival[a]
-
-        ## THIS IS IN THE "SUM" CASE
-        # p_alive_now is the probability that the elephant is still alive at the time of request:
-        # years_since_last_seen = int((datetime.now().date() - last_seen).days // 365.25)
-        # by definition, if the difference is zero, probability is 1 (full sum of p_forward)
-        # p_alive_now = round(sum(p_forward[years_since_last_seen:]),2)
-        ##
-
-    print("\nBirth date: ", birth.strftime('%Y-%m-%d'),
-        "\nLast seen on:", last_seen.strftime('%Y-%m-%d'),
-        "\nExpected death year:", add_years(birth, i).strftime('%Y'), "(at", i, "years)"
-        "\nProbability that it is alive today:", round(p_alive_now,3))
-
-    out = ("\nBirth date: "+birth.strftime('%Y-%m-%d')+
-            "\nLast seen on: "+last_seen.strftime('%Y-%m-%d')+
-            "\nExpected final bow: "+add_years(birth, i).strftime('%Y')+" (at "+str(i)+" years)"
-            "\nProbability that it is alive today: "+str(round(p_alive_now,3)))
     return(out)

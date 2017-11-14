@@ -1,0 +1,4 @@
+elephant_1_id,elephant_2_id,rel,coef
+1111,2222,mother,0.5
+3333,2222,father,
+4444,5555,offspring,
