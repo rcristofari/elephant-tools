@@ -82,7 +82,7 @@ class elephant: ##MAKE A __repr__ function !!
         self.alive=alive
         self.research=research
 
-# Prefixed parameters describe database content. They are private and are not modified (declared here for reference only)
+        # Prefixed parameters describe database content. They are private and are not modified (declared here for reference only)
         self.__db_id = None
         self.__db_num = None
         self.__db_calf_num = None
@@ -96,13 +96,14 @@ class elephant: ##MAKE A __repr__ function !!
         self.__db_research = None
         self.__db_commits = None
 
-# These variables pass the state of each operation to the next
+        # These variables pass the state of each operation to the next
         self.__sourced=0
         self.__checked=0
         self.status=None #Result of the check() function
         self.statement=None #SQL statement issued by the write() function
         self.__toggle_write_flag=0
-# __x variables describe state of the comparison db/input
+
+        # __x variables describe state of the comparison db/input
         self.__xnum=0
         self.__xcalf_num=0
         self.__xname=0
@@ -114,7 +115,22 @@ class elephant: ##MAKE A __repr__ function !!
         self.__xalive=0
         self.__xresearch=0
 
-# Getter function for some private variables that could be useful in scripting
+        # A list to gather warnings for each line:
+        self.warnings = []
+        self.in_db = ("Index:\t\t-"
+            +"\n-----------------------------------------"
+            +"\nNumber:\t\t-"
+            +"\nName:\t\t-"
+            +"\nCalf number:\t\t-"
+            +"\nSex:\t\t-"
+            +"\nBirth date:\t\t-"
+            +"\nAge at capture:\t-"
+            +"\nCamp:\t\t-"
+            +"\nAlive:\t\t-"
+            +"\n-----------------------------------------"
+            +"\nResearch:\t\t-")
+        self.in_input = ''
+        # Getter function for some private variables that could be useful in scripting
     def get_num(self):
         return(self.__num)
     def get_solved(self):
@@ -122,21 +138,22 @@ class elephant: ##MAKE A __repr__ function !!
     def set_solved(solved):
         self.__solved=solved
 
-################################################################################
-## 'source' function reads the elephant from the database if it exists        ##
-################################################################################
+    ################################################################################
+    ## 'source' function reads the elephant from the database if it exists        ##
+    ################################################################################
 
     def source(self,db):
-
-        print("#########################################################")
 
         self.__db=db #db is a database connection object of class elephant.mysqlconnect()
         self.__sourced = 0
 
         if self.__num is not None:
             results = self.__db.get_elephant(num=self.__num)
+            if results is None and self.calf_num is not None:
+                results = self.__db.get_elephant(calf_num=self.__calf_num)
         elif self.__num is None and self.calf_num is not None:
             results = self.__db.get_elephant(calf_num=self.calf_num)
+
         else:
             results = None
             print("You need either an elephant number or a calf number to proceed")
@@ -166,18 +183,29 @@ class elephant: ##MAKE A __repr__ function !!
             self.__db_research = results[10]
             self.__db_commits = results[11]
 
-            print ("\nThis elephant is present in the database as:\nIndex:\t\t", self.__db_id, "\nNumber:\t\t", self.__db_num, "\nName:\t\t",  self.__db_name,
-                   "\nCalf number:\t", self.__db_calf_num, "\nSex:\t\t",  self.__db_sex, "\nBirth date:\t",  self.__db_birth, ", ",  self.__db_cw,
-                   "\nAge at capture:\t",  self.__db_caught, "\nCamp:\t\t", self.__db_camp,"\nAlive:\t\t", self.__db_alive,"\nResearch:\t", self.__db_research, sep='')
+            self.in_db = ("Index:\t\t"+str(self.__db_id)
+                    +"\n-----------------------------------------"
+                    +"\nNumber:\t\t"+str(self.__db_num)
+                    +"\nName:\t\t"+str(self.__db_name)
+                    +"\nCalf number:\t\t"+str(self.__db_calf_num)
+                    +"\nSex:\t\t"+str(self.__db_sex)
+                    +"\nBirth date:\t\t"+str(self.__db_birth)+", "+str(self.__db_cw)
+                    +"\nAge at capture:\t"+str(self.__db_caught)
+                    +"\nCamp:\t\t"+str(self.__db_camp)
+                    +"\nAlive:\t\t"+str(self.__db_alive)
+                    +"\n-----------------------------------------"
+                    +"\nResearch:\t\t"+str(self.__db_research))
+
+            print("\nThis elephant is present in the database as:\n", self.in_db, sep='')
 
             return(self.__db_id, self.__db_num, self.__db_name, self.__db_sex, self.__db_birth, self.__db_cw, self.__db_caught, self.__db_camp, self.__db_alive, self.__db_commits)
 
-################################################################################
-## 'check' function, checks consistency between database and new data         ##
-################################################################################
+    ################################################################################
+    ## 'check' function, checks consistency between database and new data         ##
+    ################################################################################
 
-# Outcome code for __x variables: 0= conflict, 1 = matching, 2 = update database,
-# 3 = still missing, 4 = already in database, no input.
+    # Outcome code for __x variables: 0= conflict, 1 = matching, 2 = update database,
+    # 3 = still missing, 4 = already in database, no input.
 
     def check(self):
         if self.__sourced == 0:
@@ -185,287 +213,327 @@ class elephant: ##MAKE A __repr__ function !!
             print("\nCheck: You must source this elephant first using elephant.source().")
         elif self.__sourced == 2:
             print("This elephant is not in the database, you can proceed to write() directly.")
+            self.in_input = ("\n-----------------------------------------"
+            +"\nNumber:\t\t"+str(self.__num)
+            +"\nName:\t\t"+str(self.name)
+            +"\nCalf number:\t\t"+str(self.calf_num)
+            +"\nSex:\t\t"+str(self.sex)
+            +"\nBirth date:\t\t"+str(self.birth)+", "+str(self.cw)
+            +"\nAge at capture:\t"+str(self.caught)
+            +"\nCamp:\t\t"+str(self.camp)
+            +"\nAlive:\t\t"+str(self.alive)
+            +"\n-----------------------------------------"
+            +"\nResearch:\t\t"+str(self.research))
+
         elif self.__sourced == 1:
             print("\nCONSISTENCY CHECK:")
-            print ("This elephant is specified here as:\nNumber:\t\t", self.__num, "\nName:\t\t",  self.name,
-            "\nCalf number:\t", self.calf_num, "\nSex:\t\t",  self.sex, "\nBirth date:\t",  self.birth, ", ",  self.cw,
-              "\nAge at capture:\t",  self.caught, "\nCamp:\t\t", self.camp,"\nAlive:\t\t", self.alive, "\nResearch:\t", self.research, sep='')
+            self.in_input = ("\n-----------------------------------------"
+            +"\nNumber:\t\t"+str(self.__num)
+            +"\nName:\t\t"+str(self.name)
+            +"\nCalf number:\t\t"+str(self.calf_num)
+            +"\nSex:\t\t"+str(self.sex)
+            +"\nBirth date:\t\t"+str(self.birth)+", "+str(self.cw)
+            +"\nAge at capture:\t"+str(self.caught)
+            +"\nCamp:\t\t"+str(self.camp)
+            +"\nAlive:\t\t"+str(self.alive)
+            +"\n-----------------------------------------"
+            +"\nResearch:\t\t"+str(self.research))
 
-            print("\nOperations for elephant number ", self.__num, ":", sep='')
+            print("This elephant is specified here as:\n", self.in_input, sep='')
+            # print("\nOperations for elephant number ", self.__num, ":", sep='')
 
-############ Num and calf_num checked together (inter-dependent)
+    ############ Num and calf_num checked together (inter-dependent)
+            numwarning = None
             if self.__num is not None and self.__num == self.__db_num:
                 self.__xnum = 1
-                print("Numbers match.")
+                numwarning = ("Numbers match")
                 if self.__db_calf_num == self.calf_num and self.calf_num is not None:
                     self.__xcalf_num = 1
-                    print("Calf numbers match")
+                    numwarning = ("Calf numbers match")
                 elif self.calf_num is not None and self.__db_calf_num is None:
                     self.__xcalf_num = 2
-                    print("Calf number was still unknown, updating database.")
+                    numwarning = ("Calf number was still unknown, updating database.")
                 elif self.__db_calf_num is None and self.calf_num is None:
                     self.__xcalf_num = 3
-                    print("Calf number is still missing.")
+                    numwarning = ("Calf number is still missing.")
                 elif self.__db_calf_num is not None and self.calf_num is None:
                     self.__xcalf_num = 4
-                    print("Calf number entered as", self.__db_calf_num, "in the database, no change.")
+                    numwarning = ("Calf number entered as"+str(self.__db_calf_num)+"in the database, no change.")
                 elif self.__db_calf_num is not None and self.calf_num is not None and self.calf_num != self.__db_calf_num:
                     self.__xcalf_num = 0
-                    print("Calf numbers are conflicting. You need to solve that manually.")
+                    numwarning = ("> Calf numbers are conflicting. You need to solve that manually.")
             elif self.__num is None and self.__db_num is None:
                 if self.calf_num is not None and self.calf_num == self.__db_calf_num:
                     self.__xnum = 3
                     self.__xcalf_num = 1
-                    print("No adult number, but calf numbers match.")
+                    numwarning = ("No adult number, but calf numbers match.")
                 elif self.calf_num is not None and self.__db_calf_num is None: #this should not be possible in the present version.
                     self.__xnum = 3
                     self.__xcalf_num = 2
-                    print("Calf number unknown so far, updating database.")
+                    numwarning = ("Calf number unknown so far, updating database.")
                 elif self.calf_num is None and self.__db_calf_num is not None: #this should not be possible in the present version.
                     self.__xnum = 3
                     self.__xcalf_num = 4
-                    print("Calf number entered as", self.__db_calf_num, "in the database, no change.")
+                    numwarning = ("Calf number entered as"+str(self.__db_calf_num)+"in the database, no change.")
                 elif self.calf_num is not None and self.calf_num != self.__db_calf_num:
                     self.__xnum = 3
                     self.__xcalf_num = 0
-                    print("Calf numbers do not match (", self.calf_num, " here, ", self.__db_calf_num, " in the db)", sep="")
+                    numwarning = ("> Calf numbers do not match ("+str(self.calf_num)+" here, "+str(self.__db_calf_num)+" in the db)")
                 elif self.calf_num is None and self.__db_calf_num is None: #this should not be possible in the present version.
                     self.__xnum = 0
                     self.__xcalf_num = 0
-                    print("You need at least an adult or a calf number.")
+                    numwarning = ("> You need at least an adult or a calf number.")
             elif self.__num is not None and str(self.__num) != str(self.__db_num): #Impossible in the current version (match priority to num) but if later on: this means the match has been made on calf_num, so the case is clear on that side.
                 if self.calf_num == self.__db_calf_num: #just a check so far, but later on there may be research by birth date.
                     self.__xnum = 0
                     self.__xcalf_num = 1
-                    print("Adult numbers do not match. Please check the input.")
+                    numwarning = ("> Adult numbers do not match. Please check the input.")
             #This is a slightly complicated case: we provided a num and a calf num, but fell back on calf num because num was absent. Not possible with the current version yet.
             elif self.calf_num is not None and self.__db_calf_num is None: #this means the match has been made on calf_num, so the case is clear on that side.
                 if self.calf_num == self.__db_calf_num: #just a check so far, but later on there may be research by birth date.
                     self.__xnum = 2
-                    print("Adult number was still unknown, updating database.")
+                    numwarning = ("Adult number was still unknown, updating database.")
+            if numwarning is not None:
+                self.warnings.append(numwarning)
 
-############ Name
-
+            ############ Name
+            namewarning = None
             if self.name is not None  and self.__db_name is not None and self.name in self.__db_name: #Partial match since there could be multiple names in the database
                 self.__xname = 1
                 self.name = self.__db_name #This is in case that name is a subset of database name
-                print("Names match.")
+                namewarning = ("Names match.")
             elif self.__db_name is None and self.name is not None:
                 self.__xname = 2
-                print("No known name yet, updating database.")
+                namewarning = ("No known name yet, updating database.")
             elif self.__db_name is None and self.name is None:
                 self.__xname = 3
-                print("Name is still missing")
+                namewarning = ("Name is still missing")
             elif self.__db_name is not None and self.name is None:
                 self.__xname = 4
-                print("This elephant is known in database as ", self.__db_name, " - no change.", sep='')
+                namewarning = ("This elephant is known in database as "+str(self.__db_name)+" - no change.")
             else :
                 self.__xname = 0
                 if self.__solved == 'N':
-                    print("Different name in database. You need to solve the conflict manually.")
+                    namewarning = ("> Different name in database. You need to solve the conflict manually.")
                 if self.__solved =='Y':
                     self.name = self.__db_name + ", " + self.name
                     self.__xname = 2
-                    print("Alias name appended to database")
+                    namewarning = ("> Alias name appended to database")
+            if namewarning is not None:
+                self.warnings.append(namewarning)
 
-############ Sex
-
+            ############ Sex
+            sexwarning = None
             if self.sex == self.__db_sex:
                 self.__xsex = 1
-                print("Sexes match.")
+                sexwarning = ("Sexes match.")
             elif self.__db_sex == 'UKN' and self.sex is not None:
                 self.__xsex = 2
-                print("No known sex yet, updating database.")
+                sexwarning = ("No known sex yet, updating database.")
             elif self.__db_sex == 'UKN' and self.sex is None:
                 self._xsex = 3
                 self.sex = self.__db_sex
-                print("Sex is still missing")
+                sexwarning = ("Sex is still missing")
             elif self.__db_sex != 'UKN' and self.sex is None:
                 self.__xsex = 4
                 if self.__db_sex == 'M':
                     __strsex = 'male'
                 elif self.__db_sex == 'F':
                     __strsex = 'female'
-                print("It is known in database as a ", __strsex, " - no change.", sep='')
+                sexwarning = ("It is known in database as a "+__strsex+" - no change.")
             else :
                 self.__xsex = 0
                 if self.__interactive == 1:
-                    print("Different sex in database. You need to solve the conflict manually.")
+                    sexwarning = ("> Different sex in database. You need to solve the conflict manually.")
+            if sexwarning is not None:
+                self.warnings.append(sexwarning)
 
-############ Birth date
-
+            ############ Birth date
+            birthwarning = None
             if self.birth == self.__db_birth and self.birth is not None:
                 self.__xbirth = 1
-                print("Birth dates match.")
+                birthwarning = ("Birth dates match.")
             elif self.__db_birth is None and self.birth is not None:
                 self.__xbirth = 2
-                print("No known birth date yet, updating database.")
+                birthwarning = ("No known birth date yet, updating database.")
             elif self.__db_birth is None and self.birth is None:
                 self.__xbirth = 3
-                print("Birth date is still missing")
+                birthwarning = ("Birth date is still missing")
             elif self.__db_birth is not None and self.birth is None:
                 self.__xbirth = 4
                 born = self.__db_birth
                 now = datetime.now().date()
                 age = round(((now - born).days / 365.25))
                 if self.alive == 'Y' or self.__db_alive == 'Y':
-                    print("Birth data known as ", self.__db_birth, " (", age, " years old) - no change.", sep='')
+                    birthwarning = ("Birth data known as "+str(self.__db_birth)+" ("+str(age)+" years old) - no change.")
                 else:
-                    print("Birth data known as ", self.__db_birth, " (", age, " years ago) - no change.", sep='')
+                    birthwarning = ("Birth data known as "+str(self.__db_birth)+" ("+str(age)+" years ago) - no change.")
             else :
                 self.__xbirth = 0
                 if self.__interactive == 1:
-                    print("Different birth date in database. You need to solve the conflict manually.")
+                    birthwarning = ("> Different birth date in database. You need to solve the conflict manually.")
+            if birthwarning is not None:
+                self.warnings.append(birthwarning)
 
-############ Wild or captive
-
+            ############ Wild or captive
+            wildwarning = None
             if self.cw == self.__db_cw:
                 self.__xcw = 1
-                print("Captive/wild matches.")
+                wildwarning = ("Captive/wild matches.")
             elif self.__db_cw == 'UKN' and self.cw is not None:
                 self.__xcw = 2
-                print("Unknown whether captive or wild so far, updating database.")
+                wildwarning = ("Unknown whether captive or wild so far, updating database.")
             elif self.__db_cw == 'UKN' and self.cw is None:
                 self.__xcw = 3
                 self.cw = self.__db_cw
-                print("Origin is still missing")
+                wildwarning = ("Origin is still missing")
             elif self.__db_cw != 'UKN' and self.cw is None:
                 self.__xcw = 4
-                print("In the database, it is born ", self.__db_cw, " - no change.", sep='')
+                wildwarning = ("In the database, it is born "+str(self.__db_cw)+" - no change.")
             else:
                 self.__xcw = 0
                 if self.__interactive == 1:
-                    print("Different origin in database. You need to solve the conflict manually.")
+                    wildwarning = ("> Different origin in database. You need to solve the conflict manually.")
+            if wildwarning  is not None:
+                self.warnings.append(wildwarning)
 
-############ Age at capture
-
+            ############ Age at capture
+            caughtwarning = None
             if self.cw == 'captive' or self.cw == 'UKN' or self.__db_cw == 'captive' or self.__db_cw =='UKN':
                 if self.caught == self.__db_caught and self.caught is not None:
                     self.__xcaught = 0
-                    print("Ages at capture match, but this elephant is registered as captive born. Check database and input data.")
+                    caughtwarning = ("> Ages at capture match, but this elephant is registered as captive born. Check database and input data.")
                 elif self.__db_caught is None and self.caught is not None:
                     self.__xcaught = 0
-                    print("No known age at capture yet, but this elephant is registered as captive born. Check your data.")
+                    caughtwarning = ("> No known age at capture yet, but this elephant is registered as captive born. Check your data.")
                 elif self.__db_caught is None and self.caught is None:
                     self.__xcaught = 1
-                    print("Age at capture is still missing, and this elephant is registered as captive born. All good.")
+                    caughtwarning = ("Age at capture is still missing, and this elephant is registered as captive born. All good.")
                 elif self.__db_caught is not None and self.caught is None:
                     self.__xcaught = 0
                     self.caught = self.__db_caught
-                    print("In the database, it was captured at age ", self.__db_cw, " ,  but this elephant is registered as captive born. Check the database.", sep="")
+                    caughtwarning = ("> In the database, it was captured at age "+str(self.__db_cw)+" ,  but this elephant is registered as captive born. Check the database.")
                 else :
                     self.__xcaught = 0
                     if self.__interactive == 1:
-                        print("Different age at capture in database. You need to solve the conflict manually.")
+                        caughtwarning = ("> Different age at capture in database. You need to solve the conflict manually.")
 
             elif self.cw == 'wild' or self.__db_cw == 'wild':
                 if self.caught == self.__db_caught and self.caught is not None:
                     self.__xcaught = 1
-                    print("Ages at capture match.")
+                    caughtwarning = ("Ages at capture match.")
                 elif self.__db_caught is None and self.caught is not None:
                     self.__xcaught = 2
-                    print("No known age at capture yet, updating database.")
+                    caughtwarning = ("No known age at capture yet, updating database.")
                 elif self.__db_caught is None and self.caught is None:
                     self.__xcaught = 3
-                    print("Age at capture is still missing")
+                    caughtwarning = ("Age at capture is still missing")
                 elif self.__db_caught is not None and self.caught is None:
                     self.__xcaught = 4
-                    print("In the database, it was captured at age ", self.__db_cw, " - no change.", sep="")
+                    caughtwarning = ("In the database, it was captured at age "+str(self.__db_cw)+" - no change.")
                 else :
                     self.__xcaught = 0
                     if self.__interactive == 1:
-                        print("Different age at capture in database. You need to solve the conflict manually.")
+                        caughtwarning = ("> Different age at capture in database. You need to solve the conflict manually.")
+                if caughtwarning is not None:
+                    self.warnings.append(caughtwarning)
 
-############ Camp
-
+            ############ Camp
+            campwarning = None
             if self.camp is not None and self.__db_camp is not None and self.camp in self.__db_camp:
                 self.__xcamp = 1
                 self.camp = self.__db_camp
-                print("Camps match.")
+                campwarning = ("Camps match.")
             elif self.__db_camp is None and self.camp is not None:
                 self.__xcamp = 2
-                print("No known camp yet, updating database.")
+                campwarning = ("No known camp yet, updating database.")
             elif self.__db_camp is None and self.camp is None:
                 self.__xcamp = 3
-                print("Camp is still missing")
+                campwarning = ("Camp is still missing")
             elif self.__db_camp is not None and self.camp is None:
                 self.__xcamp = 4
-                print("In the database, it comes from ", self.__db_camp, " - no change.", sep='')
+                campwarning = ("In the database, it comes from "+str(self.__db_camp)+" - no change.")
             else :
                 self.__xcamp = 0
                 if self.__solved == 'N':
-                    print("Different camp in database. You need to solve the conflict manually.")
+                    campwarning = ("> Different camp in database. You need to solve the conflict manually.")
                 if self.__solved =='Y':
                     self.camp = self.__db_camp + ", " + self.camp
                     self.__xcamp = 1
-                    print("New camp appended to database")
+                    campwarning = ("> New camp appended to database")
+            if campwarning is not None:
+                self.warnings.append(campwarning)
 
-############ Alive or dead
-
+            ############ Alive or dead
+            alivewarning = None
             if self.alive == self.__db_alive:
                 self.__xalive = 1
-                print("Living status matches.")
+                alivewarning = ("Living status matches.")
             elif self.__db_alive == 'UKN' and self.alive is not None:
                 self.__xalive = 2
                 if self.alive == 'Y':
-                    print("We were not sure if was alive, updating database.")
+                    alivewarning = ("We were not sure if was alive, updating database.")
                 elif self.alive == 'N':
-                    print("We didn't know it was dead, updating database & requiescat in pace.")
+                    alivewarning = ("We didn't know it was dead, updating database & requiescat in pace.")
             elif self.__db_alive == 'UKN' and self.alive is None:
                 self.__xalive = 3
-                print("Still unknown whether alive or not.")
+                alivewarning = ("Still unknown whether alive or not.")
             elif self.__db_alive != 'UKN' and self.alive is None:
                 self.__xalive = 4
                 if self.__db_alive == 'Y':
-                    print("In the database, it is alive - no change")
+                    alivewarning = ("In the database, it is alive - no change")
                 elif self.__db_alive == 'N':
-                    print("In the database, it is dead - no change, & requiescat in pace.")
+                    alivewarning = ("In the database, it is dead - no change, & requiescat in pace.")
             else :
                 self.__xalive = 0
                 if self.__interactive == 1:
-                    print("Different living status in database. You need to solve the conflict manually.")
+                    alivewarning = ("> Different living status in database. You need to solve the conflict manually.")
+            if alivewarning is not None:
+                self.warnings.append(alivewarning)
 
-############ Research elephant
-
+            ############ Research elephant
+            researchwarning = None
             if self.research == self.__db_research and self.research is not None:
                 self.__xresearch = 1
-                print("Research status matches")
+                researchwarning = ("Research status matches")
             elif self.research is not None and (self.__db_research is None or self.__db_research == 'N'):
                 self.__xresearch = 2
-                print("We didn't know that it was a research elephant, updating database.")
+                researchwarning = ("We didn't know that it was a research elephant, updating database.")
             elif self.research is None and self.__db_research is None:
                 sef.__xresearch = 2
                 self.research = 'N'
-                print("No information, setting database to Not a research elephant.")
+                researchwarning = ("No information, setting database to Not a research elephant.")
             elif self.research == 'N' and self.__db_research == 'Y':
                 self.__xresearch = 4
                 self.research = None
-                print("If you wish to remove this elephant's research status, do it manually.")
+                researchwarning = ("> If you wish to remove this elephant's research status, do it manually.")
             elif self.research == 'Y' and (self.__db_research == 'N' or self.__db_research is None):
                 self.__xresearch = 2
-                print("Not yet a research elephant in the database, updating database.")
+                researchwarning = ("Not yet a research elephant in the database, updating database.")
             elif self.research is None and self.__db_research is not None:
                 self.__xresearch = 4
                 if self.__db_research == 'N':
-                    print("In the database, it is not a research elephant - no change")
+                    researchwarning = ("In the database, it is not a research elephant - no change")
                 elif self.__db_research == 'Y':
-                    print("In the database, it is a research elephant - no change")
+                    researchwarning = ("In the database, it is a research elephant - no change")
+            if researchwarning is not None:
+                self.warnings.append(researchwarning)
 
-############ Check the consistency of birth date and living status
-
+            ############ Check the consistency of birth date and living status
+            agewarning = None
             if self.birth is not None:
                 now = datetime.now().date()
                 age = ((now - self.birth).days) / 365.25
                 if self.alive == 'Y' and age > 90:
-                    print("This elephant is now over 90 years old. Are you sure it is still alive?")
+                    agewarning = ("> This elephant is now over 90 years old. Are you sure it is still alive?")
                     self.__xalive = 0
                 elif age < 0:
-                    print("This elephant is born in the future. We're doing science on the edge here.")
+                    agewarning = ("> This elephant is born in the future. We're doing science on the edge here.")
                     self.__xalive = 0
+            if agewarning is not None:
+                self.warnings.append(agewarning)
 
-        print("\n#########################################################")
-
-#Here, do the final fusion of data, and give an outcome (write to database or write out for manual conflict resolution)
+        #Here, do the final fusion of data, and give an outcome (write to database or write out for manual conflict resolution)
 
         self.status = (self.__xnum, self.__xname, self.__xcalf_num, self.__xsex, self.__xbirth, self.__xcw, self.__xcaught, self.__xcamp, self.__xalive, self.__xresearch)
         self.__checked = 1
@@ -551,7 +619,7 @@ class elephant: ##MAKE A __repr__ function !!
         ########## If there is a pending conflict, we write out the conflicts and build the corresponding flag
         else:
 
-            # Check which fileds are conflicting
+            # Check which fields are conflicting
             status_array = np.array(self.status)
             conflicts_array = np.where(status_array == 0)
             i = tuple(map(tuple, conflicts_array))[0]
@@ -559,6 +627,8 @@ class elephant: ##MAKE A __repr__ function !!
                 # Set the 2-power flag:
                 for n in i:
                     self.flag = self.flag + 2**(n+4)
+
+
 
             # Make a string of conflict field names for the warning field
             f = ('num','name','calf_num','sex','birth','cw','age of capture','camp','alive','research')
@@ -568,12 +638,14 @@ class elephant: ##MAKE A __repr__ function !!
             c = conflicts.rstrip(', ')
             conflicts = c[2:]+"."
 
+            self.out = self.warnings
+
             if self.__sourced == 2:
-                self.out = ("[Conflict] Elephant number "+str(self.__num)+" is not in the database yet, but you must provide at least number and birth date")
+                self.out.append("[Conflict] Elephant number "+str(self.__num)+" is not in the database yet, but you must provide at least number and birth date")
             elif self.__sourced != 2 and self.__num is not None:
-                self.out = ("[Conflict] Elephant number "+str(self.__num)+": you need to solve conflicts for: "+conflicts)
+                self.out.append("[Conflict] Elephant number "+str(self.__num)+": you need to solve conflicts for: "+conflicts)
             elif self.__sourced != 2 and self.__num is None:
-                self.out = ("[Conflict] Calf number "+str(self.calf_num)+": you need to solve conflicts for: "+conflicts)
+                self.out.append("[Conflict] Calf number "+str(self.calf_num)+": you need to solve conflicts for: "+conflicts)
 
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
         self.__toggle_write_flag = 1
@@ -598,13 +670,14 @@ class elephant: ##MAKE A __repr__ function !!
 
 class pedigree:
 
-    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None):
+    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False):
 
 # Non-prefixed parameters describe user input
         self.eleph_1=eleph_1
         self.eleph_2=eleph_2
         self.rel=rel
         self.coef=coef
+        self.eleph_2_is_calf=eleph_2_is_calf
 
 # Prefixed parameters describe database content
         self.__db_id=None
@@ -653,8 +726,12 @@ class pedigree:
         self.elephant_absent = 0
 
         try:
-            el1 = self.__db.get_elephant(self.eleph_1)
-            el2 = self.__db.get_elephant(self.eleph_2)
+            el1 = self.__db.get_elephant(num=self.eleph_1)
+            if self.eleph_2_is_calf is False:
+                el2 = self.__db.get_elephant(num=self.eleph_2)
+            else:
+                el2 = self.__db.get_elephant(calfnum=self.eleph_2)
+
             self.__db_eleph_1 = []
             self.__db_eleph_2 = []
             for x in (0,4,5,9):
@@ -1106,11 +1183,11 @@ class measure:
 
 class event:
 
-    def __init__(self, num, date, event_type, code='UKN', loc=None, solved = 'N'):
+    def __init__(self, date, code, num=None, calf_num=None, loc=None, solved = 'N'):
         self.__num=num
+        self.__calf_num=calf_num
         self.__date=datetime.strptime(date, '%Y-%m-%d').date()
         self.__loc=loc
-        self.__event_type=event_type
         self.__code=code
         if solved in ('Y','y','YES','yes'):
             self.__solved='Y'
@@ -1130,7 +1207,12 @@ class event:
         self.__db=db
 
         #Get the ID of the elephant:
-        self.__elephant = self.__db.get_elephant(num = self.__num)
+        if self.__num is not None:
+            self.__elephant = self.__db.get_elephant(num = self.__num)
+        elif self.__num is None and self.__calf_num is not None:
+            self.__elephant = self.__db.get_elephant(calf_num = self.__calf_num)
+        else:
+            print("You need at least one identifying number")
         if self.__elephant is None:
             print("This elephant is absent from the database. Impossible to add an event.")
             self.__xeleph = 0
@@ -1143,24 +1225,25 @@ class event:
             self.__xeleph = 1
 
             #Start by seeing if that measure type is present in the measure_code table:
-            self.__code_id = self.__db.get_event_code(self.__code)
-
-            if self.__code_id is None:
+            try:
+                self.__code_id = self.__db.get_event_code(self.__code)[0]
+                self.__event_class = self.__db.get_event_code(self.__code)[1]
+            except:
                 print("Event code", self.__code, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
 
             else:
-                self.__db_line = self.__db.get_event(self.__num, self.__date, self.__event_type)
+                self.__db_line = self.__db.get_event(self.__num, self.__date, self.__event_class)
                 #Cases where the measure is already entered in a similar form in the database:
                 if self.__db_line is not None:
 
-                    self.__db_code = self.__db_line[5]
+                    self.__db_code = self.__db_line[4]
                     if self.__code_id == self.__db_code:
                         self.__sourced = 1
                         print("An identical event is already entered in the database.")
                         self.__xrep = 0
                     else:
                         if self.__solved == 'N':
-                            print("There is already an event of type '", self.__event_type, "' for elephant ", self.__num, " at that date in the database.", sep="")
+                            print("There is already an event of type '", self.__event_class, "' for elephant ", self.__num, " at that date in the database.", sep="")
                             self.__sourced = 1
                             self.__xrep = 0
 
@@ -1180,7 +1263,7 @@ class event:
 
     def check(self, db):
         if self.__sourced == 0:
-            print("You must verify the database firts using source()")
+            print("You must verify the database first using source()")
         elif self.__sourced == 1:
             print("This event already appears to be in the database. Nothing to do.")
         elif self.__sourced == 2:
@@ -1200,7 +1283,7 @@ class event:
             elif delta > 100 and solved == 'N':
                 print("This event occurs when the elephant is over 100 years. Please verify input.")
 
-            if self.__event_type == 'death':
+            if self.__event_class == 'death':
                 if self.__date_of_death is not None:
                     print("This elephant is already died on ", date_of_death, ". You can't kill what's already dead.", sep="")
                     self.__xdate = 0
@@ -1215,7 +1298,7 @@ class event:
                     self.__update_alive = 1
                     self.__xdate = 1
 
-            elif self.__event_type in ('capture','accident','disease','alive'):
+            elif self.__event_class in ('capture','accident','health','alive','metadata'):
                 if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0:
                     print("This elephant was already six feet under by then. Please check your input.")
                     self.__xdate = 0
@@ -1232,8 +1315,7 @@ class event:
                     print("Chronologies seem to match.")
                     self.__xdate = 1
 
-
-            elif self.__event_type == 'capture':
+            elif self.__event_class == 'capture':
                 if self.__db_cw == 'captive':
                     print("You can't register a capture event for a captive-born elephant.")
                     self.__xcw = 0
@@ -1276,7 +1358,7 @@ class event:
                 update = self.__db.update_elephant(id=self.__elephant_id, cw=wcw, alive=walive)
                 out.append(update)
 
-            insert = self.__db.insert_event(self.__elephant_id, self.__date, self.__loc, self.__event_type, self.__code_id)
+            insert = self.__db.insert_event(self.__elephant_id, self.__date, self.__loc, self.__code_id)
             out.append(insert)
 
         elif self.__checked == 0:

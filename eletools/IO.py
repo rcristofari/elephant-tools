@@ -469,17 +469,9 @@ def read_measures(elefile, sep=';', solved='N'):
 # an event datafile is composed of elephant num|calf_num, date, loc, event_type, code
 # here, code is entered as a alphanumeric shorthand. It will be checked later on against database.
 
-def read_events(elefile, sep=';', solved='N'):
-    num = []
-    calf_num = []
-    date = []
-    loc = []
-    event_type = []
-    code = []
-
-    reject = 0
-    warnings = []
-
+def read_events(elefile, sep=',', solved='N'):
+    num, calf_num, date, loc, code = [], [], [], [], []
+    valid, remarks, rejected, issues =[], [], [], []
     with open(elefile) as elefile:
         eleread = csv.reader(elefile, delimiter=sep, quotechar="'")
         fields = next(eleread)
@@ -489,93 +481,81 @@ def read_events(elefile, sep=';', solved='N'):
                 calf_num.append(row[1])
                 date.append(row[2])
                 loc.append(row[3])
-                event_type.append(row[4])
-                code.append(row[5])
+                code.append(row[4])
 
-    # No good guessing here I think. Better enter the types properly.
+    #reformat as rows
+    rows=[]
+    for i,n in enumerate(num):
+        warnings, reject = [], 0
+
+        row=[str(num[i]),str(calf_num[i]),str(date[i]),str(loc[i]),str(code[i])]
+        rows.append(row)
 
     ########## num [COMPLUSORY or calf_num]
-    for i,x in enumerate(num):
-        if re.search(r"^[0-9]+$", x):
+        if re.search(r"^[0-9a-zA-Z]+$", row[0]):
             pass
-        elif x == '' and calf_num[i] != '':
+        elif row[0] == '' and calf_num[i] != '':
             warnings.append("Missing number at line " + str(i+1))
-        elif x == '' and calf_num[i] == '':
+        elif row[0] == '' and calf_num[i] == '':
             warnings.append("Missing number at line " + str(i+1) + ", and no calf number. You need at least one.")
             reject = 1
         else:
-            warnings.append("Format problem with number: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with number: " + str(row[0]) + " at line " + str(i+1))
             reject = 1
 
     ########## calf_num
-    for i,x in enumerate(calf_num):
-        if re.search(r"^[0-9a-zA-Z]+$", x):
+        if re.search(r"^[0-9a-zA-Z]+$", row[1]):
             pass
-        elif x == '' and num[i] == '':
+        elif row[1] == '' and num[i] == '':
             warnings.append("Missing calf number at line " + str(i+1) + ". You need at least one number.")
             reject = 1
-        elif x == '' and num[i] != '':
+        elif row[1] == '' and num[i] != '':
             pass
         else:
-            warnings.append("Format problem with calf number: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with calf number: " + str(row[1]) + " at line " + str(i+1))
             reject = 1
 
     ########## date
-    for i,x in enumerate(date):
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", x):
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", row[2]):
             pass
-        elif x == '':
+        elif row[2] == '':
             warnings.append("Missing event date at line " + str(i+1))
             reject = 1
         else:
-            warnings.append("Format problem with event date: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with event date: " + str(row[2]) + " at line " + str(i+1))
             reject = 1
 
     ########## loc
-    for i,x in enumerate(loc):
-        if re.search(r"^[a-zA-Z ]+$", x):
-            loc[i] = string.capwords(x)
-        elif x == '':
+        if re.search(r"^[a-zA-Z ]+$", row[3]):
+            row[3] = string.capwords(row[3])
+        elif row[3] == '':
             warnings.append("Missing location at line " + str(i+1))
         else:
-            warnings.append("Format problem with location: " + str(x) + " at line " + str(i+1))
-            reject = 1
-
-    ########## event_type [COMPLUSORY]
-    for i,x in enumerate(event_type):
-        if x.casefold().strip() in ('capture','accident','disease','death','alive'):
-            event_type[i] = x.casefold().strip()
-        elif x == '':
-            warnings.append("Missing event type at line " + str(i+1))
-            reject = 1
-        else:
-            warnings.append("Invalid event type: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with location: " + str(row[3]) + " at line " + str(i+1))
             reject = 1
 
     ########## code
-    for i,x in enumerate(code):
-        if re.search(r"^[0-9a-zA-Z ]+$", x):
-            code[i] = x.casefold().strip()
-        elif x == '':
+        if re.search(r"^[0-9a-zA-Z ]+$", row[4]):
+            row[4] = row[4].casefold().strip()
+        elif row[4] == '':
             warnings.append("Missing event code at line " + str(i+1))
         else:
-            warnings.append("Format problem with event code: " + str(x) + " at line " + str(i+1))
+            warnings.append("Format problem with event code: " + str(row[5]) + " at line " + str(i+1))
             reject = 1
 
-    ########## output
-    for w in warnings:
-        print(w)
+    ######### send out to the correct list
+        if reject == 0:
+            row.append(0)
+            if warnings != []:
+                remarks.append(warnings)
+            valid.append(row)
+        elif reject == 1:
+            row.append(1)
+            issues.append(warnings)
+            rejected.append(row)
+        row.append(warnings)
+    return[fields, valid, remarks, rejected, issues, rows]
 
-    lines = []
-    lines.append(tuple(fields))
-    if reject == 0:
-        for i,x in enumerate(event_type):
-            line = (num[i],calf_num[i],date[i],loc[i],event_type[i],code[i])
-            lines.append(line)
-
-        return(lines)
-    else:
-       return(warnings)
 
 ####################################################################################
 ##  parse_output() parses the total output into mysql and warings                 ##
@@ -618,6 +598,7 @@ def parse_output(stream, db, folder=None):
 ##  parse_reads() parses the output from a read_ function into warnings etc       ##
 ####################################################################################
 #the argument here is the output from a read_ function (read_elephants, read_pedigree...)
+
 def parse_reads(read_output, prefix='reads_'):
     accepted_name = prefix+'_accepted.reads'
     rejected_name = prefix+'_rejected.reads'

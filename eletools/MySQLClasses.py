@@ -250,17 +250,17 @@ class mysqlconnect:
 
     def get_event_code(self, event):
         self.__event=event
-        sql = "SELECT id FROM event_code WHERE code = %s" % (quote(self.__event))
+        sql = "SELECT id, class FROM event_code WHERE type = %s" % (quote(self.__event))
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:
-            return(result[0][0])
+            return(list(result[0]))
 
 ################################################################################
 ## 'get_event' function                                                       ##
 ################################################################################
 
-    def get_event(self, num, date, event_type):
+    def get_event(self, num, date, event_class):
         sql = "SELECT id FROM elephants WHERE num = %s" % (num)
         try:
             self.__cursor.execute(sql)
@@ -268,7 +268,7 @@ class mysqlconnect:
         except:
             print("This elephant is absent from the database")
 
-        sql = "SELECT * FROM events WHERE elephant_id = %s AND date = %s AND type = %s" % (quote(self.__eleph_id), quote(date), quote(event_type))
+        sql = "SELECT events.id, events.elephant_id, events.date, events.loc, events.code FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND events.date = %s AND event_code.class = %s" % (quote(self.__eleph_id), quote(date), quote(event_class))
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:
@@ -495,7 +495,7 @@ class mysqlconnect:
 ## 'insert_event' function                                                    ##
 ################################################################################
 
-    def insert_event(self, id, date, loc, event_type, code, commits=None):
+    def insert_event(self, id, date, loc, code, commits=None):
 
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
@@ -505,7 +505,7 @@ class mysqlconnect:
             else:
                 newcommits = (quote(str(self.__i)))
 
-            statement = "INSERT INTO events (elephant_id, date, loc, type, code, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (id, quote(date), quote(loc), quote(event_type), code, newcommits)
+            statement = "INSERT INTO events (elephant_id, date, loc, code, commits) VALUES (%s, %s, %s, %s, %s);" % (id, quote(date), quote(loc), code, newcommits)
 
             return(statement)
 
@@ -513,7 +513,7 @@ class mysqlconnect:
 ## 'insert_event_code' function                                               ##
 ################################################################################
 
-    def insert_event_code(self, code, descript, commits=None):
+    def insert_event_code(self, event_class, event_type, descript, commits=None):
 
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
@@ -523,7 +523,7 @@ class mysqlconnect:
             else:
                 newcommits = (quote(str(self.__i)))
 
-            statement = "INSERT INTO event_code (code, descript, commits) VALUES (%s, %s, %s);" % (quote(code), quote(descript), newcommits)
+            statement = "INSERT INTO event_code (class, type, descript, commits) VALUES (%s, %s, %s, %s);" % (quote(event_class), quote(event_type), quote(descript), newcommits)
 
             return(statement)
 
