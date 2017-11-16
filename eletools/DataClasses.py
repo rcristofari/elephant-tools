@@ -5,31 +5,37 @@ import numpy as np
 from eletools.Utilities import *
 
 # General flagging system:
-# - A 'flag' field works on a 2-power basis.
-#    - 0 means there is nothing to say about the data (initial state)
-#    - 1 means the line has been rejected at "read"
-#    - 2 means the data can go into the database (INSERT)
-#    - 4 means the database will be updated (UPDATE)
-#    - 8 means the data is already known
-#    - 16,32,64... means the data is conflicting and rejected (code henceforth depending on the class)
-# - A 'Output' field gives additional information (warnings and/or SQL statements)
+    # - A 'flag' field works on a 2-power basis.
+    #    - 0 means there is nothing to say about the data (initial state)
+    #    - 1 means the line has been rejected at "read"
+    #    - 2 means the data can go into the database (INSERT)
+    #    - 4 means the database will be updated (UPDATE)
+    #    - 8 means the data is already known
+    #    - 16,32,64... means the data is conflicting and rejected (code henceforth depending on the class)
+    # - A 'Output' field gives additional information (warnings and/or SQL statements)
 
 # For the elephant class, the specific conflict flags are:
-# 16: 'num',
-# 32: 'name',
-# 64: 'calf_num'
-# 128: 'sex',
-# 256: 'birth',
-# 512: 'cw',
-# 1024: 'age of capture',
-# 2048: 'camp',
-# 4096: 'alive',
-# 8192: 'research'
+    # 16: 'num',
+    # 32: 'name',
+    # 64: 'calf_num'
+    # 128: 'sex',
+    # 256: 'birth',
+    # 512: 'cw',
+    # 1024: 'age of capture',
+    # 2048: 'camp',
+    # 4096: 'alive',
+    # 8192: 'research'
 
 # For the pedigree class:
-# 16: sex
-# 32 : birth
-# 64 : missing elephant
+    # 16 : sex
+    # 32 : birth
+    # 64 : missing elephant
+
+# For the event class:
+    # 16 : age
+    # 32 : captive/wild
+    # 64 : missing elephant
+    # 128 : missing event type
 
    ##########################################################################
  ##############################################################################
@@ -540,9 +546,9 @@ class elephant: ##MAKE A __repr__ function !!
 
         return(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, self.__db_commits)
 
-################################################################################
-## 'write' function writes out an sql statement to insert/update the elephant ##
-################################################################################
+    ################################################################################
+    ## 'write' function writes out an sql statement to insert/update the elephant ##
+    ################################################################################
 
     def write(self, db):
 
@@ -655,7 +661,7 @@ class elephant: ##MAKE A __repr__ function !!
 
             ##Add a light check here to see that a captive elephant has no age at capture.
 
-   ##########################################################################
+#  ##########################################################################
  ##############################################################################
 ###                                                                          ###
 ##                            CLASS "PEDIGREE"                                ##
@@ -672,14 +678,14 @@ class pedigree:
 
     def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False):
 
-# Non-prefixed parameters describe user input
+        # Non-prefixed parameters describe user input
         self.eleph_1=eleph_1
         self.eleph_2=eleph_2
         self.rel=rel
         self.coef=coef
         self.eleph_2_is_calf=eleph_2_is_calf
 
-# Prefixed parameters describe database content
+        # Prefixed parameters describe database content
         self.__db_id=None
         self.__db_id1=None
         self.__db_id2=None
@@ -695,7 +701,7 @@ class pedigree:
         self.__rel_fwd=None
         self.__rel_rev=None
 
-# These variables pass the state of each operation to the next
+        # These variables pass the state of each operation to the next
         self.__sourced=0
         self.__checked=0
         self.status=None #Result of the check() function
@@ -703,7 +709,7 @@ class pedigree:
         self.flag=0
         self.__toggle_write_flag=0
 
-# __x variables describe state of the comparison db/input
+        # __x variables describe state of the comparison db/input
         self.__x1=None
         self.__x2=None
         self.__xrel=None
@@ -711,12 +717,12 @@ class pedigree:
         self.__xsex=None
         self.__xbirth=None
 
-# A list to gather warnings for each line:
+        # A list to gather warnings for each line:
         self.warnings = []
 
-################################################################################
-## 'source' function reads the pedigree from the database if it exists        ##
-################################################################################
+    ################################################################################
+    ## 'source' function reads the pedigree from the database if it exists        ##
+    ################################################################################
 
     def source(self, db):
 
@@ -856,17 +862,17 @@ class pedigree:
             self.__sourced = 2
             print("This relationship is not in the database yet. You can proceed to check()")
 
-################################################################################
-## 'check' function, checks consistency between database and new data         ##
-################################################################################
+    ################################################################################
+    ## 'check' function, checks consistency between database and new data         ##
+    ################################################################################
 
     def check(self):
 
-### THIS HERE POSES A PROBLEM
+    ### THIS HERE POSES A PROBLEM ((LATER  WHAT THE HECK WAS THAT PROBLEM??))
         if self.__sourced == 0:
             self.__checked = 3
             print("\nThis relationship is present in the database with an error. Please correct it manually")
-#####################################
+    #####################################
 
         elif self.__sourced == 1:
             self.__checked = 2
@@ -958,9 +964,9 @@ class pedigree:
 
                 #### si alive == F vérifier les dates ####
 
-################################################################################
-## 'write' function writes out two sql instert statements or an error         ##
-################################################################################
+    ################################################################################
+    ## 'write' function writes out two sql instert statements or an error         ##
+    ################################################################################
 
     def write(self, db):
         self.__db = db
@@ -1027,7 +1033,6 @@ class pedigree:
                 conflicts = conflicts+f[x]
             self.out = ("[Conflict] Elephants number " + self.eleph_1 + " and " + self.eleph_2 + ": you need to solve conflicts for " + conflicts)
 
-        print(self.flag)
         self.__toggle_write_flag = 1
         self.warnings.append(self.out)
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
@@ -1035,7 +1040,7 @@ class pedigree:
         return(output_row)
 
 
-    ##########################################################################
+#   ##########################################################################
  ##############################################################################
 ###                                                                          ###
 ##                             CLASS "MEASURE"                                ##
@@ -1068,13 +1073,13 @@ class measure:
         self.__sourced = 0
         self.__checked = 0
 
-################################################################################
-## 'source' function reads the measure from the database if it exists         ##
-################################################################################
+    ################################################################################
+    ## 'source' function reads the measure from the database if it exists         ##
+    ################################################################################
 
-#Sees if a similar measure is already in the database
-#Verifies if that measure type is already in the measure_code table.
-#Note that adding a new measure should also be done through python (mysqlconnect module)
+    #Sees if a similar measure is already in the database
+    #Verifies if that measure type is already in the measure_code table.
+    #Note that adding a new measure should also be done through python (mysqlconnect module)
 
     def source(self, db):
 
@@ -1117,12 +1122,12 @@ class measure:
                     print("This measure is not in the database yet.")
                     self.__sourced = 2
 
-################################################################################
-## 'check' function, checks consistency between database and new data         ##
-################################################################################
+    ################################################################################
+    ## 'check' function, checks consistency between database and new data         ##
+    ################################################################################
 
-# Checks whether the value is in the range of the whole series (a power of 10 only to check the unit)
-# No check as to chronology since samples may be processed post-mortem (and date may be analysis, not sampling date)
+    # Checks whether the value is in the range of the whole series (a power of 10 only to check the unit)
+    # No check as to chronology since samples may be processed post-mortem (and date may be analysis, not sampling date)
 
     def check(self,db):
         self.__db=db
@@ -1145,9 +1150,9 @@ class measure:
                 self.__xval = 1
                 self.__checked = 2
 
-################################################################################
-## 'write' function writes out the sql instert statement or an error          ##
-################################################################################
+    ################################################################################
+    ## 'write' function writes out the sql instert statement or an error          ##
+    ################################################################################
 
     def write(self, db):
         self.__db=db
@@ -1173,7 +1178,7 @@ class measure:
 
         return(out)
 
-   ##########################################################################
+#  ##########################################################################
  ##############################################################################
 ###                                                                          ###
 ##                              CLASS "EVENT"                                 ##
@@ -1183,7 +1188,7 @@ class measure:
 
 class event:
 
-    def __init__(self, date, code, num=None, calf_num=None, loc=None, solved = 'N'):
+    def __init__(self, date, code, num=None, calf_num=None, loc=None, solved = 'N', flag=0):
         self.__num=num
         self.__calf_num=calf_num
         self.__date=datetime.strptime(date, '%Y-%m-%d').date()
@@ -1193,15 +1198,17 @@ class event:
             self.__solved='Y'
         else:
             self.__solved='N'
-
         self.__sourced = 0
         self.__checked = 0
+        self.__xevent = 1
+        self.warnings = []
+        self.flag = flag
+        self.__toggle_write_flag = 0
 
-################################################################################
-## 'source' function reads the event from the database if it exists           ##
-################################################################################
-
-# Like a measure, an event is considered redundant if it shares the same individual, date, and type.
+    ################################################################################
+    ## 'source' function reads the event from the database if it exists           ##
+    ################################################################################
+    # Like a measure, an event is considered redundant if it shares the same individual, date, and type.
 
     def source(self,db):
         self.__db=db
@@ -1230,42 +1237,47 @@ class event:
                 self.__event_class = self.__db.get_event_code(self.__code)[1]
             except:
                 print("Event code", self.__code, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
+                self.__xevent = 0
 
             else:
                 self.__db_line = self.__db.get_event(self.__num, self.__date, self.__event_class)
                 #Cases where the measure is already entered in a similar form in the database:
                 if self.__db_line is not None:
 
+                    redundancy = None
                     self.__db_code = self.__db_line[4]
                     if self.__code_id == self.__db_code:
                         self.__sourced = 1
-                        print("An identical event is already entered in the database.")
+                        redundancy = ("An identical event is already entered in the database.")
                         self.__xrep = 0
                     else:
                         if self.__solved == 'N':
-                            print("There is already an event of type '", self.__event_class, "' for elephant ", self.__num, " at that date in the database.", sep="")
+                            redundancy = ("There is already an event of type '"+self.__event_class+"' for elephant "+str(self.__num)+" at that date in the database.")
                             self.__sourced = 1
                             self.__xrep = 0
+                    if redundancy is not None:
+                        self.warnings.append(redundancy)
 
                 #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
                 elif self.__db_line is None or (self.__db_line is not None and self.__solved == 'Y'):
                     print("This event is not in the database yet.")
                     self.__sourced = 2
 
-################################################################################
-## 'check' function checks consistency between database and new data          ##
-################################################################################
+    ################################################################################
+    ## 'check' function checks consistency between database and new data          ##
+    ################################################################################
 
-# Consistency check on death: a death event prohibits further events, and triggers an update in the elephants table
-# Events over 100 years of age requires a "solved" flag to be allowed
-# Consistency check on birth: no event is allowed prior to birth datetime
-# Possible event types are : 'capture','accident','disease','death','alive'
+    # Consistency check on death: a death event prohibits further events, and triggers an update in the elephants table
+    # Events over 100 years of age requires a "solved" flag to be allowed
+    # Consistency check on birth: no event is allowed prior to birth datetime
+    # Possible event types are : 'capture','accident','disease','death','alive'
 
     def check(self, db):
         if self.__sourced == 0:
             print("You must verify the database first using source()")
         elif self.__sourced == 1:
             print("This event already appears to be in the database. Nothing to do.")
+
         elif self.__sourced == 2:
             self.__db = db
             self.__xdate = 1
@@ -1277,21 +1289,22 @@ class event:
             self.__update_cw = 0
             self.__update_alive = 0
 
+            deltawarning = None
             if delta < 0:
-                print("This event precedes this elephant's birth.")
+                deltawarning = ("This event precedes this elephant's birth.")
                 self.__xdate = 0
             elif delta > 100 and solved == 'N':
-                print("This event occurs when the elephant is over 100 years. Please verify input.")
+                deltawarning = ("This event occurs when the elephant is over 100 years. Please verify input.")
 
             if self.__event_class == 'death':
                 if self.__date_of_death is not None:
-                    print("This elephant is already died on ", date_of_death, ". You can't kill what's already dead.", sep="")
+                    deltawarning = ("This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
                     self.__xdate = 0
                 elif (self.__date - self.__last_alive).days < 0:
-                    print("This elephant was seen alive later, on ", self.__last_alive,", check your input.", sep="")
+                    deltawarning = ("This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
                     self.__xdate = 0
                 elif (self.__date - self.__last_breeding) < 0:
-                    print("This elephant had an offspring on ", self.__last_breeding,", check your input.", sep="")
+                    deltawarning = ("This elephant had an offspring on "+datetime.strftime(self.__last_breeding, "%Y-%m-%d")+", check your input.")
                     self.__xdate = 0
                 else:
                     print("Chronologies seem to match - updating database")
@@ -1300,7 +1313,7 @@ class event:
 
             elif self.__event_class in ('capture','accident','health','alive','metadata'):
                 if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0:
-                    print("This elephant was already six feet under by then. Please check your input.")
+                    deltawarning = ("This elephant was already six feet under by then. Please check your input.")
                     self.__xdate = 0
                 elif self.__date_of_death is None and self.__db_alive == 'UKN':
                         #If the event is less than 5 years ago and the elephant is now less than 90 years old, it switches to 'alive'
@@ -1314,10 +1327,13 @@ class event:
                 else:
                     print("Chronologies seem to match.")
                     self.__xdate = 1
+                if deltawarning is not None:
+                    self.warnings.append(deltawarning)
 
-            elif self.__event_class == 'capture':
+            captwarning = None
+            if self.__event_class == 'capture':
                 if self.__db_cw == 'captive':
-                    print("You can't register a capture event for a captive-born elephant.")
+                    captwarning = ("You can't register a capture event for a captive-born elephant.")
                     self.__xcw = 0
                 elif self.__db_cw == 'UKN':
                     print("We didn't know this was a wild elephant - updating database.")
@@ -1326,20 +1342,39 @@ class event:
                 elif self.__db_cw == 'wild':
                     print("This elephant is indeed registered as wild-caught. No problem.")
                     self.__xcw = 1
+            if captwarning is not None:
+                self.warnings.append(captwarning)
 
             if self.__xdate != 0 and self.__xcw !=0:
                 self.__checked = 1
 
-################################################################################
-## 'write' function writes out the sql instert statement or an error          ##
-################################################################################
+    ################################################################################
+    ## 'write' function writes out the sql instert statement or an error          ##
+    ################################################################################
 
-    def write(self):
+    def write(self,db):
+        self.__db = db
+        self.out = []
+
+        # This is done here to prevent incrementation if source() is repeated by mistake
+        if self.__sourced == 0:
+            if self.__xeleph == 0:
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag+64
+                    self.warnings.append("This elephant could not be found in the database.")
+            elif self.__xevent == 0:
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag+128
+                    self.warnings.append("This event type is not yet registered the database.")
+
+        elif self.__sourced == 1:
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag+8
+
         if self.__checked == 0:
             print("You must check this event first using check(db)")
 
         elif self.__checked == 1:
-
             #If we need to update the "cw" or "alive" flags in the elephants table
             if self.__update_cw == 0:
                 wcw = None
@@ -1353,22 +1388,37 @@ class event:
                 walive = 'Y'
 
             out = []
-
             if wcw is not None or walive is not None:
                 update = self.__db.update_elephant(id=self.__elephant_id, cw=wcw, alive=walive)
-                out.append(update)
+                self.out.append(update)
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag+4
 
             insert = self.__db.insert_event(self.__elephant_id, self.__date, self.__loc, self.__code_id)
-            out.append(insert)
+            self.out.append(insert)
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag+2
 
         elif self.__checked == 0:
-
             if self.__xdate == 1 and self.__xcw == 0:
                 conflicts = 'origin'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag+16
             elif self.__xdate == 0 and self.__xcw == 1:
                 conflicts = 'date'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag+32
             else:
                 conflicts = 'date and origin'
-            out = "You need to solve conflicts for "+conflicts+" for elephant "+str(self.__num)+" before proceeding."
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag+48
+            out = "[Conflict] You need to solve conflicts for "+conflicts+" for elephant "+str(self.__num)+" before proceeding."
+            self.warnings.append(out)
 
-        return(out)
+        for w in self.warnings:
+            self.out.append(w)
+
+        self.__toggle_write_flag = 1
+        # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
+        output_row = [self.__num, self.__calf_num, self.__date, self.__loc, self.__code, self.flag, self.out]
+        return(output_row)
