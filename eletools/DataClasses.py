@@ -156,7 +156,7 @@ class elephant: ##MAKE A __repr__ function !!
         if self.__num is not None:
             results = self.__db.get_elephant(num=self.__num)
             if results is None and self.calf_num is not None:
-                results = self.__db.get_elephant(calf_num=self.__calf_num)
+                results = self.__db.get_elephant(calf_num=self.calf_num)
         elif self.__num is None and self.calf_num is not None:
             results = self.__db.get_elephant(calf_num=self.calf_num)
 
