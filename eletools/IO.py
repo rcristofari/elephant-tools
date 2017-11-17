@@ -346,7 +346,6 @@ def read_pedigree(elefile, sep=';'):
         row.append(warnings)
     return[fields, valid, remarks, rejected, issues, rows]
 
-
 ####################################################################################
 ##  read_measures() READ MEASURE DATA FILE                                        ##
 ####################################################################################
@@ -367,100 +366,113 @@ def read_measures(elefile, sep=';', solved='N'):
         for row in eleread:
             if row != []:
                 rows.append(row)
-    nfields = rows[0].__len__() - 2
+    nfields = fields.__len__() - 2
 
-    #Check data types: only numeric values allowed for the measures
-    reject = 0
-    warnings = []
+    # Check data types: only numeric values allowed for the measures
+    valid, remarks, rejected, issues = [], [], [], []
 
-    num = []
-    date = []
-    for row in rows:
-        num.append(row[0])
-        date.append(row[1])
-
-    if nfields < 3:
-        warning.append("You need at least one measure field.")
-        reject = 1
-
-        ########## num [COMPLUSORY]
-        for i,x in enumerate(num):
-            if re.search(r"^[0-9]+$", x):
-                pass
-            elif x == '':
-                warnings.append("Missing elephant number at line " + str(i+1) + ". You need one.")
-                reject = 1
-            else:
-                warnings.append("Format problem with elephant number: " + str(x) + " at line " + str(i+1))
-                reject = 1
-
-        ########## date
-        for i,x in enumerate(date):
-            if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", x):
-                pass
-            elif x == '':
-                warnings.append("Missing date at line " + str(i+1))
-            else:
-                warnings.append("Format problem with date: " + str(x) + " at line " + str(i+1))
-                reject = 1
-
-        ########## other fields
-        for f in range(nfields):
-            current_field = fields[f+2]
-            values = []
-            for row in rows:
-                values.append(row[f+2])
-            for i,v in enumerate(values):
-                if v.casefold().strip() in ('', 'na','none','null','n/a','unknown','ukn'):
-                    v = None
-                if v != None:
-                    try:
-                        float(v)
-                    except ValueError:
-                        reject = 1
-                        warnings.append("Format problem with value "+str(v)+" at line "+str(i)+".")
-
-        # Check the value ranges - isolate each measure as a vector
-        # and check whether each point is within a 5x factor of the median
-
-        if reject == 0:
-
-            for f in range(nfields):
-                current_field = fields[f+2]
-                values = []
-                for row in rows:
-                    try:
-                        values.append(float(row[f+2]))
-                    except ValueError:
-                        pass #for the purpose of calculating range, we ignore missing values
-                v_array = np.array(values)
-                vm = np.median(v_array)
-                for i,v in enumerate(values):
-                    if v != 0 and (v > 5*vm or v < vm/5):
-                        if solved == 'N':
-                            reject = 1
-                            warnings.append(current_field+": value "+str(v)+" seems out of range at line "+str(i)+".")
-                        elif solved == 'Y':
-                            pass
-
-            if reject == 1 and solved == 'N':
-                warnings.append("Please check values are correct and declare the file Solved.")
-
-    # Now parse the output out into small blocks
-    # the measure_id field is temporary and needs to be added to the last measure_id in the db
-    output = []
+    # Reformat rows as broken-down values with redundant num and date
+    units = []
     for i,row in enumerate(rows):
-        for f in range(nfields):
-            line = (num[i], date[i], (i+1), fields[f+2], row[f+2])
-            output.append(line)
+        ########## other fields
+        for f in range(2,nfields+2):
+            u = []
+            u.append(i+1) # This is the initial row number
+            u.append(row[0]) # We start by pasting num and date
+            u.append(row[1])
+            u.append(fields[f])
+            u.append(row[f])
+            units.append(u)
 
-    for w in warnings:
-        print(w)
+    # Now we scan each broken-down row
+    units_format = []
+    for j,u in enumerate(units):
+        flag = 0
+        w = []
 
-    if reject == 0:
-        return(output)
-    else:
-       return(warnings)
+        # Check num format
+        if re.search(r"^[0-9]+$", u[1]):
+            pass
+        elif u[1] == '':
+            w.append("Missing elephant number at line " + str(u[0]) + ". You need one.")
+            flag = 1
+        else:
+            w.append("Format problem with elephant number: " + str(u[1]) + " at line " + str(u[0]))
+            flag = 1
+
+        # Check date format
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", u[2]):
+            pass
+        elif u[2] == '':
+            w.append("Missing date at line " + str(u[0]))
+        else:
+            w.append("Format problem with date: " + str(u[2]) + " at line " + str(u[0]))
+            flag = 1
+
+        # Check code format
+        if re.search(r"^[a-zA-Z_]+$", u[3]):
+            pass
+        else:
+            w.append("Format problem with code: " + str(u[3]) + " at line " + str(u[0]))
+            flag = 1
+
+        # Check value format
+        if u[4].casefold().strip() in ('', 'na','none','null','n/a','unknown','ukn'):
+            u[4] = None
+        if u[4] != None:
+            try:
+                u[4] = float(u[4])
+            except ValueError:
+                flag = 1
+                w.append("Format problem with value "+str(v)+" at line "+str(i)+".")
+
+        if u[4] is not None:
+            u.append(flag)
+            u.append(w)
+            units_format.append(u)
+
+    units = []
+    ubuffer = []
+    for b in units_format:
+        ubuffer.append(b)
+
+    for u in units_format:
+        if solved == 'N':
+            # print(u)
+
+            # pull out the values of the same measure and get the median
+            input_range = []
+            for i,v in enumerate(ubuffer):
+                # print(i)
+                # print(u,v)
+                if v[3] == u[3]:
+                    # print(u,v)
+                    try:
+                        input_range.append(float(v[4]))
+                    except ValueError:
+                        pass
+            v_array = np.array(input_range)
+            vm = np.median(v_array)
+
+
+            if u[4] != 0 and (u[4] > 5*vm or u[4] < vm/5):
+                u[5] = 1
+                u[6].append(str(u[3])+": value "+str(u[4])+" seems out of range for elephant "+str(u[1])+" at line "+str(u[0])+" (median = "+str(vm)+").")
+
+        units.append(u)
+
+
+    for u in units:
+        if u[5] == 0:
+            if u[6] != []:
+                remarks.append(u[6])
+            valid.append(u[0:5])
+        elif u[5] == 1:
+            if u[6] != []:
+                issues.append(u[6])
+            rejected.append(u[0:5])
+
+    return[fields, valid, remarks, rejected, issues, units]
 
 ####################################################################################
 ##  read_events() READ EVENT LIST FILE                                             ##
@@ -472,6 +484,7 @@ def read_measures(elefile, sep=';', solved='N'):
 def read_events(elefile, sep=',', solved='N'):
     num, calf_num, date, loc, code = [], [], [], [], []
     valid, remarks, rejected, issues =[], [], [], []
+
     with open(elefile) as elefile:
         eleread = csv.reader(elefile, delimiter=sep, quotechar="'")
         fields = next(eleread)
@@ -555,7 +568,6 @@ def read_events(elefile, sep=',', solved='N'):
             rejected.append(row)
         row.append(warnings)
     return[fields, valid, remarks, rejected, issues, rows]
-
 
 ####################################################################################
 ##  parse_output() parses the total output into mysql and warings                 ##

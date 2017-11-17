@@ -56,7 +56,7 @@ class MainApplication(tk.Frame):
         self.filemenu.add_command(label="Import elephants", command=self.call_read_elephants, underline=7, accelerator="Ctrl+e")
         self.filemenu.add_command(label="Import pedigrees", command=self.call_read_pedigree, underline=7, accelerator="Ctrl+p")
         self.filemenu.add_command(label="Import events", command=self.call_read_events, underline=8, accelerator="Ctrl+v")
-        self.filemenu.add_command(label="Import measures", command=self.notimplemented, underline=7, accelerator="Ctrl+m")
+        self.filemenu.add_command(label="Import measures", command=self.call_read_measures, underline=7, accelerator="Ctrl+m")
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Set project folder", command=self.set_wdir, underline=12, accelerator="Ctrl+f")
         self.filemenu.add_separator()
@@ -111,6 +111,7 @@ class MainApplication(tk.Frame):
         self.master.bind_all("<Control-e>", self.call_read_elephants)
         self.master.bind_all("<Control-p>", self.call_read_pedigree)
         self.master.bind_all("<Control-v>", self.call_read_events)
+        self.master.bind_all("<Control-m>", self.call_read_measures)
         self.master.bind_all("<Control-f>", self.set_wdir)
 
         self.master.bind_all("<Shift-E>", self.call_find_elephant)
@@ -136,6 +137,9 @@ class MainApplication(tk.Frame):
     def call_read_events(self, *args):
         read_event_file(self.master)
 
+    def call_read_measures(self, *args):
+        read_measure_file(self.master)
+
 ###################################################
 
     def set_wdir(self, *args):
@@ -148,7 +152,6 @@ class MainApplication(tk.Frame):
             parmfile.write("database="+self.master.params_db+'\n')
             parmfile.write("port="+self.master.params_port+'\n')
             parmfile.write("wdir="+self.master.wdir+'\n')
-
 
     def shutdown(self, *args):
         try:

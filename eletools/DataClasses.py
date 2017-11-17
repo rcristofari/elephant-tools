@@ -37,6 +37,12 @@ from eletools.Utilities import *
     # 64 : missing elephant
     # 128 : missing event type
 
+# For the measure class:
+    # 16 : value out of range
+    # 32 : replicate
+    # 64 : missing elephant
+    # 128 : missing measure code
+
    ##########################################################################
  ##############################################################################
 ###                                                                          ###
@@ -1072,6 +1078,12 @@ class measure:
         self.__xrep = 1
         self.__sourced = 0
         self.__checked = 0
+        self.__xmissval = 1
+
+        self.warnings = []
+        self.out = []
+        self.flag = flag
+        self.__toggle_write_flag = 0
 
     ################################################################################
     ## 'source' function reads the measure from the database if it exists         ##
@@ -1085,37 +1097,49 @@ class measure:
 
         self.__db=db
 
-        #Get the ID of the elephant:
+        # Get the ID of the elephant, or print out an error if the elephant is absent from the database.
         self.__elephant = self.__db.get_elephant(num = self.__num)
+        missing = None
         if self.__elephant is None:
-            print("This elephant is absent from the database. Impossible to add a measure.")
+            missing = ("This elephant is absent from the database. Impossible to add a measure.")
             self.__xeleph = 0
-
+            print(missing)
+            if missing is not None:
+                self.warnings.append(missing)
         else:
             self.__elephant_id = self.__elephant[0]
             self.__xeleph = 1
 
-            #Start by seeing if that measure type is present in the measure_code table:
+            # Check whetherthat measure type is present in the measure_code table:
             self.__code = self.__db.get_measure_code(self.__measure)
 
+            missing = None
             if self.__code is None:
-                print("Measure type", self.__measure, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
+                missing = ("Measure type "+str(self.__measure)+" is not registered yet.\nPlease register it before proceeding (or check for typos)")
+                self.__xmissval = 0
+                print(missing)
+                if missing is not None:
+                    self.warnings.append(missing)
 
             else:
                 self.__db_line = self.__db.get_measure(self.__num, self.__date, self.__code)
                 #Cases where the measure is already entered in a similar form in the database:
                 if self.__db_line is not None:
 
+                    duplicate = None
                     self.__db_value = self.__db_line[5]
                     if float(self.__value) == self.__db_value:
                         self.__sourced = 1
-                        print("An identical measure is already entered in the database.")
+                        duplicate = ("An identical measure is already entered in the database.")
                         self.__xrep = 0
                     else:
                         if self.__replicate == 'N':
-                            print("There is already a measure for ", self.__measure, " at that date in the database (", self.__value, ")", sep="")
+                            duplicate = ("There is already a measure for "+str(self.__measure)+" at that date in the database ("+str(self.__value)+")")
                             self.__sourced = 1
                             self.__xrep = 0
+                    if duplicate is not None:
+                        self.warnings.append(duplicate)
+                        print(duplicate)
 
                 #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
                 elif self.__db_line is None or (self.__db_line is not None and self.__replicate == 'Y'):
@@ -1140,15 +1164,20 @@ class measure:
             self.__checked = 1
             print("This measure is already in the database. Nothing to do here.")
         #If the measure is not present yet but the measure type is valid
+
+
         elif self.__sourced == 2:
+            outrange = None
             self.__mean_value = float(self.__db.get_mean_measure(self.__code))
             if (self.__value > 10*self.__mean_value or self.__value < self.__mean_value/10) and self.__solved == 'N':
-                print("The proposed value is out of the mean order of magnitude in the database. Check the input.")
+                outrange = ("The proposed value is out of the mean order of magnitude in the database. Check the input.")
                 self.__xval = 0
             else:
                 print("This measure is valid. You can proceed to write()")
                 self.__xval = 1
                 self.__checked = 2
+            if outrange is not None:
+                self.warnings.append(outrange)
 
     ################################################################################
     ## 'write' function writes out the sql instert statement or an error          ##
@@ -1157,26 +1186,48 @@ class measure:
     def write(self, db):
         self.__db=db
 
+        if self.__xmissval == 0:
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag+128
+                self.warnings.append("This measure type is not yet registered the database.")
+
         if self.__checked == 0:
             if self.__sourced == 0:
                 print("This entry must pass through check() first.")
             elif self.__sourced == 1:
-                print("This entry is not valid. Please check input before proceeding.")
+                self.warnings.append("[Conflict] This entry is not valid. Please check input before proceeding.")
+
         elif self.__checked == 1 and self.__sourced == 1:
             print("This measure is already entered, nothing to do.")
-        elif self.__checked == 2:
-            out = self.__db.insert_measure(self.__measure_id, self.__elephant_id, self.__date, self.__code, self.__value)
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 8
 
+        elif self.__checked == 2:
+            self.out = self.__db.insert_measure(self.__measure_id, self.__elephant_id, self.__date, self.__code, self.__value)
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 2
+
+        #######################
         if self.__xeleph == 1:
             if self.__xval == 0:
                 if self.__xrep == 1:
-                    out = "[Conflict] Value out of range for elephant "+str(self.__num)+" (here "+str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")"
+                    self.warnings.append("[Conflict] Value out of range for elephant "+str(self.__num)+" (here "+str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")")
                 elif self.__xrep == 0:
-                    out = "[Conflict] Value "+str(self.__value)+" ("+str(self.__measure)+") for elephant "+str(self.__num)+" appears to be a duplicate"
+                    self.warnings.append("[Conflict] Value "+str(self.__value)+" ("+str(self.__measure)+") for elephant "+str(self.__num)+" appears to be a duplicate")
         elif self.__xeleph == 0:
-            out = "[Conflict] Elephant number "+str(self.__num)+" is absent from the database"
+            self.warnings.append("[Conflict] Elephant number "+str(self.__num)+" is absent from the database")
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag+64
 
-        return(out)
+        for w in self.warnings:
+            self.out.append(w)
+
+        self.__toggle_write_flag = 1
+        # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
+        output_row = [self.__measure_id, self.__elephant_id, self.__date, self.__code, self.__value, self.flag, self.out]
+        return(output_row)
+
+
 
 #  ##########################################################################
  ##############################################################################
