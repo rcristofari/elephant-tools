@@ -1,8 +1,34 @@
 # elephant-tools
 A set of python tools to explore the Myanmar Elephant Project demographic dataset at University of Turku.
 
-*User manual coming soon..!*
+**INSTALL**
+Everything will be easier if you start by installing Anaconda (or Miniconda) for Python3 (version 3.5 or later) from the Anaconda website: https://www.anaconda.com/download/#linux
+Then install the following dependencies (if not yet matched): scipy, numpy, pymysql, ete3, etetoolkit, PILLOW.
+If using Anaconda, open your terminal (or cmd.exe on Windows) and enter:
 
+**conda install -c scipy numpy pymysql etetoolkit ete3 PILLOW**
+
+Then proceed to download the module. If on OSX or Linux, use:
+
+**git clone https://github.com/rcristofari/elephant-tools.git**
+
+Then move to the download directory in your terminal:
+
+**cd /your/download/dir/elephant-tools-master/**
+
+And run the installer. You will need superuser permissions. On OSX or Linux, type:
+
+**sudo python3 setup.py install**
+
+On Windows, open your cmd.exe as Administrator, and type:
+
+**python setup.py install**
+
+You can then run the program with:
+
+**./ElephantGUI.py**
+
+------------------------------------------------------------------
 
 **We are a multi-disciplinary research group based at the University of Turku, Finland and the University of Sheffield, UK, studying a large and unique semi-captive population of timber elephants in Myanmar.**
 

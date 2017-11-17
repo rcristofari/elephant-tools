@@ -1,0 +1,4 @@
+include COPYING.txt
+recursive-include __resources *
+recursive-include sql *
+recursive-include templates *

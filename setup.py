@@ -1,3 +1,4 @@
+# from distutils.core import setup
 from setuptools import setup
 
 setup(name='eletools',
@@ -6,13 +7,12 @@ setup(name='eletools',
       url='https://github.com/rcristofari/elephant-tools/',
       author='Robin Cristofari',
       author_email='r.cristofari@gmail.com',
-      license='UTU',
-      packages=['eletools'],
+      license='GPL',
+      packages=['eletools','eletools_gui'],
       install_requires=[
           'scipy',
           'numpy',
-          'pymysql'
+          'pymysql',
           'ete3',
           'PILLOW'
-      ],
-      zip_safe=False)
+      ])
