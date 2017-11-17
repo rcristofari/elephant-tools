@@ -2,15 +2,18 @@
 A set of python tools to explore the Myanmar Elephant Project demographic dataset at University of Turku.
 
 **INSTALL**
+
 Everything will be easier if you start by installing Anaconda (or Miniconda) for Python3 (version 3.5 or later) from the Anaconda website: https://www.anaconda.com/download/#linux
 Then install the following dependencies (if not yet matched): scipy, numpy, pymysql, ete3, etetoolkit, PILLOW.
 If using Anaconda, open your terminal (or cmd.exe on Windows) and enter:
 
 **conda install -c scipy numpy pymysql etetoolkit ete3 PILLOW**
 
-Then proceed to download the module. If on OSX or Linux, use:
+Then proceed to download the module. If in OSX or Linux, use:
 
 **git clone https://github.com/rcristofari/elephant-tools.git**
+
+In Windows, if you do not have git installed, just download using the direct download link.
 
 Then move to the download directory in your terminal:
 
