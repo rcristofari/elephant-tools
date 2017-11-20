@@ -202,13 +202,14 @@ class age_gaps(tk.Frame):
     def create_widgets(self):
         # add a tracker here
         self.moderadio1=tk.Radiobutton(self.master, text="One elephant", variable=self.run_mode, value=0, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.moderadio1.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
-        self.moderadio2=tk.Radiobutton(self.master, text="One elephant", variable=self.run_mode, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.moderadio2.grid(row=1, column=2, sticky=tk.W, padx=5, pady=5)
+        self.moderadio1.grid(row=1, column=1, sticky=tk.W, padx=0, pady=5)
+        self.moderadio2=tk.Radiobutton(self.master, text="All elephants", variable=self.run_mode, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.moderadio2.grid(row=1, column=2, sticky=tk.W, padx=0, pady=5)
         self.moderadio2.config(state='disabled')
+
         if self.run_mode.get() == 0:
             self.entrylabel = tk.Label(self.master, text="Mother's number:\t\t", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-            self.entrylabel.grid(row=2, column=1, sticky=tk.E, padx=0, pady=5)
+            self.entrylabel.grid(row=2, column=1, sticky=tk.W, padx=0, pady=5)
             self.numentry = tk.Entry(self.master, width=25)
             self.numentry.grid(row=2, column=2, columnspan=1, sticky = tk.E, padx=0, pady=5)
             self.searchbutton=tk.Button(self.master, text='Search', width=15, command=self.call_get_all_offsprings, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
@@ -480,9 +481,9 @@ class find_event(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
 
-        self.tv1label = tk.Label(self.view_window, text="Available measures", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.tv1label = tk.Label(self.view_window, text="Available events", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.tv1label.grid(row=1, column=1, sticky=tk.EW, pady=5)
-        self.tv1label = tk.Label(self.view_window, text="Selected measures", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.tv1label = tk.Label(self.view_window, text="Selected events", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.tv1label.grid(row=1, column=2, sticky=tk.EW, pady=5)
 
         self.tv1 = ttk.Treeview(self.view_window, height=20, columns=('Description'), show="tree")

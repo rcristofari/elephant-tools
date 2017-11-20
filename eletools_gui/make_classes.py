@@ -84,7 +84,7 @@ class make_measure_set(tk.Frame):
         self.savebutton.config(state='disabled')
 
     def load_template(self):
-        self.__templatefilename = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose a template file")
+        self.__templatefilename = askopenfilename(initialdir=self.master.wdir, filetypes =(("Template file", "*.templ"),("All Files","*.*")), title = "Choose a template file")
         self.radiolm1.config(state='normal')
         self.radiolm2.config(state='normal')
         self.findbutton.config(state='normal')

@@ -387,8 +387,7 @@ def read_measures(elefile, sep=';', solved='N'):
     # Now we scan each broken-down row
     units_format = []
     for j,u in enumerate(units):
-        flag = 0
-        w = []
+        w, flag = [], 0
 
         # Check num format
         if re.search(r"^[0-9]+$", u[1]):
@@ -419,12 +418,13 @@ def read_measures(elefile, sep=';', solved='N'):
         # Check value format
         if u[4].casefold().strip() in ('', 'na','none','null','n/a','unknown','ukn'):
             u[4] = None
-        if u[4] != None:
+
+        if u[4] is not None:
             try:
                 u[4] = float(u[4])
             except ValueError:
                 flag = 1
-                w.append("Format problem with value "+str(v)+" at line "+str(i)+".")
+                w.append("Format problem with value "+str(u[4])+" at line "+str(i)+".")
 
         if u[4] is not None:
             u.append(flag)
@@ -437,7 +437,12 @@ def read_measures(elefile, sep=';', solved='N'):
         ubuffer.append(b)
 
     for u in units_format:
-        if solved == 'N':
+        validvalue = 1
+        try:
+            float(u[4])
+        except:
+            validvalue = 0
+        if solved == 'N' and validvalue == 1:
             # pull out the values of the same measure and get the median
             input_range = []
             for i,v in enumerate(ubuffer):
