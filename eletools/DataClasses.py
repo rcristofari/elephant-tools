@@ -682,7 +682,7 @@ class elephant: ##MAKE A __repr__ function !!
 
 class pedigree:
 
-    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False):
+    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, flag=0):
 
         # Non-prefixed parameters describe user input
         self.eleph_1=eleph_1
@@ -742,7 +742,7 @@ class pedigree:
             if self.eleph_2_is_calf is False:
                 el2 = self.__db.get_elephant(num=self.eleph_2)
             else:
-                el2 = self.__db.get_elephant(calfnum=self.eleph_2)
+                el2 = self.__db.get_elephant(calf_num=self.eleph_2)
 
             self.__db_eleph_1 = []
             self.__db_eleph_2 = []
@@ -754,11 +754,11 @@ class pedigree:
 
         except TypeError:
             missing = ''
-            if self.__db.get_elephant(self.eleph_1) is None and self.__db.get_elephant(self.eleph_2) is None:
-                missing = ("Impossible to find elephant ", self.eleph_1+" nor "+self.eleph_2+" in the database.")
-            if self.__db.get_elephant(self.eleph_1) is None and self.__db.get_elephant(self.eleph_2) is not None:
+            if el1 is None and el2 is None:
+                missing = ("Impossible to find elephant "+self.eleph_1+" nor "+self.eleph_2+" in the database.")
+            if el1 is None and el2 is not None:
                 missing = ("Impossible to find elephant "+self.eleph_1+" in the database.")
-            if self.__db.get_elephant(self.eleph_1) is not None and self.__db.get_elephant(self.eleph_2) is None:
+            if el1 is not None and el2 is None:
                 missing = ("Impossible to find elephant "+self.eleph_2+" in the database.")
             self.warnings.append(missing)
             print(missing)
@@ -1017,6 +1017,7 @@ class pedigree:
                 self.out = ("[Conflict] Elephants number " + self.eleph_1 + " and " + self.eleph_2 + ": this relationship exists in the database, but with an error.")
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 2**7
+
             elif self.elephant_absent == 1:
                 self.out = ("[Conflict] Elephants number " + self.eleph_1 + " and " + self.eleph_2 + ": this relationship involves an unknown elephant.")
                 if self.__toggle_write_flag == 0:
@@ -1045,7 +1046,6 @@ class pedigree:
         output_row = [self.eleph_1, self.eleph_2, self.rel, self.coef, self.flag, self.warnings]
         return(output_row)
 
-
 #   ##########################################################################
  ##############################################################################
 ###                                                                          ###
@@ -1058,8 +1058,9 @@ class pedigree:
 
 class measure:
 
-    def __init__(self, num, date, measure_id, measure, value, replicate='N', solved = 'N'):
+    def __init__(self, date, measure_id, measure, value, num=None, calf_num=None, replicate='N', solved = 'N', flag=0):
         self.__num=num
+        self.__calf_num=calf_num
         self.__date=date
         self.__measure_id=measure_id
         self.__measure=measure
@@ -1073,7 +1074,7 @@ class measure:
         else:
             self.__solved='N'
         self.__code = None
-        self.__xval = 0
+        self.__xval = 1
         self.__xeleph = 0
         self.__xrep = 1
         self.__sourced = 0
@@ -1098,10 +1099,15 @@ class measure:
         self.__db=db
 
         # Get the ID of the elephant, or print out an error if the elephant is absent from the database.
-        self.__elephant = self.__db.get_elephant(num = self.__num)
+        if self.__num is not None:
+            self.__elephant = self.__db.get_elephant(num = self.__num)
+        elif self.__num is None and self.__calf_num is not None:
+            self.__elephant = self.__db.get_elephant(calf_num = self.__calf_num)
         missing = None
         if self.__elephant is None:
             missing = ("This elephant is absent from the database. Impossible to add a measure.")
+            self.__sourced = 1
+            self.__elephant_id = None
             self.__xeleph = 0
             print(missing)
             if missing is not None:
@@ -1116,6 +1122,7 @@ class measure:
             missing = None
             if self.__code is None:
                 missing = ("Measure type "+str(self.__measure)+" is not registered yet.\nPlease register it before proceeding (or check for typos)")
+                self.__sourced = 1
                 self.__xmissval = 0
                 print(missing)
                 if missing is not None:
@@ -1123,9 +1130,9 @@ class measure:
 
             else:
                 self.__db_line = self.__db.get_measure(self.__num, self.__date, self.__code)
+
                 #Cases where the measure is already entered in a similar form in the database:
                 if self.__db_line is not None:
-
                     duplicate = None
                     self.__db_value = self.__db_line[5]
                     if float(self.__value) == self.__db_value:
@@ -1160,22 +1167,34 @@ class measure:
 
         if self.__sourced == 0:
             print("You need to source this measure first.")
+
         elif self.__sourced == 1:
-            self.__checked = 1
-            print("This measure is already in the database. Nothing to do here.")
-        #If the measure is not present yet but the measure type is valid
+            if self.__xeleph == 1 and self.__xmissval == 1:
+                self.__checked = 1
+                print("Nothing to do here.")
+            else:
+                self.__checked = 0
+                print("Impossible to go further.")
 
-
-        elif self.__sourced == 2:
+        # If the measure is not present yet but the measure type is valid
+        elif self.__sourced == 2 and self.__xmissval == 1:
             outrange = None
-            self.__mean_value = float(self.__db.get_mean_measure(self.__code))
-            if (self.__value > 10*self.__mean_value or self.__value < self.__mean_value/10) and self.__solved == 'N':
+            self.__mean_value = None
+            mv = self.__db.get_average_measure(self.__code)
+            try:
+                self.__mean_value = float(mv)
+            except:
+                print("No values for that measure in the database yet")
+                self.__xval = 1
+
+            if self.__mean_value is not None and (self.__value > 10*self.__mean_value or self.__value < self.__mean_value/10) and self.__solved == 'N':
                 outrange = ("The proposed value is out of the mean order of magnitude in the database. Check the input.")
                 self.__xval = 0
             else:
                 print("This measure is valid. You can proceed to write()")
                 self.__xval = 1
                 self.__checked = 2
+
             if outrange is not None:
                 self.warnings.append(outrange)
 
@@ -1186,16 +1205,39 @@ class measure:
     def write(self, db):
         self.__db=db
 
-        if self.__xmissval == 0:
-            if self.__toggle_write_flag == 0:
-                self.flag = self.flag+128
-                self.warnings.append("This measure type is not yet registered the database.")
-
         if self.__checked == 0:
             if self.__sourced == 0:
                 print("This entry must pass through check() first.")
+                #### HERE IS THE RUB
+
+
             elif self.__sourced == 1:
-                self.warnings.append("[Conflict] This entry is not valid. Please check input before proceeding.")
+                # self.warnings.append("[Conflict] This entry is not valid. Please check input before proceeding.")
+
+                #######################
+                # Case where the elephant is present in the database
+                if self.__xeleph == 1 and self.__xmissval == 1:
+                    if self.__xval == 0:
+                        if self.__xrep == 1:
+                            self.warnings.append("[Conflict] Value out of range for elephant "+str(self.__num)+" (here "+str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")")
+                            if self.__toggle_write_flag == 0:
+                                self.flag = self.flag+16
+                        elif self.__xrep == 0:
+                            self.warnings.append("[Conflict] Value "+str(self.__value)+" ("+str(self.__measure)+") for elephant "+str(self.__num)+" appears to be a duplicate")
+                            if self.__toggle_write_flag == 0:
+                                self.flag = self.flag+32
+
+                # Case where the elephant is absent from the database
+                elif self.__xeleph == 0:
+                    self.warnings.append("[Conflict] Elephant number "+str(self.__num)+" is absent from the database")
+                    if self.__toggle_write_flag == 0:
+                        self.flag = self.flag+64
+
+                # Case where the measure type is not in the db yet:
+                elif self.__xmissval == 0:
+                    self.warnings.append("[Conflict] The measure type "+str(self.__measure)+" is not registered yet")
+                    if self.__toggle_write_flag == 0:
+                        self.flag = self.flag+128
 
         elif self.__checked == 1 and self.__sourced == 1:
             print("This measure is already entered, nothing to do.")
@@ -1207,26 +1249,13 @@ class measure:
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 2
 
-        #######################
-        if self.__xeleph == 1:
-            if self.__xval == 0:
-                if self.__xrep == 1:
-                    self.warnings.append("[Conflict] Value out of range for elephant "+str(self.__num)+" (here "+str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")")
-                elif self.__xrep == 0:
-                    self.warnings.append("[Conflict] Value "+str(self.__value)+" ("+str(self.__measure)+") for elephant "+str(self.__num)+" appears to be a duplicate")
-        elif self.__xeleph == 0:
-            self.warnings.append("[Conflict] Elephant number "+str(self.__num)+" is absent from the database")
-            if self.__toggle_write_flag == 0:
-                self.flag = self.flag+64
-
         for w in self.warnings:
             self.out.append(w)
 
         self.__toggle_write_flag = 1
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
-        output_row = [self.__measure_id, self.__elephant_id, self.__date, self.__code, self.__value, self.flag, self.out]
+        output_row = [self.__measure_id, self.__num, self.__date, self.__code, self.__value, self.flag, self.out]
         return(output_row)
-
 
 
 #  ##########################################################################

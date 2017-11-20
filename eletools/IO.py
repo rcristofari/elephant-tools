@@ -438,8 +438,6 @@ def read_measures(elefile, sep=';', solved='N'):
 
     for u in units_format:
         if solved == 'N':
-            # print(u)
-
             # pull out the values of the same measure and get the median
             input_range = []
             for i,v in enumerate(ubuffer):
@@ -454,11 +452,9 @@ def read_measures(elefile, sep=';', solved='N'):
             v_array = np.array(input_range)
             vm = np.median(v_array)
 
-
             if u[4] != 0 and (u[4] > 5*vm or u[4] < vm/5):
                 u[5] = 1
                 u[6].append(str(u[3])+": value "+str(u[4])+" seems out of range for elephant "+str(u[1])+" at line "+str(u[0])+" (median = "+str(vm)+").")
-
         units.append(u)
 
 

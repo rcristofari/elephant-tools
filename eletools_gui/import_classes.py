@@ -2,7 +2,6 @@
 import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 import tkinter.ttk as ttk
-from PIL import Image
 import os
 import re
 from datetime import datetime
@@ -50,6 +49,10 @@ class read_elephant_file(tk.Frame):
         self.radio1 = tk.Radiobutton(self.master, text="This data has already been verified", variable=self.solved, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.radio1.grid(row=3, column=2, columnspan=2, sticky=tk.W, padx=5, pady=5)
 
+        self.master.focus_set()
+        self.master.bind('<Return>', self.call_analyse)
+        self.master.bind('<space>', self.show_file_content)
+
     def call_read_elephants(self):
         if self.name is None and self.master.manual_add_elephant is None:
             self.name = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
@@ -82,7 +85,7 @@ class read_elephant_file(tk.Frame):
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
-    def show_file_content(self):
+    def show_file_content(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Elephant file "+self.master.shortname)
@@ -110,6 +113,12 @@ class read_elephant_file(tk.Frame):
         self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
+
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
@@ -131,7 +140,7 @@ class read_elephant_file(tk.Frame):
         else:
             self.call_read_elephants()
 
-    def call_analyse(self):
+    def call_analyse(self, *args):
         analyse_elephant_file(self.master, solved=self.solved.get())
 
 ################################################################################
@@ -179,6 +188,10 @@ class read_pedigree_file(tk.Frame):
         self.calfradio2 = tk.Radiobutton(self.master, text="a calf", variable=self.calfvar, value=True, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.calfradio2.grid(row=3, column=3, sticky=tk.W, padx=5, pady=5)
 
+        self.master.focus_set()
+        self.master.bind('<Return>', self.call_analyse)
+        self.master.bind('<space>', self.show_file_content)
+
     def call_read_pedigree(self):
 
         if self.name is None:
@@ -204,7 +217,7 @@ class read_pedigree_file(tk.Frame):
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
-    def show_file_content(self):
+    def show_file_content(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Pedigree file "+self.master.shortname)
@@ -215,7 +228,10 @@ class read_pedigree_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('elephant_1_id', 'elephant_2_id', 'rel', 'coef')
+        if self.calfvar.get() is False:
+            self.tv['columns'] = ('Elephant 1', 'Elephant 2', 'rel', 'coef')
+        else:
+            self.tv['columns'] = ('Elephant', 'Calf', 'rel', 'coef')
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
         for c in self.tv['columns']:
@@ -226,6 +242,12 @@ class read_pedigree_file(tk.Frame):
             self.tv.insert('','end',text=str(i+1), values=row[0:4], tags = (row[4],))
         self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
 
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
@@ -248,7 +270,7 @@ class read_pedigree_file(tk.Frame):
         else:
             self.call_read_pedigree()
 
-    def call_analyse(self):
+    def call_analyse(self, *args):
         self.master.eleph_2_is_calf = self.calfvar.get()
         analyse_pedigree_file(self.master)
 
@@ -286,6 +308,10 @@ class read_event_file(tk.Frame):
         self.showfilebutton.grid(row=2, column=2, columnspan=1, sticky=tk.EW, padx=5, pady=5)
         self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.analysebutton.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
+        self.master.focus_set()
+        self.master.bind('<Return>', self.call_analyse)
+        self.master.bind('<space>', self.show_file_content)
+
 
     def call_read_events(self):
         if self.name is None:
@@ -308,7 +334,7 @@ class read_event_file(tk.Frame):
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
-    def show_file_content(self):
+    def show_file_content(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Pedigree file "+self.master.shortname)
@@ -331,6 +357,12 @@ class read_event_file(tk.Frame):
         self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
+
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
@@ -350,9 +382,9 @@ class read_event_file(tk.Frame):
             text = "You haven't loaded any file yet."
             text.insert(tk.END, self.result_text)
         else:
-            self.call_read_pedigree()
+            self.call_read_events()
 
-    def call_analyse(self):
+    def call_analyse(self, *args):
         analyse_event_file(self.master)
 
 ################################################################################
@@ -367,8 +399,12 @@ class read_measure_file(tk.Frame):
         tk.Frame.__init__(self, self.master)
         self.configure_gui()
         self.clear_frame()
-        self.calfvar = tk.BooleanVar()
-        self.calfvar.set(False)
+        self.calfvar = tk.StringVar()
+        self.calfvar.set('N')
+        self.repvar = tk.StringVar()
+        self.repvar.set('N')
+        self.solvedvar = tk.StringVar()
+        self.solvedvar.set('N')
         self.create_widgets()
         self.call_read_measures()
 
@@ -389,12 +425,22 @@ class read_measure_file(tk.Frame):
         self.showfilebutton.grid(row=2, column=2, columnspan=1, sticky=tk.EW, padx=5, pady=5)
         self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.analysebutton.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
+        self.calfbutton = tk.Checkbutton(self.master, text="Numbers are Calf numbers", variable=self.calfvar, onvalue='Y', offvalue='N', bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.calfbutton.grid(row=3, column=2, sticky=tk.W)
+        self.repbutton = tk.Checkbutton(self.master, text="Input contains replicates", variable=self.repvar, onvalue='Y', offvalue='N', bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.repbutton.grid(row=4, column=2, sticky=tk.W)
+        self.solvedbutton = tk.Checkbutton(self.master, text="This is trusted data", variable=self.solvedvar, onvalue='Y', offvalue='N', bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.solvedbutton.grid(row=5, column=2, sticky=tk.W)
+
+        self.master.focus_set()
+        self.master.bind('<Return>', self.call_analyse)
+        self.master.bind('<space>', self.show_file_content)
 
     def call_read_measures(self):
         if self.name is None:
             self.name = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose a measure definition file")
         self.master.shortname = os.path.split(self.name)[1]
-        self.master.file_content = read_measures(self.name, ',')
+        self.master.file_content = read_measures(self.name, ',', solved=self.solvedvar.get())
         n_accepted = self.master.file_content[1].__len__()
         n_rejected = self.master.file_content[3].__len__()
         parse_reads(self.master.file_content, prefix=(self.name.partition('.')[0]))
@@ -411,7 +457,7 @@ class read_measure_file(tk.Frame):
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
 
-    def show_file_content(self):
+    def show_file_content(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Pedigree file "+self.master.shortname)
@@ -422,7 +468,10 @@ class read_measure_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value')
+        if self.calfvar.get() == 'N':
+            self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value')
+        else:
+            self.tv['columns'] = ('set', 'calf', 'date', 'code', 'value')
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=80)
         for c in self.tv['columns']:
@@ -439,6 +488,12 @@ class read_measure_file(tk.Frame):
         self.tv.tag_configure('odd', foreground='gray') #font = 'globalfont 10 bold'
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
+
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
@@ -450,7 +505,7 @@ class read_measure_file(tk.Frame):
             for w in warning:
                 self.warningbox.insert(tk.END, w+'\n')
         else:
-            self.warningbox.insert(tk.END, "No problem with this event.")
+            self.warningbox.insert(tk.END, "No problem with this measure.")
         self.warningbox.config(state=tk.DISABLED)
 
     def reload_file(self):
@@ -458,7 +513,7 @@ class read_measure_file(tk.Frame):
             text = "You haven't loaded any file yet."
             text.insert(tk.END, self.result_text)
         else:
-            self.call_read_pedigree()
+            self.call_read_measures()
 
-    def call_analyse(self):
-        analyse_event_file(self.master)
+    def call_analyse(self, *args):
+        analyse_measure_file(self.master, self.calfvar.get(), self.repvar.get(), self.solvedvar.get())

@@ -55,6 +55,9 @@ class analyse_elephant_file(tk.Frame):
         self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
+        self.master.focus_set()
+        self.master.bind('<space>', self.show_conflicts)
+
     def stop_loop(self):
         self.break_loop = 1
 
@@ -124,7 +127,7 @@ class analyse_elephant_file(tk.Frame):
         self.result.update()
         self.result.see(tk.END)
 
-    def show_conflicts(self):
+    def show_conflicts(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Elephant file "+self.master.shortname)
@@ -155,6 +158,12 @@ class analyse_elephant_file(tk.Frame):
         self.tv.tag_configure('known', background='#D5D0CD')
         self.tv.tag_configure('conflicting', background='#A30B37')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
 
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
@@ -240,6 +249,9 @@ class analyse_pedigree_file(tk.Frame):
         self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
+        self.master.focus_set()
+        self.master.bind('<space>', self.show_conflicts)
+
     def stop_loop(self):
         self.break_loop = 1
 
@@ -290,7 +302,7 @@ class analyse_pedigree_file(tk.Frame):
         self.result.update()
         self.result.see(tk.END)
 
-    def show_conflicts(self):
+    def show_conflicts(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Pedigree file "+self.master.shortname)
@@ -299,7 +311,10 @@ class analyse_pedigree_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('elephant_1_id', 'elephant_2_id', 'rel', 'coef')
+        if self.master.eleph_2_is_calf is False:
+            self.tv['columns'] = ('Elephant 1', 'Elephant 2', 'rel', 'coef')
+        else:
+            self.tv['columns'] = ('Elephant', 'Calf', 'rel', 'coef')
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
         for c in self.tv['columns']:
@@ -325,6 +340,12 @@ class analyse_pedigree_file(tk.Frame):
         self.tv.tag_configure('missing', background='#B3B3F1')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
+
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
@@ -337,6 +358,7 @@ class analyse_pedigree_file(tk.Frame):
             self.warningbox.insert(tk.END, 'This relationship is already in the database.')
         else:
             for w in warning:
+                print(w)
                 self.warningbox.insert(tk.END, w+'\n')
         self.warningbox.config(state=tk.DISABLED)
 
@@ -385,6 +407,9 @@ class analyse_event_file(tk.Frame):
         self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
         self.writebutton.config(state="disabled")
 
+        self.master.focus_set()
+        self.master.bind('<space>', self.show_conflicts)
+
     def stop_loop(self):
         self.break_loop = 1
 
@@ -429,7 +454,7 @@ class analyse_event_file(tk.Frame):
                     sC += 1
 
                 self.master.common_out.append(w)
-                self.result.insert(tk.END, ("\tAnalysing relationship number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
+                self.result.insert(tk.END, ("\tAnalysing event number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
         if self.break_loop == 0:
@@ -442,7 +467,7 @@ class analyse_event_file(tk.Frame):
         self.result.update()
         self.result.see(tk.END)
 
-    def show_conflicts(self):
+    def show_conflicts(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Event file "+self.master.shortname)
@@ -478,6 +503,12 @@ class analyse_event_file(tk.Frame):
         self.tv.tag_configure('event', background='#CE6A85')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
+
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
@@ -487,7 +518,185 @@ class analyse_event_file(tk.Frame):
         flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
         warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
         if flag == 8:
-            self.warningbox.insert(tk.END, 'This relationship is already in the database.')
+            self.warningbox.insert(tk.END, 'This event is already in the database.')
+        else:
+            for w in warning:
+                if w.__len__() ==1:
+                    self.warningbox.insert(tk.END, str(w))
+                else:
+                    self.warningbox.insert(tk.END, str(w)+'\n')
+        self.warningbox.config(state=tk.DISABLED)
+
+    def write_sql(self):
+        folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
+        parse_output(self.master.common_out, self.master.db, folder)
+        self.result.insert(tk.END, ("\tFiles written in "+folder))
+        self.result.update()
+        self.result.see(tk.END)
+
+################################################################################
+## Batch analyse a measure file                                                ##
+################################################################################
+
+class analyse_measure_file(tk.Frame):
+
+    def __init__(self, master, calfvar, repvar, solvedvar):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.name = None
+        self.break_loop = 0
+        self.calfvar=calfvar
+        self.repvar=repvar
+        self.solvedvar=solvedvar
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+        self.call_analyse_measures()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        self.result = tk.Text(self.master, height=25, width=65)
+        self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+
+        self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
+
+        self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.showfilebutton.grid(row=3, column=2, sticky=tk.EW, padx=5, pady=5)
+
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+        self.writebutton.config(state="disabled")
+
+        self.master.focus_set()
+        self.master.bind('<space>', self.show_conflicts)
+
+    def stop_loop(self):
+        self.break_loop = 1
+
+    def call_analyse_measures(self):
+        sV=0
+        sC=0
+        sK=0
+        self.events = self.master.file_content[5]
+        n_events = self.events.__len__()
+        counter = 0
+
+        for i,row in enumerate(self.events):
+            statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
+            self.statelabel = tk.Label(self.master, text=statenow, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=2, highlightbackground=self.master.darkcolour)
+            self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+
+            if self.break_loop != 0:
+                break
+
+            if row[5] == 1:
+                pass
+
+            else:
+                counter += 1
+
+                measure_id, num, date, code, value  = row[0:5]
+                if self.calfvar == 'N':
+                    v = measure(num=num, date=date, measure=code, measure_id=measure_id, value=value, replicate=self.repvar, solved=self.solvedvar, flag=row[5])
+                elif self.calfvar == 'Y':
+                    v = measure(calf_num=num, date=date, measure=code, measure_id=measure_id, value=value, replicate=self.repvar, solved=self.solvedvar, flag=row[5])
+                v.source(self.master.db)
+                v.check(self.master.db)
+                w = v.write(self.master.db)
+
+                row[5] = row[5] + w[5]
+                row[6] = w[6]
+
+                if 1 in break_flag(row[5]) or 2 in break_flag(row[5]):
+                    say = 'valid'
+                    sV += 1
+                elif 3 in break_flag(row[5]):
+                    say = 'known'
+                    sK += 1
+                else:
+                    say = 'conflicting'
+                    sC += 1
+
+                self.master.common_out.append(w)
+                self.result.insert(tk.END, ("\tAnalysing measure number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
+                self.result.update()
+                self.result.see(tk.END)
+
+        if self.break_loop == 0:
+            self.result.insert(tk.END, ("\n\tFinished..!\n"))
+            self.writebutton.config(state="normal")
+            self.stopbutton.config(state="disabled")
+        else:
+            self.result.insert(tk.END, ("\n\tStopped.\n"))
+            self.stopbutton.config(state="disabled")
+        self.result.update()
+        self.result.see(tk.END)
+
+    def show_conflicts(self, *args):
+        rows = self.master.file_content[5]
+        self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.view_window.title("Measure file "+self.master.shortname)
+        self.view_window.grid_columnconfigure(0, weight=1)
+        self.view_window.grid_columnconfigure(2, weight=1)
+        self.view_window.grid_rowconfigure(0, weight=1)
+        self.view_window.grid_rowconfigure(2, weight=1)
+        self.tv = ttk.Treeview(self.view_window, height=32)
+        if self.calfvar == 'N':
+            self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value')
+        else:
+            self.tv['columns'] = ('set', 'calf', 'date', 'code', 'value')
+        self.tv.heading("#0", text='#')
+        self.tv.column("#0", anchor='center', width=80)
+        for c in self.tv['columns']:
+            self.tv.heading(c, text=c)
+            self.tv.column(c, anchor='w', width=100)
+        self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
+
+        for i,row in enumerate(rows):
+            if row[5] == 1:
+                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('rejected',))
+            elif 1 in break_flag(row[5]) or 2 in break_flag(row[5]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('valid',))
+            elif 3 in break_flag(row[5]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('known',))
+            elif 4 in break_flag(row[5]) or 5 in break_flag(row[5]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('conflicting',))
+            elif 6 in break_flag(row[5]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('missing',))
+            elif 7 in break_flag(row[5]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('measure',))
+
+        self.tv.tag_configure('rejected', background='#E08E45')
+        self.tv.tag_configure('known', background='#D5D0CD')
+        self.tv.tag_configure('conflicting', background='#A30B37')
+        self.tv.tag_configure('missing', background='#B3B3F1')
+        self.tv.tag_configure('measure', background='#CE6A85')
+        self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+        self.view_window.focus_set()
+        self.view_window.bind('<space>', self.close_view)
+
+    def close_view(self, *args):
+        self.view_window.destroy()
+
+    def OnDoubleClick(self, event):
+        item = self.tv.selection()[0]
+        self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.warning_window.title("")
+        self.warningbox = tk.Text(self.warning_window, height=10, width=65)
+        self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
+        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
+        if flag == 8:
+            self.warningbox.insert(tk.END, 'This measure is already in the database.')
         else:
             for w in warning:
                 if w.__len__() ==1:

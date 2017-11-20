@@ -648,6 +648,26 @@ class mysqlconnect:
             return(out)
 
 ################################################################################
+## 'get_average_measure' function                                                ##
+################################################################################
+
+    def get_average_measure(self, measure):
+        result = None
+        sql = "SELECT AVG(measures.value) FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id HWERE measure_code.code = %s;" % (measure)
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        if result:
+            for r in result:
+                line = r[0]
+                out.append(line)
+            return(out)
+
+
+################################################################################
 ## 'get_event_list' function                                                ##
 ################################################################################
 
