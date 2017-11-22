@@ -30,7 +30,7 @@ commits TEXT
 
 CREATE TABLE event_code (
 id INT(4) NOT NULL primary key auto_increment,
-class ENUM('capture','accident','health','death','alive','metadata','') NOT NULL,
+class ENUM('capture','accident','health','death','alive','metadata') NOT NULL,
 type VARCHAR(12) NOT NULL UNIQUE,
 descript TEXT,
 commits TEXT
@@ -51,14 +51,15 @@ id INT(12) NOT NULL primary key auto_increment,
 measure_id INT(12) NOT NULL,
 elephant_id INT(10) NOT NULL,
 date DATE,
-measure INT(4) NOT NULL,
+code INT(4) NOT NULL,
 value FLOAT NOT NULL,
 commits TEXT
 );
 
 CREATE TABLE measure_code (
 id INT(4) NOT NULL primary key auto_increment,
-code VARCHAR(12) NOT NULL UNIQUE,
+class ENUM('morphology','physiology','behaviour','parasitology','immunology','genomics') NOT NULL,
+type VARCHAR(12) NOT NULL UNIQUE,
 unit VARCHAR(12) NOT NULL,
 descript TEXT,
 commits TEXT

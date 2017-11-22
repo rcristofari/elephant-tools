@@ -1,6 +1,7 @@
 import string
 from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
 from datetime import datetime
+import difflib as df
 from eletools.Utilities import *
 
 ####################################################################################
@@ -212,3 +213,18 @@ def censor_elephant(db, id, survival=None, cutoff=0.05):
         out = (key, birth, death)
 
     return(out)
+
+
+####################################################################################
+## fuzzy_match_measure() checks whether a similar measure exitst                  ##
+####################################################################################
+
+def fuzzy_match_measure(db, type, cutoff=0.6):
+    all_types = db.get_measure_list()
+
+    matches = []
+    for t in all_types:
+        d = df.SequenceMatcher(None, type, t[1])
+        if d.ratio() >= cutoff:
+            matches.append(t)
+    return(matches)

@@ -218,3 +218,114 @@ class add_elephants(tk.Frame):
             self.master.pass_from_add_elephant = True
             self.master.manual_add_elephant = self.rows
             read_elephant_file(self.master)
+
+
+################################################################################
+## Manually add some elephants                                                ##
+################################################################################
+
+class add_measure_type(tk.Frame):
+
+    def __init__(self, master):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        self.__classes_types = self.master.db.get_measure_list()
+        self.__classes = []
+        for c in self.__classes_types:
+            self.__classes.append(c[0])
+        self.__classes = list(set(self.__classes))
+        self.__classes.sort()
+        self.__chosen = tk.StringVar()
+        self.__chosen.set(self.__classes[0])
+        self.classlabel = tk.Label(self.master, text="Measure class: ")
+        self.classlabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.classlabel.grid(row=1, column=1, sticky=tk.W)
+        self.classmenu = tk.OptionMenu(self.master, self.__chosen, *self.__classes)
+        self.classmenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.classmenu.grid(row=1, column=2, columnspan=3, sticky=tk.EW)
+        self.typelabel = tk.Label(self.master, text="Measure type: ")
+        self.typelabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.typelabel.grid(row=2, column=1, sticky=tk.W, pady=5)
+        self.typeentry = tk.Entry(self.master, width=10)
+        self.typeentry.grid(row=2, column=2, sticky=tk.E, pady=5)
+        self.unitlabel = tk.Label(self.master, text="   Unit: ")
+        self.unitlabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.unitlabel.grid(row=2, column=3, sticky=tk.E, pady=5)
+        self.unitentry = tk.Entry(self.master, width=10)
+        self.unitentry.grid(row=2, column=4, sticky=tk.E, pady=5)
+        self.detailslabel = tk.Label(self.master, text="Details: ")
+        self.detailslabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.detailslabel.grid(row=3, column=1, sticky=tk.W, pady=5)
+        self.detailsentry = tk.Entry(self.master, width=6)
+        self.detailsentry.grid(row=3, column=2, columnspan=3, sticky=tk.EW, pady=5)
+        self.checkbutton = tk.Button(self.master, text="Check", command=self.check_measure)
+        self.checkbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.checkbutton.grid(row=4, column=1, columnspan=4, sticky=tk.EW, pady=5)
+        self.tv = ttk.Treeview(self.master, height=6)
+        self.tv['columns'] = ('Type','Unit','Details')
+        self.tv.heading("#0", text='Class')
+        self.tv.column("#0", anchor='w', width=40)
+        # Create fields
+        self.tv.heading('Type', text='Type')
+        self.tv.column('Type', anchor='w', width=15)
+        self.tv.heading('Unit', text='Unit')
+        self.tv.column('Unit', anchor='w', width=10)
+        self.tv.heading('Details', text='Details')
+        self.tv.column('Details', anchor='w', width=100)
+
+        self.tv.grid(row=5, column=1, columnspan=4, padx=5, sticky=tk.EW)
+        self.cancelbutton = tk.Button(self.master, text="Cancel", command=self.cancel_entry, width=10)
+        self.cancelbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.cancelbutton.grid(row=6, column=1, columnspan=1, sticky=tk.EW, pady=5)
+        self.usebutton = tk.Button(self.master, text="Select", command=self.respawn, width=10)
+        self.usebutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.usebutton.grid(row=6, column=2, columnspan=2, sticky=tk.EW, pady=5, padx=5)
+        # self.usebutton.config(state='disabled')
+        self.addbutton = tk.Button(self.master, text="Add", command=self.check_measure, width=10)
+        self.addbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.addbutton.grid(row=6, column=4, columnspan=1, sticky=tk.EW, pady=5)
+
+    def check_measure(self):
+        for item in self.tv.get_children():
+            self.tv.delete(item)
+        m = [self.__chosen.get(), self.typeentry.get(), self.unitentry.get(), self.detailsentry.get()]
+        self.tv.insert('','end',text=m[0], values=m[1:4], tags = ('red',))
+        matches = fuzzy_match_measure(self.master.db, type=self.typeentry.get(), cutoff=0.6)
+        if matches is not None:
+            for m in matches:
+                self.tv.insert('','end',text=m[0], values=m[1:4], tags = ('smalltext',))
+        self.tv.tag_configure('smalltext', font=('Helvetica',8))
+        self.tv.tag_configure('red', font=('Helvetica',8), background='#D5D0CD')
+
+    def cancel_entry(self):
+        for item in self.tv.get_children():
+            self.tv.delete(item)
+        self.typeentry.delete(0, tk.END)
+        self.unitentry.delete(0, tk.END)
+        self.detailsentry.delete(0, tk.END)
+
+    def respawn(self):
+        self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.view_window.title("Add a new measure type")
+        self.view_window.geometry("400x400")
+        self.view_window.db = self.master.db
+        self.view_window.lightcolour = self.master.lightcolour
+        self.view_window.darkcolour = self.master.darkcolour
+        self.view_window.grid_rowconfigure(0, weight=1)
+        self.view_window.grid_columnconfigure(0, weight=1)
+        self.view_window.grid_rowconfigure(7, weight=1)
+        self.view_window.grid_columnconfigure(5, weight=1)
+        add_measure_type(self.view_window)

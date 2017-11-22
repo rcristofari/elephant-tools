@@ -63,6 +63,8 @@ class mysqlconnect:
             self.__max_measure_id = f[0][0]
         except:
             print("Impossible to connect to database")
+        if self.__max_measure_id is None:
+            self.__max_measure_id = 0
 
         statement = "INSERT INTO commits (stamp, user, details) VALUES (%s, %s, %s);" % (self.__stamp, quote(self.__usr), quote(details))
         return(statement)
@@ -200,7 +202,7 @@ class mysqlconnect:
 
     def get_measure_code(self, measure):
         self.__measure=measure
-        sql = "SELECT id FROM measure_code WHERE code = %s" % (quote(self.__measure))
+        sql = "SELECT id FROM measure_code WHERE type = %s" % (quote(self.__measure))
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:
@@ -222,7 +224,7 @@ class mysqlconnect:
         except:
             print("This elephant is absent from the database")
 
-        sql = "SELECT * FROM measures WHERE elephant_id = %s and date = %s and measure = %s;" % (quote(self.__eleph_id), quote(self.__date), self.__code)
+        sql = "SELECT * FROM measures WHERE elephant_id = %s and date = %s and code = %s;" % (quote(self.__eleph_id), quote(self.__date), self.__code)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:
@@ -238,7 +240,7 @@ class mysqlconnect:
 
     def get_mean_measure(self, code):
         self.__code = code
-        sql = "SELECT ROUND(AVG(value),2) FROM measures WHERE measure = %s;" % (self.__code)
+        sql = "SELECT ROUND(AVG(value),2) FROM measures WHERE code = %s;" % (self.__code)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:
@@ -469,7 +471,8 @@ class mysqlconnect:
                 newcommits = (quote(str(commits)+','+str(self.__i)))
             else:
                 newcommits = (quote(str(self.__i)))
-            statement = "INSERT INTO measures (measure_id, elephant_id, date, measure, value, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (quote(int(measure_id) + int(self.__max_measure_id)), elephant_id, quote(date), measure_code_id, value, newcommits)
+            print(measure_id, self.__max_measure_id, elephant_id, date, measure_code_id, value, newcommits)
+            statement = "INSERT INTO measures (measure_id, elephant_id, date, code, value, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (quote(int(measure_id) + int(self.__max_measure_id)), elephant_id, quote(date), measure_code_id, value, newcommits)
 
             return(statement)
 
@@ -487,7 +490,7 @@ class mysqlconnect:
             else:
                 newcommits = (quote(str(self.__i)))
 
-            statement = "INSERT INTO measure_code (code, unit, descript, commits) VALUES (%s, %s, %s, %s);" % (quote(code), quote(unit), quote(descript), newcommits)
+            statement = "INSERT INTO measure_code (type, unit, descript, commits) VALUES (%s, %s, %s, %s);" % (quote(code), quote(unit), quote(descript), newcommits)
 
             return(statement)
 
@@ -596,8 +599,14 @@ class mysqlconnect:
 ## 'get_measure_list' function                                                ##
 ################################################################################
 
-    def get_measure_list(self):
-        sql = "SELECT code, unit, descript FROM measure_code;"
+    def get_measure_list(self, num=None, calf_num = None):
+        if num is None and calf_num is None:
+            sql = "SELECT class, type, unit, descript FROM measure_code;"
+        elif num is not None:
+            sql = "SELECT measure_code.class, measure_code.type, measure_code.unit, measure_code.descript FROM measure_code INNER JOIN measures ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num = %s;" % (num)
+        elif num is None and calf_num is not None:
+            sql = "SELECT measure_code.class, measure_code.type, measure_code.unit, measure_code.descript FROM measure_code INNER JOIN measures ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.calf_num = %s;" % (calf_num)
+
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
@@ -615,7 +624,7 @@ class mysqlconnect:
 
     def get_measure_values(self, num, measurelist):
         result = None
-        sql = "SELECT measures.measure_id, measure_code.code, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.code IN %s ORDER BY measures.date DESC;" % (num, measurelist)
+        sql = "SELECT measures.measure_id, measure_code.type, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.type IN %s ORDER BY measures.date DESC;" % (num, measurelist)
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
@@ -634,7 +643,7 @@ class mysqlconnect:
 
     def get_mean_measure(self, num, measure):
         result = None
-        sql = "SELECT AVG(measures.value) FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num = %s AND measure_code.code = %s GROUP BY measures.elephant_id;" % (num, measure)
+        sql = "SELECT AVG(measures.value) FROM measures INNER JOIN measure_code ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num = %s AND measure_code.type = %s GROUP BY measures.elephant_id;" % (num, measure)
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
@@ -653,7 +662,7 @@ class mysqlconnect:
 
     def get_average_measure(self, measure):
         result = None
-        sql = "SELECT AVG(measures.value) FROM measures INNER JOIN measure_code ON measures.measure = measure_code.id HWERE measure_code.code = %s;" % (measure)
+        sql = "SELECT AVG(measures.value) FROM measures INNER JOIN measure_code ON measures.code = measure_code.id WHERE measure_code.type = %s;" % (measure)
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()

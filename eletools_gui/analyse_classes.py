@@ -288,7 +288,7 @@ class analyse_pedigree_file(tk.Frame):
                 else:
                     say = 'conflicting'
                     sC += 1
-                self.master.common_out.append(w)
+                self.master.common_out.append(w[5])
                 self.result.insert(tk.END, ("\tAnalysing relationship number "+str(i+1)+" of "+str(n_pedigree)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
@@ -453,7 +453,7 @@ class analyse_event_file(tk.Frame):
                     say = 'conflicting'
                     sC += 1
 
-                self.master.common_out.append(w)
+                self.master.common_out.append(w[6])
                 self.result.insert(tk.END, ("\tAnalysing event number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
@@ -625,7 +625,7 @@ class analyse_measure_file(tk.Frame):
                     say = 'conflicting'
                     sC += 1
 
-                self.master.common_out.append(w)
+                self.master.common_out.append(w[6])
                 self.result.insert(tk.END, ("\tAnalysing measure number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)

@@ -88,7 +88,7 @@ class MainApplication(tk.Frame):
         self.addmenu.add_command(label="Add an event", command=self.notimplemented)
         self.addmenu.add_command(label="Add a measure", command=self.notimplemented)
         self.addmenu.add_separator()
-        self.addmenu.add_command(label="Add a measure type", command=self.notimplemented)
+        self.addmenu.add_command(label="Add a measure type", command=self.call_add_measure_type)
         self.addmenu.add_command(label="Add an event type", command=self.notimplemented)
         self.addmenu.add_separator()
         self.addmenu.add_command(label="Update living status", command=self.notimplemented)
@@ -188,6 +188,9 @@ class MainApplication(tk.Frame):
 
     def call_add_elephants(self):
         add_elephants(self.master)
+
+    def call_add_measure_type(self):
+        add_measure_type(self.master)
 
     def notimplemented(self):
         print("Not implemented yet")
