@@ -296,7 +296,12 @@ class mysqlconnect:
         sql = "SELECT MAX(date) FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND event_code.class != 'death';" % (id)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
-        if result:
+        if result[0][0] is not None:
+            return(result[0][0])
+        else:
+            sql = "SELECT birth FROM elephants WHERE id = %s;" % (id)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
             return(result[0][0])
 
 ################################################################################
@@ -307,7 +312,12 @@ class mysqlconnect:
         sql = "SELECT MAX(b.birth) FROM pedigree AS p LEFT JOIN elephants AS a ON p.elephant_1_id = a.id LEFT JOIN elephants AS b ON p.elephant_2_id = b.id WHERE (p.rel = 'mother' OR p.rel = 'father') AND a.id = %s;" % (id)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
-        if result:
+        if result[0][0] is not None:
+            return(result[0][0])
+        else:
+            sql = "SELECT birth FROM elephants WHERE id = %s;" % (id)
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
             return(result[0][0])
 
 ################################################################################
@@ -726,4 +736,16 @@ class mysqlconnect:
         for r in result:
             line = r[1]
             out.append(line)
+        return(out)
+
+
+################################################################################
+## 'write_new_measure' function                                               ##
+################################################################################
+
+    def write_new_measure(mclass, mtype, unit, details):
+        if mclass and mtype and unit and details:
+            sql = "INSERT INTO measure_code (class, type, unit, descript) VALUES (%s, %s, %s, %s);" % (quote(mclass), quote(mtype), quote(unit), quote(descript))
+        else:
+            out = None
         return(out)

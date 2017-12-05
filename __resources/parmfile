@@ -1,7 +1,7 @@
 //connexion parameters
-username=robin
-password=12345
-host=localhost
-database=mep
+username=mtep
+password=EmNi5swin
+host=mydb2.utu.fi
+database=mtep
 port=3306
-wdir=/home/parallels/elephants
+wdir=/media/psf/Dropbox/Ele data/SQL_database

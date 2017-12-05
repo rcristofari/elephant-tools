@@ -7,6 +7,7 @@ import os
 import re
 from datetime import datetime
 from eletools import *
+from eletools_gui.add_classes import *
 
 ################################################################################
 ## Batch analyse an elephant file                                             ##
@@ -202,6 +203,11 @@ class analyse_elephant_file(tk.Frame):
                 else:
                     self.warningbox.insert(tk.END, w)
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
 
     def write_sql(self):
         folder = askdirectory(title='Choose SQL file directory...')
@@ -361,6 +367,11 @@ class analyse_pedigree_file(tk.Frame):
                 print(w)
                 self.warningbox.insert(tk.END, w+'\n')
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
 
     def write_sql(self):
         folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
@@ -526,10 +537,15 @@ class analyse_event_file(tk.Frame):
                 else:
                     self.warningbox.insert(tk.END, str(w)+'\n')
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
 
     def write_sql(self):
         folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
-        parse_output(self.master.common_out, self.master.db, folder)
+        parse_output(self.master.common_out, self.master.db, folder, is_elephant=False)
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()
         self.result.see(tk.END)
@@ -577,6 +593,8 @@ class analyse_measure_file(tk.Frame):
 
         self.master.focus_set()
         self.master.bind('<space>', self.show_conflicts)
+        # self.master.bind('<space>', self.update_measure_type)
+
 
     def stop_loop(self):
         self.break_loop = 1
@@ -689,13 +707,22 @@ class analyse_measure_file(tk.Frame):
 
     def OnDoubleClick(self, event):
         item = self.tv.selection()[0]
+
+        # This will be passed on to the add_measure_type class if needed
+        self.master.preselect = self.master.file_content[5][int(self.tv.item(item,"text"))-1][3]
+        self.master.tvitem = item
+
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.warning_window.title("")
         self.warningbox = tk.Text(self.warning_window, height=10, width=65)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
-        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
+        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
         warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
-        if flag == 8:
+        if 7 in break_flag(flag):
+            self.addmeasurebutton = tk.Button(self.warning_window, text="Available measures", command=self.call_add_measure)
+            self.addmeasurebutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+            self.addmeasurebutton.grid(row=2, column=1, sticky=tk.E, padx=5, pady=5)
+        if 3 in break_flag(flag):
             self.warningbox.insert(tk.END, 'This measure is already in the database.')
         else:
             for w in warning:
@@ -704,6 +731,32 @@ class analyse_measure_file(tk.Frame):
                 else:
                     self.warningbox.insert(tk.END, str(w)+'\n')
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
+        self.update_measure_type()
+
+    def call_add_measure(self):
+        # self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        # self.warning_window.title("Add a new measure type")
+        self.warning_window.geometry("400x400")
+        self.warning_window.db = self.master.db
+        self.warning_window.lightcolour = self.master.lightcolour
+        self.warning_window.darkcolour = self.master.darkcolour
+        self.warning_window.grid_rowconfigure(0, weight=1)
+        self.warning_window.grid_columnconfigure(0, weight=1)
+        self.warning_window.grid_rowconfigure(7, weight=1)
+        self.warning_window.grid_columnconfigure(5, weight=1)
+        self.warning_window.file_content = self.master.file_content[5] # That's to pass the file content to the add_measure_type class
+        self.master.add_measure_type_from_analyse = add_measure_type(self.warning_window, fromAnalyse=True, preselect=self.master.preselect)
+        self.master.add_measure_type_from_analyse.file_content = self.master.file_content[5]
+
+    def update_measure_type(self, *args):
+        self.master.file_content[5][int(self.tv.item(self.master.tvitem, "text"))-1][3] = self.master.add_measure_type_from_analyse.select_type
+        #print(self.master.tvitem,"text")
+        print(self.master.file_content[5][int(self.tv.item(self.master.tvitem,"text"))-1][3])
 
     def write_sql(self):
         folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')

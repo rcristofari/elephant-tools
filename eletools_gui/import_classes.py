@@ -132,6 +132,11 @@ class read_elephant_file(tk.Frame):
         else:
             self.warningbox.insert(tk.END, "No problem with this elephant.")
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
 
     def reload_file(self):
         if self.name is None:
@@ -262,6 +267,11 @@ class read_pedigree_file(tk.Frame):
         else:
             self.warningbox.insert(tk.END, "No problem with this relationship.")
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
 
     def reload_file(self):
         if self.name is None:
@@ -376,6 +386,11 @@ class read_event_file(tk.Frame):
         else:
             self.warningbox.insert(tk.END, "No problem with this event.")
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
 
     def reload_file(self):
         if self.name is None:
@@ -507,6 +522,11 @@ class read_measure_file(tk.Frame):
         else:
             self.warningbox.insert(tk.END, "No problem with this measure.")
         self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
 
     def reload_file(self):
         if self.name is None:

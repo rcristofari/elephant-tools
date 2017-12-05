@@ -1,4 +1,3 @@
-
 from datetime import datetime
 import string
 import numpy as np
@@ -1328,11 +1327,11 @@ class event:
                     self.__db_code = self.__db_line[4]
                     if self.__code_id == self.__db_code:
                         self.__sourced = 1
-                        redundancy = ("An identical event is already entered in the database.")
+                        redundancy = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: An identical event is already entered in the database.")
                         self.__xrep = 0
                     else:
                         if self.__solved == 'N':
-                            redundancy = ("There is already an event of type '"+self.__event_class+"' for elephant "+str(self.__num)+" at that date in the database.")
+                            redundancy = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: There is already an event of type '"+self.__event_class+"' for elephant "+str(self.__num)+" at that date in the database.")
                             self.__sourced = 1
                             self.__xrep = 0
                     if redundancy is not None:
@@ -1368,23 +1367,24 @@ class event:
             self.__last_breeding = self.__db.get_last_breeding(self.__elephant_id)
             self.__update_cw = 0
             self.__update_alive = 0
+            print(self.__date, self.__last_breeding)
 
             deltawarning = None
             if delta < 0:
-                deltawarning = ("This event precedes this elephant's birth.")
+                deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This event precedes this elephant's birth.")
                 self.__xdate = 0
-            elif delta > 100 and solved == 'N':
-                deltawarning = ("This event occurs when the elephant is over 100 years. Please verify input.")
+            elif delta > 100 and self.__solved == 'N':
+                deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This event occurs when the elephant is over 100 years. Please verify input.")
 
             if self.__event_class == 'death':
                 if self.__date_of_death is not None:
-                    deltawarning = ("This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
+                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
                     self.__xdate = 0
                 elif (self.__date - self.__last_alive).days < 0:
-                    deltawarning = ("This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
+                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
                     self.__xdate = 0
-                elif (self.__date - self.__last_breeding) < 0:
-                    deltawarning = ("This elephant had an offspring on "+datetime.strftime(self.__last_breeding, "%Y-%m-%d")+", check your input.")
+                elif (self.__date - self.__last_breeding).days < 0:
+                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant had an offspring on "+datetime.strftime(self.__last_breeding, "%Y-%m-%d")+", check your input.")
                     self.__xdate = 0
                 else:
                     print("Chronologies seem to match - updating database")
@@ -1393,7 +1393,7 @@ class event:
 
             elif self.__event_class in ('capture','accident','health','alive','metadata'):
                 if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0:
-                    deltawarning = ("This elephant was already six feet under by then. Please check your input.")
+                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was already six feet under by then. Please check your input.")
                     self.__xdate = 0
                 elif self.__date_of_death is None and self.__db_alive == 'UKN':
                         #If the event is less than 5 years ago and the elephant is now less than 90 years old, it switches to 'alive'
@@ -1413,7 +1413,7 @@ class event:
             captwarning = None
             if self.__event_class == 'capture':
                 if self.__db_cw == 'captive':
-                    captwarning = ("You can't register a capture event for a captive-born elephant.")
+                    captwarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: You can't register a capture event for a captive-born elephant.")
                     self.__xcw = 0
                 elif self.__db_cw == 'UKN':
                     print("We didn't know this was a wild elephant - updating database.")
@@ -1441,11 +1441,11 @@ class event:
             if self.__xeleph == 0:
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+64
-                    self.warnings.append("This elephant could not be found in the database.")
+                    self.warnings.append("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant could not be found in the database.")
             elif self.__xevent == 0:
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+128
-                    self.warnings.append("This event type is not yet registered the database.")
+                    self.warnings.append("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This event type is not yet registered the database.")
 
         elif self.__sourced == 1:
             if self.__toggle_write_flag == 0:
@@ -1492,7 +1492,7 @@ class event:
                 conflicts = 'date and origin'
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+48
-            out = "[Conflict] You need to solve conflicts for "+conflicts+" for elephant "+str(self.__num)+" before proceeding."
+            out = "[Conflict] You need to solve conflicts for "+conflicts+" for elephant "+str(self.__num)+"/"+str(self.__calf_num)+" before proceeding."
             self.warnings.append(out)
 
         for w in self.warnings:

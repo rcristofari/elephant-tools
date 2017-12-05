@@ -7,10 +7,8 @@ import os
 import re
 from datetime import datetime
 from eletools import *
-# from eletools_gui.master import *
-# from eletools_gui.db_classes import *
 from eletools_gui.import_classes import *
-# from eletools_gui.search_classes import *
+
 
 ################################################################################
 ## Manually add some elephants                                                ##
@@ -221,17 +219,22 @@ class add_elephants(tk.Frame):
 
 
 ################################################################################
-## Manually add some elephants                                                ##
+## Check (and add) a measure type                                             ##
 ################################################################################
 
 class add_measure_type(tk.Frame):
 
-    def __init__(self, master):
+    def __init__(self, master, fromAnalyse = False, preselect=None):
         self.master = master
         tk.Frame.__init__(self, self.master)
+        self.fromAnalyse = fromAnalyse
+        self.master.select_type = None
+        self.master.preselect = preselect
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
+        if self.master.preselect is not None:
+            self.check_measure()
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
@@ -261,6 +264,8 @@ class add_measure_type(tk.Frame):
         self.typelabel.grid(row=2, column=1, sticky=tk.W, pady=5)
         self.typeentry = tk.Entry(self.master, width=10)
         self.typeentry.grid(row=2, column=2, sticky=tk.E, pady=5)
+        if self.master.preselect is not None:
+            self.typeentry.insert(10, self.master.preselect)
         self.unitlabel = tk.Label(self.master, text="   Unit: ")
         self.unitlabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.unitlabel.grid(row=2, column=3, sticky=tk.E, pady=5)
@@ -285,30 +290,42 @@ class add_measure_type(tk.Frame):
         self.tv.column('Unit', anchor='w', width=10)
         self.tv.heading('Details', text='Details')
         self.tv.column('Details', anchor='w', width=100)
-
         self.tv.grid(row=5, column=1, columnspan=4, padx=5, sticky=tk.EW)
+        self.tv.bind("<Double-1>", self.OnDoubleClick)
         self.cancelbutton = tk.Button(self.master, text="Cancel", command=self.cancel_entry, width=10)
         self.cancelbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.cancelbutton.grid(row=6, column=1, columnspan=1, sticky=tk.EW, pady=5)
-        self.usebutton = tk.Button(self.master, text="Select", command=self.respawn, width=10)
-        self.usebutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.usebutton.grid(row=6, column=2, columnspan=2, sticky=tk.EW, pady=5, padx=5)
-        # self.usebutton.config(state='disabled')
-        self.addbutton = tk.Button(self.master, text="Add", command=self.check_measure, width=10)
+        if self.fromAnalyse is True:
+            self.usebutton = tk.Button(self.master, text="Select", command=self.select_measure, width=10)
+            self.usebutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+            self.usebutton.grid(row=6, column=2, columnspan=2, sticky=tk.EW, pady=5, padx=5)
+        self.addbutton = tk.Button(self.master, text="Add", command=self.add_measure, width=10)
         self.addbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.addbutton.grid(row=6, column=4, columnspan=1, sticky=tk.EW, pady=5)
+        self.master.focus_set()
+        self.master.bind('<Return>', self.check_measure)
 
-    def check_measure(self):
+    def OnDoubleClick(self, event): # Add something here to prevent user from selecting the greyed row
+        for item in self.tv.get_children()[1:]:
+            self.tv.item(item, tags=('smalltext',))
+        item = self.tv.selection()[0]
+        self.tv.item(item, tags=('red',))
+        self.tv.tag_configure('smalltext', font=('Helvetica',8))
+        self.tv.tag_configure('grey', font=('Helvetica',8), background='#D5D0CD')
+        self.tv.tag_configure('red', font=('Helvetica',8), background=self.master.darkcolour)
+        self.select_type = self.tv.item(item, 'values')[0]
+
+    def check_measure(self, *args):
         for item in self.tv.get_children():
             self.tv.delete(item)
         m = [self.__chosen.get(), self.typeentry.get(), self.unitentry.get(), self.detailsentry.get()]
-        self.tv.insert('','end',text=m[0], values=m[1:4], tags = ('red',))
-        matches = fuzzy_match_measure(self.master.db, type=self.typeentry.get(), cutoff=0.6)
-        if matches is not None:
-            for m in matches:
+        self.tv.insert('','end',text=m[0], values=m[1:4], tags = ('grey',))
+        self.master.matches = fuzzy_match_measure(self.master.db, type=self.typeentry.get(), cutoff=0.6)
+        if self.master.matches is not None:
+            for m in self.master.matches:
                 self.tv.insert('','end',text=m[0], values=m[1:4], tags = ('smalltext',))
         self.tv.tag_configure('smalltext', font=('Helvetica',8))
-        self.tv.tag_configure('red', font=('Helvetica',8), background='#D5D0CD')
+        self.tv.tag_configure('grey', font=('Helvetica',8), background='#D5D0CD')
 
     def cancel_entry(self):
         for item in self.tv.get_children():
@@ -317,15 +334,17 @@ class add_measure_type(tk.Frame):
         self.unitentry.delete(0, tk.END)
         self.detailsentry.delete(0, tk.END)
 
-    def respawn(self):
-        self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
-        self.view_window.title("Add a new measure type")
-        self.view_window.geometry("400x400")
-        self.view_window.db = self.master.db
-        self.view_window.lightcolour = self.master.lightcolour
-        self.view_window.darkcolour = self.master.darkcolour
-        self.view_window.grid_rowconfigure(0, weight=1)
-        self.view_window.grid_columnconfigure(0, weight=1)
-        self.view_window.grid_rowconfigure(7, weight=1)
-        self.view_window.grid_columnconfigure(5, weight=1)
-        add_measure_type(self.view_window)
+    def select_measure(self):
+        # self.master.select_type has been defined by OnDoubleClick
+        # This is a bit tricky, since we now need to update the Add Measures input class
+        # using the row index that was clicked to instantiate the add_measure_type class
+        if self.master.select_type is not None:
+            print(self.master.preselect, self.master.select_type)
+            print(self.file_content)
+
+    def add_measure(self):
+        print(self.__chosen.get(), self.typeentry.get(), self.unitentry.get(), self.detailsentry.get())
+        statement = self.master.db.write_new_measure(mclass=self.__chosen.get(), mtype=self.typeentry.get(), unit=self.unitentry.get(), details=self.detailsentry.get())
+        if statement is not None:
+            self.master.common_out.append(statement)
+            print(statement)

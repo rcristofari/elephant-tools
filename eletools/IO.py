@@ -476,10 +476,10 @@ def read_measures(elefile, sep=';', solved='N'):
     return[fields, valid, remarks, rejected, issues, units]
 
 ####################################################################################
-##  read_events() READ EVENT LIST FILE                                             ##
+##  read_events() READ EVENT LIST FILE                                            ##
 ####################################################################################
 
-# an event datafile is composed of elephant num|calf_num, date, loc, event_type, code
+# an event datafile is composed of elephant num|calf_num, date, loc, code
 # here, code is entered as a alphanumeric shorthand. It will be checked later on against database.
 
 def read_events(elefile, sep=',', solved='N'):
@@ -531,7 +531,11 @@ def read_events(elefile, sep=',', solved='N'):
 
     ########## date
         if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", row[2]):
-            pass
+            try:
+                datetime.strptime(row[2], '%Y-%m-%d')
+            except:
+                warnings.append("Format problem with event date: " + str(row[2]) + " at line " + str(i+1))
+                reject = 1
         elif row[2] == '':
             warnings.append("Missing event date at line " + str(i+1))
             reject = 1
@@ -549,12 +553,12 @@ def read_events(elefile, sep=',', solved='N'):
             reject = 1
 
     ########## code
-        if re.search(r"^[0-9a-zA-Z ]+$", row[4]):
+        if re.search(r"^[0-9a-zA-Z _]+$", row[4]):
             row[4] = row[4].casefold().strip()
         elif row[4] == '':
             warnings.append("Missing event code at line " + str(i+1))
         else:
-            warnings.append("Format problem with event code: " + str(row[5]) + " at line " + str(i+1))
+            warnings.append("Format problem with event code: " + str(row[4]) + " at line " + str(i+1))
             reject = 1
 
     ######### send out to the correct list
@@ -574,7 +578,7 @@ def read_events(elefile, sep=',', solved='N'):
 ##  parse_output() parses the total output into mysql and warings                 ##
 ####################################################################################
 
-def parse_output(stream, db, folder=None):
+def parse_output(stream, db, folder=None, is_elephant=True):
 
     stamp = db.get_stamp()
     statements = []
@@ -587,25 +591,61 @@ def parse_output(stream, db, folder=None):
         statement_name = os.path.join(folder, str(stamp)+"_operations.sql")
         warnings_name = os.path.join(folder, str(stamp)+"_conflicts.out")
 
-    for row in stream:
-        if re.search(r"^INSERT", str(row)):
-            statements.append(row)
-        elif re.search(r"^UPDATE", str(row)):
-            statements.append(row)
-        elif re.search(r"^\(\"INSERT", str(row)):
-            for r in row:
-                statements.append(r)
-        else:
-            warnings.append(row)
+    if is_elephant is True:
+        for row in stream:
+            if re.search(r"^INSERT", str(row)):
+                statements.append(row)
+            elif re.search(r"^UPDATE", str(row)):
+                statements.append(row)
+            elif re.search(r"^\(\"INSERT", str(row)):
+                for r in row:
+                    statements.append(r)
+            else:
+                warnings.append(row)
 
-    with open(statement_name,"w") as s:
-        for x in statements:
-            s.write(str(x)+'\n')
+        with open(statement_name,"w") as s:
+            for x in statements:
+                s.write(str(x)+'\n')
 
-    with open(warnings_name, "w") as w:
-        for x in warnings:
-            if x != '' and x is not None:
-                w.write((str(x))+'\n')
+        with open(warnings_name, "w") as w:
+            for x in warnings:
+                if x != '' and x is not None:
+                    w.write((str(x))+'\n')
+
+    else:
+        for row in stream:
+            if type(row) is list: ##WONT WORK, LENGTH OF THE STRING
+                for r in row:
+                    if re.search(r"^INSERT", str(r)):
+                        statements.append(row)
+                    elif re.search(r"^UPDATE", str(r)):
+                        statements.append(row)
+                    elif re.search(r"^\(\"INSERT", str(r)):
+                        for x in r:
+                            statements.append(x)
+                    else:
+                        warnings.append(r)
+            else:
+                if re.search(r"^INSERT", str(row)):
+                    statements.append(row)
+                elif re.search(r"^UPDATE", str(row)):
+                    statements.append(row)
+                elif re.search(r"^\(\"INSERT", str(row)):
+                    for r in row:
+                        statements.append(r)
+                else:
+                    warnings.append(row)
+
+
+        with open(statement_name,"w") as s:
+            for x in statements:
+                s.write(str(x)+'\n')
+
+        with open(warnings_name, "w") as w:
+            for x in warnings:
+                if x != '' and x is not None:
+                    w.write((str(x))+'\n')
+
 
 ####################################################################################
 ##  parse_reads() parses the output from a read_ function into warnings etc       ##

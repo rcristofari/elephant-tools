@@ -1,4 +1,4 @@
-CREATE TABLE elephants (
+leCREATE TABLE elephants (
 id INT(10) NOT NULL primary key auto_increment,
 num VARCHAR(10) UNIQUE,
 name VARCHAR(128),
@@ -31,7 +31,7 @@ commits TEXT
 CREATE TABLE event_code (
 id INT(4) NOT NULL primary key auto_increment,
 class ENUM('capture','accident','health','death','alive','metadata') NOT NULL,
-type VARCHAR(12) NOT NULL UNIQUE,
+type VARCHAR(24) NOT NULL UNIQUE,
 descript TEXT,
 commits TEXT
 );
@@ -86,7 +86,7 @@ ALTER TABLE `events` ADD INDEX (`code`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_1_id`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_2_id`);
 ALTER TABLE `measures` ADD INDEX (`elephant_id`);
-ALTER TABLE `measures` ADD INDEX (`measure`);
+ALTER TABLE `measures` ADD INDEX (`code`);
 
 ALTER TABLE `remarks` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `events` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
@@ -94,4 +94,4 @@ ALTER TABLE `events` ADD FOREIGN KEY (`code`) REFERENCES `event_code` (`id`) ON 
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_1_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_2_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
-ALTER TABLE `measures` ADD FOREIGN KEY (`measure`) REFERENCES `measure_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
+ALTER TABLE `measures` ADD FOREIGN KEY (`code`) REFERENCES `measure_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
