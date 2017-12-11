@@ -1,4 +1,4 @@
-leCREATE TABLE elephants (
+CREATE TABLE elephants (
 id INT(10) NOT NULL primary key auto_increment,
 num VARCHAR(10) UNIQUE,
 name VARCHAR(128),

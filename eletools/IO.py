@@ -137,7 +137,8 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## calf_num
-        if re.search(r"^[0-9a-zA-Z]+$", str(row[2])):
+        print(row[2], type(row[2]))
+        if re.search(r"^[a-zA-Z0-9]+$",row[2]):
             pass
         elif row[2] is None and row[0] is None:
             warnings.append("Missing calf number at line " + str(i+1) + ". You need at least one number.")
@@ -158,16 +159,17 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## birth
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", str(row[4])):
+        date = format_date(str(row[4]))
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
             try:
-                datetime.strptime(str(row[4]), '%Y-%m-%d')
+                row[4] = date
             except ValueError:
                 reject = 1
-                warnings.append("Invalid date " + str(row[4]) + " at line " + str(i+1))
-        elif row[4]is None:
+                warnings.append("Invalid date " + str(date) + " at line " + str(i+1))
+        elif date is None:
             warnings.append("Missing birth date at line " + str(i+1))
         else:
-            warnings.append("Format problem with birth date: " + str(row[4]) + " at line " + str(i+1))
+            warnings.append("Format problem with birth date: " + str(date) + " at line " + str(i+1))
             reject = 1
 
     ########## CW

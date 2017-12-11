@@ -41,3 +41,21 @@ SELECT measures.measure_id, measure_code.code, measures.date, measures.value, me
 	INNER JOIN elephants on measures.elephant_id = elephants.id 
 	WHERE elephants.num=5709 
 	AND measure_code.code='tusk';
+
+
+
+*/This one doesnt work yet
+
+SELECT count(id), sex,
+	DATE_ADD(elephants.birth, INTERVAL elephants.age_capture YEAR) as X
+	from elephants where cw='wild' 
+	group by sex
+	having  X < '1931-01-01';
+
+
+
+
+SELECT count(id), sex,
+	from elephants where cw='wild' 
+	group by sex
+	having  (DATE_ADD(elephants.birth, INTERVAL elephants.age_capture YEAR) < '1931-01-01');

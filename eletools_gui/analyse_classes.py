@@ -113,7 +113,7 @@ class analyse_elephant_file(tk.Frame):
                 else:
                     say = 'conflicting'
                     sC += 1
-                self.result.insert(tk.END, ("\tAnalysing elephant number "+num+"\t\t("+str(counter)+" of "+str(n_elephs)+"): "+say+"\n"))
+                self.result.insert(tk.END, ("\tAnalysing elephant number "+str(num)+"\t\t("+str(counter)+" of "+str(n_elephs)+"): "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
 
@@ -375,7 +375,7 @@ class analyse_pedigree_file(tk.Frame):
 
     def write_sql(self):
         folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
-        parse_output(self.master.common_out, self.master.db, folder)
+        parse_output(self.master.common_out, self.master.db, folder, is_elephant=False)
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()
         self.result.see(tk.END)
@@ -506,6 +506,8 @@ class analyse_event_file(tk.Frame):
                 self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('missing',))
             elif 7 in break_flag(row[5]):
                 self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('event',))
+            else:
+                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('conflicting',))
 
         self.tv.tag_configure('rejected', background='#E08E45')
         self.tv.tag_configure('known', background='#D5D0CD')

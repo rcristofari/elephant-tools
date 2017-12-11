@@ -90,7 +90,7 @@ class mysqlconnect:
         if self.__num is not None and self.__id is None:
             sql = "SELECT * FROM elephants WHERE num = %s;" % (quote(self.__num))
         elif self.__num is None and self.__calf_num is not None and self.__id is None:
-            sql = "SELECT * FROM elephants WHERE calfnum = %s;" % (self.__calf_num) ##Will open to a problem when several calves have the same ID and no adult ID...fix by matching on dates
+            sql = "SELECT * FROM elephants WHERE calf_num = %s;" % (quote(self.__calf_num)) ##Will open to a problem when several calves have the same ID and no adult ID...fix by matching on dates
         elif self.__num is None and self.__calf_num is None and self.__id is not None:
             sql = "SELECT * FROM elephants WHERE id = %s;" % (self.__id)
         else:
@@ -328,6 +328,8 @@ class mysqlconnect:
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
+            if num is None:
+                num = 'null'
             if name is None:
                 name = 'null'
             else:
@@ -364,7 +366,7 @@ class mysqlconnect:
                 research = "'N'"
             else:
                 research = quote(research)
-            statement = "INSERT INTO elephants (num, name, calf_num, sex, birth, cw, age_capture, camp, alive, research, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);" % (self.__num, name, calf_num, sex, birth, cw, caught, camp, alive, research, self.__i)
+            statement = "INSERT INTO elephants (num, name, calf_num, sex, birth, cw, age_capture, camp, alive, research, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);" % (num, name, calf_num, sex, birth, cw, caught, camp, alive, research, self.__i)
             return(statement)
 
 ################################################################################

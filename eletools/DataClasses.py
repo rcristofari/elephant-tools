@@ -36,6 +36,7 @@ from eletools.Utilities import *
     # 64 : missing elephant
     # 128 : missing event type
 
+
 # For the measure class:
     # 16 : value out of range
     # 32 : replicate
@@ -151,7 +152,7 @@ class elephant: ##MAKE A __repr__ function !!
 
     ################################################################################
     ## 'source' function reads the elephant from the database if it exists        ##
-    ################################################################################
+    ################################3################################################
 
     def source(self,db):
 
@@ -606,11 +607,18 @@ class elephant: ##MAKE A __repr__ function !!
 
         ########## If this elephant is not in the database yet,
         # write an insert statement (consistency of data assumed).
-        elif self.__sourced == 2 and self.__num is not None and self.birth is not None:
-            #this is outsourced to mysqlconnect
-            self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
-            if self.__toggle_write_flag == 0:
-                self.flag = self.flag + 2
+        elif self.__sourced == 2:
+            if self.__num is not None and self.birth is not None:
+                #this is outsourced to mysqlconnect
+                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 2
+            elif self.calf_num is not None and self.birth is not None:
+                #this is outsourced to mysqlconnect
+                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 2
+
 
         ########## If the elephant has been checked and there is no conflict, write an update statement.
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
@@ -638,8 +646,6 @@ class elephant: ##MAKE A __repr__ function !!
                 # Set the 2-power flag:
                 for n in i:
                     self.flag = self.flag + 2**(n+4)
-
-
 
             # Make a string of conflict field names for the warning field
             f = ('num','name','calf_num','sex','birth','cw','age of capture','camp','alive','research')
@@ -1280,6 +1286,8 @@ class event:
         self.__sourced = 0
         self.__checked = 0
         self.__xevent = 1
+        self.__xdate = 1
+        self.__xcw = 1
         self.warnings = []
         self.flag = flag
         self.__toggle_write_flag = 0
@@ -1331,7 +1339,7 @@ class event:
                         self.__xrep = 0
                     else:
                         if self.__solved == 'N':
-                            redundancy = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: There is already an event of type '"+self.__event_class+"' for elephant "+str(self.__num)+" at that date in the database.")
+                            redundancy = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: There is already an event of class '"+self.__event_class+"' for elephant "+str(self.__num)+" at that date in the database.")
                             self.__sourced = 1
                             self.__xrep = 0
                     if redundancy is not None:
@@ -1375,40 +1383,44 @@ class event:
                 self.__xdate = 0
             elif delta > 100 and self.__solved == 'N':
                 deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This event occurs when the elephant is over 100 years. Please verify input.")
+                self.__xdate = 0
 
-            if self.__event_class == 'death':
-                if self.__date_of_death is not None:
-                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
-                    self.__xdate = 0
-                elif (self.__date - self.__last_alive).days < 0:
-                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
-                    self.__xdate = 0
-                elif (self.__date - self.__last_breeding).days < 0:
-                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant had an offspring on "+datetime.strftime(self.__last_breeding, "%Y-%m-%d")+", check your input.")
-                    self.__xdate = 0
-                else:
-                    print("Chronologies seem to match - updating database")
-                    self.__update_alive = 1
-                    self.__xdate = 1
+            else:
+                if self.__event_class == 'death':
+                    if self.__date_of_death is not None:
+                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
+                        self.__xdate = 0
+                    elif (self.__date - self.__last_alive).days < 0:
+                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
+                        self.__xdate = 0
+                    elif (self.__date - self.__last_breeding).days < 0:
+                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant had an offspring on "+datetime.strftime(self.__last_breeding, "%Y-%m-%d")+", check your input.")
+                        self.__xdate = 0
+                    else:
+                        print("Chronologies seem to match - updating database")
+                        self.__update_alive = 1
+                        self.__xdate = 1
 
-            elif self.__event_class in ('capture','accident','health','alive','metadata'):
-                if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0:
-                    deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was already six feet under by then. Please check your input.")
-                    self.__xdate = 0
-                elif self.__date_of_death is None and self.__db_alive == 'UKN':
-                        #If the event is less than 5 years ago and the elephant is now less than 90 years old, it switches to 'alive'
-                        if ((datetime.now().date()-self.__date).days / 365.25) <= 5 and ((datetime.now().date()-self.__db_birth).days / 365.25) <= 90:
-                            print("Updating status to 'alive' in the database.")
-                            self.__update_alive = 2
-                            self.__xdate = 1
-                        else:
-                            print("Chronologies seem to match.")
-                            self.__xdate = 1
-                else:
-                    print("Chronologies seem to match.")
-                    self.__xdate = 1
-                if deltawarning is not None:
-                    self.warnings.append(deltawarning)
+                elif self.__event_class in ('capture','accident','health','alive','metadata'):
+                    if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0:
+                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was already six feet under by then. Please check your input.")
+                        self.__xdate = 0
+                    elif self.__date_of_death is None and self.__db_alive == 'UKN':
+                            #If the event is less than 5 years ago and the elephant is now less than 90 years old, it switches to 'alive'
+                            if ((datetime.now().date()-self.__date).days / 365.25) <= 5 and ((datetime.now().date()-self.__db_birth).days / 365.25) <= 90:
+                                print("Updating status to 'alive' in the database.")
+                                self.__update_alive = 2
+                                self.__xdate = 1
+                            else:
+                                print("Chronologies seem to match.")
+                                self.__xdate = 1
+                    else:
+                        print("Chronologies seem to match.")
+                        self.__xdate = 1
+
+
+            if deltawarning is not None:
+                self.warnings.append(deltawarning)
 
             captwarning = None
             if self.__event_class == 'capture':
@@ -1451,10 +1463,7 @@ class event:
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag+8
 
-        if self.__checked == 0:
-            print("You must check this event first using check(db)")
-
-        elif self.__checked == 1:
+        if self.__checked == 1:
             #If we need to update the "cw" or "alive" flags in the elephants table
             if self.__update_cw == 0:
                 wcw = None
@@ -1479,15 +1488,15 @@ class event:
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag+2
 
-        elif self.__checked == 0:
+        elif self.__checked == 0 and self.__sourced == 2:
             if self.__xdate == 1 and self.__xcw == 0:
                 conflicts = 'origin'
                 if self.__toggle_write_flag == 0:
-                    self.flag = self.flag+16
+                    self.flag = self.flag+32
             elif self.__xdate == 0 and self.__xcw == 1:
                 conflicts = 'date'
                 if self.__toggle_write_flag == 0:
-                    self.flag = self.flag+32
+                    self.flag = self.flag+16
             else:
                 conflicts = 'date and origin'
                 if self.__toggle_write_flag == 0:
