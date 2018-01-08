@@ -249,12 +249,13 @@ def read_elephants(elefile, sep=';', is_file=True):
 def read_calves(elefile, sep=';', is_file=True):
     # Prepare empty list for column-wise parsing
     calf_name, calf_num, sex, birth, cw, caught, camp, alive, research, mother_num, mother_name = [], [], [], [], [], [], [], [], [], [], []
+    fields = ['calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research', 'mother_num', 'mother_name']
 
     if is_file == True:
     ########## Store the header in a list, and then each variable in its own column
         with open(elefile) as elefile:
             eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
-            fields = next(eleread)[0:10]
+            next(eleread)[0:10]
             for row in eleread:
                 calf_name.append(row[0])
                 sex.append(row[1])
@@ -269,7 +270,6 @@ def read_calves(elefile, sep=';', is_file=True):
                 calf_num.append('')
 
     elif is_file == False:
-        fields = ['calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research', 'mother_num', 'mother_name']
         for row in elefile:
             calf_name.append(row[0])
             calf_num.append('')
@@ -284,13 +284,15 @@ def read_calves(elefile, sep=';', is_file=True):
             mother_name.append(row[9])
 
     ########## Format to lowercase Name and Camp
-    lcname, lccamp = [], []
+    lcname, lccamp, lcmname = [], [], []
     for n in calf_name:
         lcname.append(string.capwords(n))
     for c in camp:
         lccamp.append(string.capwords(c))
-    calf_name, camp = lcname, lccamp
-    del lcname, lccamp
+    for n in mother_name:
+        lcmname.append(string.capwords(n))
+    calf_name, camp, mother_name = lcname, lccamp, lcmname
+    del lcname, lccamp, lcmname
 
     ########## Try to guess sex, origin, alive and research
     sx, cwx, ax, rx = [], [], [], []
@@ -333,7 +335,7 @@ def read_calves(elefile, sep=';', is_file=True):
 
     ########## Reformat as rows
     rows=[]
-    for i,r in enumerate(num):
+    for i,r in enumerate(calf_name):
         row=[calf_name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i],mother_num[i],mother_name[i]]
         rows.append(row)
 
@@ -422,7 +424,7 @@ def read_calves(elefile, sep=';', is_file=True):
             warnings.append("Format problem with living status: " + str(row[7]) + " at line " + str(i+1))
             reject = 1
 
-    ########## research
+        ########## research
         if row[8] in ('Y','N'):
             pass
         else:
@@ -442,17 +444,20 @@ def read_calves(elefile, sep=';', is_file=True):
         if re.search(r"^[a-zA-Z ]+$", str(row[10])):
             pass
         elif row[10] is None:
-            warnings.append("Missing calf name at line " + str(i+1))
+            warnings.append("Missing mother name at line " + str(i+1))
         else:
-            warnings.append("Format problem with calf name: " + str(row[1]) + " at line " + str(i+1))
+            warnings.append("Format problem with mother name: " + str(row[1]) + " at line " + str(i+1))
             reject = 1
 
     ########## calf_num (synthetic number):
-        [calf_name[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i],mother_num[i],mother_name[i]]
-        if row[2] is not None and row[8] is not None:
-            row[1] = str(str.split(row[3])[0])+'B'+str(row[9])
-        elif row[2] is not None and row[8] is None:
-            row[1] = str(str.split(row[3])[0])+'U'+random.choice(string.ascii_letters[0:26])+random.choice(string.ascii_letters[0:26])+random.choice(string.ascii_letters[0:26])+random.choice(string.ascii_letters[0:26]))
+        if row[3] is not None and row[9] is not None:
+            row[1] = str(str.split(row[3],'-')[0])+'B'+str(row[9])
+        elif row[3] is not None and row[9] is None:
+            row[1] = (str(str.split(row[3],'-')[0])+'U'
+                    +random.choice(string.ascii_letters[0:26])
+                    +random.choice(string.ascii_letters[0:26])
+                    +random.choice(string.ascii_letters[0:26])
+                    +random.choice(string.ascii_letters[0:26]))
 
     ######### Send out to the correct lists for writing to file
     ######### Set the Flag field (1 if the row is rejected, 0 if it can go further)
