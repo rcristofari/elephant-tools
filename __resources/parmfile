@@ -1,7 +1,7 @@
 //connexion parameters
-username=mtep
-password=EmNi5swin
-host=mydb2.utu.fi
-database=mtep
-port=3306
-wdir=/media/psf/Dropbox/Ele data/SQL_database
+username=
+password=
+host=
+database=
+port=
+wdir=
