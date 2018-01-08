@@ -54,6 +54,7 @@ class MainApplication(tk.Frame):
 
         self.filemenu = tk.Menu(self.master.menubar, tearoff=0)
         self.filemenu.add_command(label="Import elephants", command=self.call_read_elephants, underline=7, accelerator="Ctrl+e")
+        self.filemenu.add_command(label="Import calves", command=self.call_read_calves, underline=7, accelerator="Ctrl+c")
         self.filemenu.add_command(label="Import pedigrees", command=self.call_read_pedigree, underline=7, accelerator="Ctrl+p")
         self.filemenu.add_command(label="Import events", command=self.call_read_events, underline=8, accelerator="Ctrl+v")
         self.filemenu.add_command(label="Import measures", command=self.call_read_measures, underline=7, accelerator="Ctrl+m")
@@ -114,12 +115,12 @@ class MainApplication(tk.Frame):
         self.master.bind_all("<Control-m>", self.call_read_measures)
         self.master.bind_all("<Control-f>", self.set_wdir)
 
-        self.master.bind_all("<Shift-E>", self.call_find_elephant)
-        self.master.bind_all("<Shift-V>", self.call_find_event)
-        self.master.bind_all("<Shift-M>", self.call_find_measure)
-        self.master.bind_all("<Shift-S>", self.call_make_measure_set)
-        self.master.bind_all("<Shift-G>", self.call_age_gaps)
-        self.master.bind_all("<Shift-C>", self.call_censor_date)
+        self.master.bind_all("<Alt-E>", self.call_find_elephant)
+        self.master.bind_all("<Alt-V>", self.call_find_event)
+        self.master.bind_all("<Alt-M>", self.call_find_measure)
+        self.master.bind_all("<Alt-S>", self.call_make_measure_set)
+        self.master.bind_all("<Alt-G>", self.call_age_gaps)
+        self.master.bind_all("<Alt-C>", self.call_censor_date)
 
 ###################################################
 
@@ -130,6 +131,9 @@ class MainApplication(tk.Frame):
 
     def call_read_elephants(self, *args):
         read_elephant_file(self.master)
+
+    def call_read_calves(self, *args):
+        read_calf_file(self.master)
 
     def call_read_pedigree(self, *args):
         read_pedigree_file(self.master)

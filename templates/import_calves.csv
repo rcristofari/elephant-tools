@@ -1,0 +1,3 @@
+calf_name,sex,birth,cw,caught,camp,alive,research,mother_num,mother_name
+Elephant_1,f,YYYY-MM-DD,C,,Place,Y,N,33333,Elephant_3
+Elephant_2,m,YYYY.dddddd,W,25,Place,N,Y,44444,Elephant_4

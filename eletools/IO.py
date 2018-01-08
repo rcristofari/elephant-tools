@@ -1,5 +1,6 @@
 from datetime import datetime
 import string
+import random
 import numpy as np
 import re
 import os
@@ -238,6 +239,242 @@ def read_elephants(elefile, sep=';', is_file=True):
     return[fields, valid, remarks, rejected, issues, rows]
 
 ####################################################################################
+##  read_calves() READ CALF DEFINTION FILE                                 ##
+####################################################################################
+
+# A model elephant file is made up of 10 fields:
+# calf_name, sex, birth, cw, caught, camp, alive, research, mother_num, mother_name
+# field names irrelevant, but order necessary
+
+def read_calves(elefile, sep=';', is_file=True):
+    # Prepare empty list for column-wise parsing
+    calf_name, calf_num, sex, birth, cw, caught, camp, alive, research, mother_num, mother_name = [], [], [], [], [], [], [], [], [], [], []
+
+    if is_file == True:
+    ########## Store the header in a list, and then each variable in its own column
+        with open(elefile) as elefile:
+            eleread = csv.reader(elefile, delimiter = sep, quotechar="'")
+            fields = next(eleread)[0:10]
+            for row in eleread:
+                calf_name.append(row[0])
+                sex.append(row[1])
+                birth.append(row[2])
+                cw.append(row[3])
+                caught.append(row[4])
+                camp.append(row[5])
+                alive.append(row[6])
+                research.append(row[7])
+                mother_num.append(row[8])
+                mother_name.append(row[9])
+                calf_num.append('')
+
+    elif is_file == False:
+        fields = ['calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research', 'mother_num', 'mother_name']
+        for row in elefile:
+            calf_name.append(row[0])
+            calf_num.append('')
+            sex.append(row[1])
+            birth.append(row[2])
+            cw.append(row[3])
+            caught.append(row[4])
+            camp.append(row[5])
+            alive.append(row[6])
+            research.append(row[7])
+            mother_num.append(row[8])
+            mother_name.append(row[9])
+
+    ########## Format to lowercase Name and Camp
+    lcname, lccamp = [], []
+    for n in calf_name:
+        lcname.append(string.capwords(n))
+    for c in camp:
+        lccamp.append(string.capwords(c))
+    calf_name, camp = lcname, lccamp
+    del lcname, lccamp
+
+    ########## Try to guess sex, origin, alive and research
+    sx, cwx, ax, rx = [], [], [], []
+    for x in sex:
+        if x.casefold().strip() in ('male','m','males'):
+            sx.append('M')
+        elif x.casefold().strip() in ('female','f','females'):
+            sx.append('F')
+        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+            sx.append('UKN')
+        else:
+            sx.append(x)
+    for x in cw:
+        if x.casefold().strip() in ('c','captive'):
+            cwx.append('captive')
+        elif x.casefold().strip() in ('w','wild'):
+            cwx.append('wild')
+        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+            cwx.append('UKN')
+        else:
+            cwx.append(x)
+    for x in alive:
+        if x.casefold().strip() in ('y','yes','alive'):
+            ax.append('Y')
+        elif x.casefold().strip() in ('n','no','dead'):
+            ax.append('N')
+        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+            ax.append('UKN')
+        else:
+            ax.append(x)
+    for x in research:
+        if x.casefold().strip() in ('y','yes'):
+            rx.append('Y')
+        elif x.casefold().strip() in ('n','no','','none','na','null','unknown','ukn','n/a'):
+            rx.append('N')
+        else:
+            rx.append(x)
+    sex, cw, alive, research = sx, cwx, ax, rx
+    del sx, cwx, ax, rx
+
+    ########## Reformat as rows
+    rows=[]
+    for i,r in enumerate(num):
+        row=[calf_name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i],mother_num[i],mother_name[i]]
+        rows.append(row)
+
+    ########## Check data types row by row
+    valid, remarks, rejected, issues = [], [], [], []
+
+    for i,row in enumerate(rows):
+        reject = 0
+        warnings = []
+
+        ########## Sort out missing values
+        for j,x in enumerate(row):
+            if x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+                row[j] = None
+            else:
+                pass
+
+        ########## calf_name
+        if re.search(r"^[a-zA-Z ]+$", str(row[0])):
+            pass
+        elif row[0] is None:
+            warnings.append("Missing calf name at line " + str(i+1))
+        else:
+            warnings.append("Format problem with calf name: " + str(row[0]) + " at line " + str(i+1))
+            reject = 1
+
+        ########## sex
+        if row[2] in ('M','F','UKN'):
+            pass
+        elif row[2] == None:
+            warnings.append("Missing sex at line " + str(i+1))
+        else:
+            warnings.append("Sex must be M, F or UKN at line " + str(i+1) +" (here: " + str(row[2]) + ")")
+            reject = 1
+
+        ########## birth
+        date = format_date(str(row[3]))
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
+            try:
+                row[3] = date
+            except ValueError:
+                reject = 1
+                warnings.append("Invalid date " + str(date) + " at line " + str(i+1))
+        elif date is None:
+            warnings.append("Missing birth date at line " + str(i+1))
+        else:
+            warnings.append("Format problem with birth date: " + str(date) + " at line " + str(i+1))
+            reject = 1
+
+        ########## CW
+        if row[4] in ('captive','wild','UKN'):
+            pass
+        elif row[4] is None:
+            warnings.append("Missing origin at line " + str(i+1))
+        else:
+            warnings.append("Origin must be captive, wild or UKN at line " + str(i+1) +" (here: " + str(row[4]) + ")")
+            reject = 1
+
+        ########## caught
+        if re.search(r"^[0-9]+$", str(row[5])):
+            pass
+        elif row[5] is None and cw[i] == 'wild':
+            warnings.append("Missing age at capture at line " + str(i+1) + " fo a wild-born elephant.")
+            pass
+        elif row[5] is None and cw[i] != 'wild':
+            pass
+        else:
+            warnings.append("Format problem with age at capture: " + str(row[5]) + " at line " + str(i+1))
+            reject = 1
+
+        ########## camp
+        if re.search(r"^[a-zA-Z ]+$", str(row[6])):
+            pass
+        elif row[6] is None:
+            warnings.append("Missing camp at line " + str(i+1))
+        else:
+            warnings.append("Format problem with camp: " + str(row[6]) + " at line " + str(i+1))
+            reject = 1
+
+        ########## alive
+        if row[7] in ('Y','N','UKN'):
+            pass
+        elif row[7] is None:
+            warnings.append("Missing information whether alive or not at line " + str(i+1))
+        else:
+            warnings.append("Format problem with living status: " + str(row[7]) + " at line " + str(i+1))
+            reject = 1
+
+    ########## research
+        if row[8] in ('Y','N'):
+            pass
+        else:
+            warnings.append("Format problem with living status: " + str(row[8]) + " at line " + str(i+1))
+            reject = 1
+
+        ########## mother_num
+        if re.search(r"^[0-9a-zA-Z]+$", str(row[9])):
+            pass
+        elif row[9] is None:
+            warnings.append("Missing mother number at line " + str(i+1))
+        else:
+            warnings.append("Format problem with mother number: " + str(row[9]) + " at line " + str(i+1))
+            reject = 1
+
+        ########## mother_name
+        if re.search(r"^[a-zA-Z ]+$", str(row[10])):
+            pass
+        elif row[10] is None:
+            warnings.append("Missing calf name at line " + str(i+1))
+        else:
+            warnings.append("Format problem with calf name: " + str(row[1]) + " at line " + str(i+1))
+            reject = 1
+
+    ########## calf_num (synthetic number):
+        [calf_name[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i],mother_num[i],mother_name[i]]
+        if row[2] is not None and row[8] is not None:
+            row[1] = str(str.split(row[3])[0])+'B'+str(row[9])
+        elif row[2] is not None and row[8] is None:
+            row[1] = str(str.split(row[3])[0])+'U'+random.choice(string.ascii_letters[0:26])+random.choice(string.ascii_letters[0:26])+random.choice(string.ascii_letters[0:26])+random.choice(string.ascii_letters[0:26]))
+
+    ######### Send out to the correct lists for writing to file
+    ######### Set the Flag field (1 if the row is rejected, 0 if it can go further)
+
+        # allwarnings.append(warnings)
+        if reject == 0:
+            row.append(0)
+            if warnings != []:
+                remarks.append(warnings)
+            valid.append(row)
+        elif reject == 1:
+            row.append(1)
+            issues.append(warnings)
+            rejected.append(row)
+
+    ######### In all cases, append the warnings to the row.
+        row.append(warnings)
+
+    return[fields, valid, remarks, rejected, issues, rows]
+
+
+####################################################################################
 ##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##
 ####################################################################################
 # A pedigree file is made of four columns:
@@ -402,12 +639,17 @@ def read_measures(elefile, sep=';', solved='N'):
             flag = 1
 
         # Check date format
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", u[2]):
-            pass
-        elif u[2] == '':
-            w.append("Missing date at line " + str(u[0]))
+        date = format_date(str(u[2]))
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
+            try:
+                u[2] = date
+            except ValueError:
+                reject = 1
+                warnings.append("Invalid date " + str(date) + " at line " + str(u[0]))
+        elif date is None:
+            warnings.append("Missing date at line " + str(u[0]))
         else:
-            w.append("Format problem with date: " + str(u[2]) + " at line " + str(u[0]))
+            warnings.append("Format problem with date: " + str(date) + " at line " + str(u[0]))
             flag = 1
 
         # Check code format
@@ -532,17 +774,17 @@ def read_events(elefile, sep=',', solved='N'):
             reject = 1
 
     ########## date
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", row[2]):
+        date = format_date(str(row[2]))
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
             try:
-                datetime.strptime(row[2], '%Y-%m-%d')
-            except:
-                warnings.append("Format problem with event date: " + str(row[2]) + " at line " + str(i+1))
+                row[2] = date
+            except ValueError:
                 reject = 1
-        elif row[2] == '':
-            warnings.append("Missing event date at line " + str(i+1))
-            reject = 1
+                warnings.append("Invalid date " + str(date) + " at line " + str(i+1))
+        elif date is None:
+            warnings.append("Missing birth date at line " + str(i+1))
         else:
-            warnings.append("Format problem with event date: " + str(row[2]) + " at line " + str(i+1))
+            warnings.append("Format problem with birth date: " + str(date) + " at line " + str(i+1))
             reject = 1
 
     ########## loc

@@ -348,3 +348,26 @@ class add_measure_type(tk.Frame):
         if statement is not None:
             self.master.common_out.append(statement)
             print(statement)
+
+################################################################################
+## Manually add some calves (i.e. birth and mother at the same time)          ##
+################################################################################
+
+class add_calves(tk.Frame):
+
+    def __init__(self, master):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
