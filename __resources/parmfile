@@ -4,4 +4,4 @@ password=12345
 host=localhost
 database=mtep
 port=3306
-wdir=~
+wdir=/home/robin/Elephants/testfiles
