@@ -554,7 +554,7 @@ class read_calf_file(tk.Frame):
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
-        self.call_read_elephants()
+        self.call_read_calves()
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
@@ -584,11 +584,11 @@ class read_calf_file(tk.Frame):
         self.master.bind('<Return>', self.call_analyse)
         self.master.bind('<space>', self.show_file_content)
 
-    def call_read_elephants(self):
+    def call_read_calves(self):
         if self.name is None and self.master.manual_add_elephant is None:
             self.name = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
             self.master.shortname=os.path.split(self.name)[1]
-            self.master.file_content = read_elephants(self.name, ',', is_file = True)
+            self.master.file_content = read_calves(self.name, ',', is_file = True)
 
         elif self.master.manual_add_elephant is not None and self.master.pass_from_add_elephant is True:
             self.master.file_content = read_elephants(self.master.manual_add_elephant, ',', is_file = False)
@@ -626,7 +626,7 @@ class read_calf_file(tk.Frame):
         self.view_window.grid_rowconfigure(2, weight=1)
 
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('num','name','calf_num','sex','birth','cw','caught','camp','alive','research')
+        self.tv['columns'] = ('calf_num','calf_name','sex','birth','cw','caught','camp','alive','research','mother_num','mother_name')
 
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
@@ -639,7 +639,7 @@ class read_calf_file(tk.Frame):
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
         for i,row in enumerate(rows):
-            self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = (row[10],))
+            self.tv.insert('','end',text=str(i+1), values=row[0:11], tags = (row[11],))
 
         self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)

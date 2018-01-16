@@ -1,7 +1,7 @@
 //connexion parameters
-username=
-password=
-host=
-database=
-port=
-wdir=
+username=robin
+password=12345
+host=localhost
+database=mep
+port=3306
+wdir=~
