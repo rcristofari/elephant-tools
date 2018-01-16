@@ -100,7 +100,9 @@ def read_elephants(elefile, sep=';', is_file=True):
     rows=[]
     for i,r in enumerate(num):
         row=[num[i],name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i]]
+        # print(row)
         rows.append(row)
+    # print("The last row is", rows[rows.__len__()-1])
 
     ########## Check data types row by row
     valid, remarks, rejected, issues = [], [], [], []
@@ -129,6 +131,7 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## name
+        # print(type(row[1]))
         if re.search(r"^[a-zA-Z ]+$", str(row[1])):
             pass
         elif row[1] is None:
@@ -138,8 +141,8 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## calf_num
-        print(row[2], type(row[2]))
-        if re.search(r"^[a-zA-Z0-9]+$",row[2]):
+        # print(type(row[2]))
+        if re.search(r"^[a-zA-Z0-9]+$", str(row[2])):
             pass
         elif row[2] is None and row[0] is None:
             warnings.append("Missing calf number at line " + str(i+1) + ". You need at least one number.")

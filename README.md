@@ -9,6 +9,10 @@ If using Anaconda, open your terminal (or cmd.exe on Windows) and enter:
 
 **conda install -c scipy numpy pymysql etetoolkit ete3 PILLOW**
 
+Note that you will need Tcl/tk toolkit version >= 8.6. You can upgrade it on your system, and proceed to upgrade the Python library with:
+
+**conda install -c anaconda tk**
+
 Then proceed to download the module. If in OSX or Linux, use:
 
 **git clone https://github.com/rcristofari/elephant-tools.git**

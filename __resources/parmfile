@@ -2,6 +2,12 @@
 username=robin
 password=12345
 host=localhost
+<<<<<<< HEAD
 database=mep
 port=3306
 wdir=~
+=======
+database=mtep
+port=3306
+wdir=/home/robin/Elephants/testfiles
+>>>>>>> 77fb888212ef6fe3316c743529c0862a4ccff93e

@@ -1,6 +1,7 @@
 #! /usr/bin/python3
 import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
+from tkinter.font import Font, nametofont
 import tkinter.ttk as ttk
 from PIL import Image
 import os
@@ -47,6 +48,12 @@ class MainApplication(tk.Frame):
         self.master.background_image = tk.PhotoImage(file='./__resources/background.png')
         self.master.background_label = tk.Label(self.master, image=self.master.background_image)
         self.master.background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # Somehow this doesn't work...
+        font = nametofont('TkDefaultFont')
+        font.config(family='Helvetica',size=64)
+        self.master.option_add("*Font", font)
+
 
 
     def create_widgets(self):
