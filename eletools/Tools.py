@@ -3,10 +3,12 @@ from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
 from datetime import datetime
 import difflib as df
 from eletools.Utilities import *
+from eletools.DataClasses import *
 
 ####################################################################################
 ##  matriline_tree() function builds a Newick tree string around an individual    ##
 ####################################################################################
+
 
 def matriline_tree(id, db):
     offspring = id
@@ -123,6 +125,7 @@ def matriline_tree(id, db):
 ##  nexus_tree() function writes a Newick tree as a Nexus file                    ##
 ####################################################################################
 
+
 def nexus_tree(newick, file):
     lines = []
     lines.append('#NEXUS')
@@ -146,6 +149,7 @@ def nexus_tree(newick, file):
 ####################################################################################
 # Database id of the elephant, yearly survival probability curve, probability cutoff
 # Could be extended to include more cues
+
 
 def censor_elephant(db, id, survival=None, cutoff=0.05):
     key = 0 # this means that we have no positive info so far about this elephant being dead
@@ -228,3 +232,132 @@ def fuzzy_match_measure(db, type, cutoff=0.6):
         if d.ratio() >= cutoff:
             matches.append(t)
     return(matches)
+
+####################################################################################
+## analyse_calf() examines a composite row defining a calf                        ##
+####################################################################################
+
+
+def analyse_calf(calf_num, birth, mother_num, db, sex=None, cw=None, caught=None, camp=None, alive=None, research=None,
+                 mother_name=None, solved=False, flag=0, limit_age=28):
+
+    total_flag = flag
+    wmother = None
+    wcalf = None
+    message = []
+    duplicates = None
+
+    # Local flag system: starts by default at 0, or at 1 if the row is excluded (in which case we break)
+    # Add 1 if there is a prohibitive error
+    # Add 2 if the mother doesn't pose a problem
+    # Add 4 if the calf doesn't pose a problem
+    # Add 8 if the relationship doesn't pose a problem
+    # Add 16 if there is nothing to be added to the database
+    # To be written out, the flag must contain 2, 4, and 8
+    # Details of the problems are contained in the respective flags
+
+    if 1 not in break_flag(flag):
+
+        ##################################################################################
+        # Identify the mother
+        # Either she doesn't exist (2^1), or she exists with a different name (2^2), or she exists as-is (2^3).
+
+        mother = elephant(num=mother_num, name=mother_name, solved=solved, flag=flag)
+        mother.source(db)
+        mother.check()
+        wmother = mother.write(db)
+
+        # If the mother is known (eventually under an alias name)
+        if 2 in break_flag(wmother[10]):
+            total_flag = total_flag + 2
+            message.append("The mother is known under a different name, the database will be updated")
+        elif 3 in break_flag(wmother[10]):
+            total_flag = total_flag + 2
+            message.append("The mother is known, nothing to change")
+        else:
+            total_flag = total_flag + 1
+            message.append("This mother is not valid.")
+
+        ##################################################################################
+        # Identify the calf
+
+        calf = elephant(calf_num=calf_num, sex=sex, birth=birth, cw=cw, caught=caught, camp=camp, alive=alive,
+                        research=research, flag=flag)
+        calf.source(db)
+        calf.check()
+        wcalf = calf.write(db)
+
+        if 1 in break_flag(wcalf[10]):
+            total_flag = total_flag + 4
+            message.append("This calf is unknown.")
+            # In this case we need to check if a similar calf already exists
+            duplicates = db.get_all_offsprings(num=mother_num, candidate=calf, limit_age=limit_age)
+            if duplicates is not None:
+                total_flag = total_flag + 1
+                message.append("This mother already has a calf around that age in the database.")
+
+        elif 2 in break_flag(wcalf[10]):
+            message.append("This calf will be updated.")
+            total_flag = total_flag + 4
+        elif 3 in break_flag(wcalf[10]):  # The calf is already known
+            message.append("This calf is already known")
+            if 3 in break_flag(wmother[10]):
+                total_flag = total_flag + 16  # Means that nothing will be done
+
+        if 1 not in break_flag(flag):  # Check again that no error has arisen in the meantime
+
+            ##################################################################################
+            # Extract the relationship
+            relationship = None
+
+            if 1 in break_flag(total_flag) and 2 in break_flag(total_flag):  # Both the mother and the calf are OK
+
+                # Distinguish the case where the calf exists in the DB (as-is, or to be updated)
+                # and the case where it is not present yet
+
+                # Calf is unknown yet, shall be written in
+                if 1 in break_flag(wcalf[10]):
+                    relationship = pedigree(eleph_1=mother_num, eleph_2_as_object=calf, rel='mother',
+                                            eleph_2_is_calf=True, flag=flag)
+                    relationship.source(db)
+                    relationship.check()
+                    wrelationship = relationship.write(db)
+
+                # Calf exists but needs to be updated
+                elif 2 in break_flag(wcalf[10]):
+                    relationship = pedigree(eleph_1=mother_num, eleph_2=calf_num, rel='mother',
+                                            eleph_2_is_calf=True, flag=flag)
+                if relationship is not None:
+                    relationship.source(db)
+                    relationship.check()
+                    wrelationship = relationship.write(db)
+
+            else: ### +++
+                # This is under another condition now
+                # Calf exists and does not need to be updated - drop the line gracefully.
+                if 3 in break_flag(wcalf[10]):
+                    pass # Print something to tell that everything's cool and have gray shading
+
+
+
+
+
+
+                
+
+        ##################################################################################
+        # Parse out the results
+
+        # If there is any error with the mother:
+        if 1 not in break_flag(total_flag):
+            pass
+
+        # if 1 in break_flag(wcalf[11]) or 2 in break_flag(wcalf[11]) or 3 in break_flag(wcalf[11]):
+        #     pass
+            # 2, 4 : ok
+            # 8 already known.
+
+        # All we want is to return the calf if the rest of the data is OK, and eventually the update on the mother's name
+    if 1 in break_flag(wrelationship[4]) or 3 in break_flag(wrelationship[4]):
+        out = [wcalf, wmother, message, duplicates, total_flag]
+        return(out)
