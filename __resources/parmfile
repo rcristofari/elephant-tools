@@ -1,13 +1,7 @@
 //connexion parameters
-username=robin
-password=12345
-host=localhost
-<<<<<<< HEAD
-database=mep
-port=3306
-wdir=~
-=======
+username=admin
+password=admin
+host=193.167.189.61
 database=mtep
 port=3306
-wdir=/home/robin/Elephants/testfiles
->>>>>>> 77fb888212ef6fe3316c743529c0862a4ccff93e
+wdir=/home/robin/Dropbox/Ele data/SQL_database/february_2018

@@ -83,7 +83,7 @@ class elephant: ##MAKE A __repr__ function !!
             self.birth=birth
         self.cw=cw
         if caught is not None:
-            self.caught=int(caught)
+            self.caught=float(caught)
         else:
             self.caught = caught
         if camp is not None:
@@ -687,7 +687,11 @@ class elephant: ##MAKE A __repr__ function !!
 
 class pedigree:
 
-    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, flag=0):
+    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, eleph_2_as_object=None, flag=0):
+
+        ## REWRITE THE FUCKING ELEPH 2 AS OBJECT
+
+
 
         # Non-prefixed parameters describe user input
         self.eleph_1=eleph_1
@@ -697,20 +701,22 @@ class pedigree:
         self.eleph_2_is_calf=eleph_2_is_calf
 
         # Prefixed parameters describe database content
-        self.__db_id=None
-        self.__db_id1=None
-        self.__db_id2=None
-        self.__db_eleph_1=None
-        self.__db_eleph_2=None
-        self.__db_rel_1=None
-        self.__db_rel_2=None
-        self.__db_coef_1=None
-        self.__db_coef_2=None
-        self.__db_rel_id=None
-        self.__rel_1=None
-        self.__rel_2=None
-        self.__rel_fwd=None
-        self.__rel_rev=None
+        self.__db_id = None
+        self.__db_id1 = None
+        self.__db_id2 = None
+        self.__db_eleph_1 = None
+        self.__db_eleph_2 = None
+        self.__db_rel_1 = None
+        self.__db_rel_2 = None
+        self.__db_coef_1 = None
+        self.__db_coef_2 = None
+        self.__db_rel_id = None
+        self.__rel_1 = None
+        self.__rel_2 = None
+        self.__rel_fwd = None
+        self.__rel_rev = None
+        self.eleph_2_as_object = eleph_2_as_object
+        self.flag = flag
 
         # These variables pass the state of each operation to the next
         self.__sourced=0
@@ -742,136 +748,140 @@ class pedigree:
         self.__db_eleph_2 = None
         self.elephant_absent = 0
 
-        try:
-            el1 = self.__db.get_elephant(num=self.eleph_1)
-            if self.eleph_2_is_calf is False:
-                el2 = self.__db.get_elephant(num=self.eleph_2)
-            else:
-                el2 = self.__db.get_elephant(calf_num=self.eleph_2)
 
-            self.__db_eleph_1 = []
-            self.__db_eleph_2 = []
-            for x in (0,4,5,9):
-                self.__db_eleph_1.append(el1[x])
-                self.__db_eleph_2.append(el2[x])
-            self.__db_id1 = self.__db_eleph_1[0]
-            self.__db_id2 = self.__db_eleph_2[0]
+        # Standard case, both elephants are normally in the database:
+        if self.eleph_2_as_object is None:
 
-        except TypeError:
-            missing = ''
-            if el1 is None and el2 is None:
-                missing = ("Impossible to find elephant "+self.eleph_1+" nor "+self.eleph_2+" in the database.")
-            if el1 is None and el2 is not None:
-                missing = ("Impossible to find elephant "+self.eleph_1+" in the database.")
-            if el1 is not None and el2 is None:
-                missing = ("Impossible to find elephant "+self.eleph_2+" in the database.")
-            self.warnings.append(missing)
-            print(missing)
-            self.elephant_absent = 1
+            try:
+                el1 = self.__db.get_elephant(num=self.eleph_1)
+                if self.eleph_2_is_calf is False:
+                    el2 = self.__db.get_elephant(num=self.eleph_2)
+                else:
+                    el2 = self.__db.get_elephant(calf_num=self.eleph_2)
 
-        if self.__db.get_pedigree(self.__db_id1, self.__db_id2):
-            self.__rel_1 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[0]
-            self.__rel_2 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[1]
+                self.__db_eleph_1 = []
+                self.__db_eleph_2 = []
+                for x in (0,4,5,9):
+                    self.__db_eleph_1.append(el1[x])
+                    self.__db_eleph_2.append(el2[x])
+                self.__db_id1 = self.__db_eleph_1[0]
+                self.__db_id2 = self.__db_eleph_2[0]
 
-        #If the relationship already exists, check exact consistency of the entry:
+            except TypeError:
+                missing = ''
+                if el1 is None and el2 is None:
+                    missing = ("Impossible to find elephant "+self.eleph_1+" nor "+self.eleph_2+" in the database.")
+                if el1 is None and el2 is not None:
+                    missing = ("Impossible to find elephant "+self.eleph_1+" in the database.")
+                if el1 is not None and el2 is None:
+                    missing = ("Impossible to find elephant "+self.eleph_2+" in the database.")
+                self.warnings.append(missing)
+                print(missing)
+                self.elephant_absent = 1
 
-        if self.__rel_1 is not None and self.__rel_2 is not None:
+            if self.__db.get_pedigree(self.__db_id1, self.__db_id2):
+                self.__rel_1 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[0]
+                self.__rel_2 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[1]
 
-            delta = (self.__db_eleph_1[2] - self.__db_eleph_2[2]).days / 365.25
+            #If the relationship already exists, check exact consistency of the entry:
 
-            if (self.__rel_1[1] == self.__rel_2[1]
-                and self.__rel_1[5] == self.__rel_2[5]
-                and self.__rel_1[2] == self.__rel_2[3]
-                and self.__rel_1[3] == self.__rel_2[2]
-                and ((self.__rel_1[4] == 'mother' and self.__rel_2[4] == 'offspring')
-                     or (self.__rel_1[4] == 'offspring' and self.__rel_2[4] == 'mother')
-                     or (self.__rel_1[4] == 'father' and self.__rel_2[4] == 'offspring')
-                     or (self.__rel_1[4] == 'offspring' and self.__rel_2[4] == 'father')
-                     or (self.__rel_1[4] == 'unknown' or self.__rel_2[4] == 'unknown'))):
+            if self.__rel_1 is not None and self.__rel_2 is not None:
 
-                    self.__sourced = 1
+                delta = (self.__db_eleph_1[2] - self.__db_eleph_2[2]).days / 365.25
 
-                    #Testing the consistency of the relationship as entered in the database.
-                    #Testing that the age difference is at least 7 years (should be tuned better).
-                    #In case of problem, self.__sourced reverts to 0.
-                    agewarning = None
-                    if self.__rel_1[4] == 'mother':
-                        if delta > -10:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
-                        elif delta < -70:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
-                        else:
-                            pass
+                if (self.__rel_1[1] == self.__rel_2[1]
+                    and self.__rel_1[5] == self.__rel_2[5]
+                    and self.__rel_1[2] == self.__rel_2[3]
+                    and self.__rel_1[3] == self.__rel_2[2]
+                    and ((self.__rel_1[4] == 'mother' and self.__rel_2[4] == 'offspring')
+                         or (self.__rel_1[4] == 'offspring' and self.__rel_2[4] == 'mother')
+                         or (self.__rel_1[4] == 'father' and self.__rel_2[4] == 'offspring')
+                         or (self.__rel_1[4] == 'offspring' and self.__rel_2[4] == 'father')
+                         or (self.__rel_1[4] == 'unknown' or self.__rel_2[4] == 'unknown'))):
 
-                    if self.__rel_2[4] == 'mother':
-                        if delta < 10:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
-                        elif delta > 10:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
-                        else:
-                            pass
+                        self.__sourced = 1
 
-                    elif self.__rel_1[4] == 'father':
-                        if delta > -10:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
-                        elif delta < -70:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
-                        else:
-                            pass
+                        #Testing the consistency of the relationship as entered in the database.
+                        #Testing that the age difference is at least 7 years (should be tuned better).
+                        #In case of problem, self.__sourced reverts to 0.
+                        agewarning = None
+                        if self.__rel_1[4] == 'mother':
+                            if delta > -10:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
+                            elif delta < -70:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
+                            else:
+                                pass
 
-                    elif self.__rel_2[4] == 'father':
-                        if delta < 10:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
-                        elif delta > 70:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
-                        else:
-                            pass
+                        if self.__rel_2[4] == 'mother':
+                            if delta < 10:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
+                            elif delta > 10:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
+                            else:
+                                pass
 
-                    elif self.__rel_1[4] == 'offspring':
-                        if delta < 10:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
-                        elif delta > 70:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
-                        else:
-                            pass
+                        elif self.__rel_1[4] == 'father':
+                            if delta > -10:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
+                            elif delta < -70:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
+                            else:
+                                pass
 
-                    elif self.__rel_2[4] == 'offspring':
-                        if delta > -10:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
-                        elif delta < -70:
-                            self.__sourced = 0
-                            agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
-                        else:
-                            pass
+                        elif self.__rel_2[4] == 'father':
+                            if delta < 10:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
+                            elif delta > 70:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
+                            else:
+                                pass
 
-                    if agewarning is not None:
-                        print(agewarning)
-                        self.warnings.append(agewarning)
+                        elif self.__rel_1[4] == 'offspring':
+                            if delta < 10:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
+                            elif delta > 70:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
+                            else:
+                                pass
 
-            if self.elephant_absent == 1:
-                self.__sourced = 0
+                        elif self.__rel_2[4] == 'offspring':
+                            if delta > -10:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
+                            elif delta < -70:
+                                self.__sourced = 0
+                                agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
+                            else:
+                                pass
 
-            if self.__sourced == 1:
-                print("This relationship is already correctly entered in the database, nothing to do.")
+                        if agewarning is not None:
+                            print(agewarning)
+                            self.warnings.append(agewarning)
 
-            else:
-                print("This relationship is present but incorreclty entered in the database.\nCheck it manually (relationship id: ",
-                      self.__rel_1[1], ", elephant ids ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
+                if self.elephant_absent == 1:
+                    self.__sourced = 0
 
-        elif self.__rel_1 is None and self.__rel_2 is None and self.elephant_absent != 1:
-            self.__sourced = 2
-            print("This relationship is not in the database yet. You can proceed to check()")
+                if self.__sourced == 1:
+                    print("This relationship is already correctly entered in the database, nothing to do.")
+
+                else:
+                    print("This relationship is present but incorreclty entered in the database.\nCheck it manually (relationship id: ",
+                          self.__rel_1[1], ", elephant ids ", self.__db_eleph_1[0], " and ", self.__db_eleph_2[0], ").", sep="")
+
+            elif self.__rel_1 is None and self.__rel_2 is None and self.elephant_absent != 1:
+                self.__sourced = 2
+                print("This relationship is not in the database yet. You can proceed to check()")
 
     ################################################################################
     ## 'check' function, checks consistency between database and new data         ##

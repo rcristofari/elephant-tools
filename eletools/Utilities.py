@@ -42,7 +42,7 @@ def add_years(d, years):
         raise
 
 # Try to guess date format from excel
-def format_date(date):
+def format_date(date, proper_decimal=False):
     try:
         newdate = datetime.strptime(str(date), '%Y-%m-%d')
         return(datetime.strftime(newdate, '%Y-%m-%d'))
@@ -60,34 +60,67 @@ def format_date(date):
                     return(datetime.strftime(newdate, '%Y-%m-%d'))
                 except:
                     try:
-                        dec = float(date)
-                        years = int(dec // 1)
-                        remains = dec % 1
+                        if proper_decimal is True:
+                            dec = float(date)
+                            years = int(dec // 1)
+                            remains = dec % 1
 
-                        if ( (int(years % 4) == 0) and (int(years % 100) != 0)) or (int(years % 400) == 0):
-                            months = (31,29,31,30,31,30,31,31,30,31,30,31)
+                            if ( (int(years % 4) == 0) and (int(years % 100) != 0)) or (int(years % 400) == 0):
+                                months = (31,29,31,30,31,30,31,31,30,31,30,31)
+                            else:
+                                months = (31,28,31,30,31,30,31,31,30,31,30,31)
+
+                            days = round(remains * sum(months))
+
+                            if days < 1:
+                                month = 1
+                                day = 1
+
+                            elif days >= sum(months):
+                                month=12
+                                day=31
+
+                            else:
+                                sum_months = 0
+                                m = -1
+                                while sum_months <= days:
+                                    m += 1
+                                    sum_months += months[m]
+                                month = m+1
+                                sum_months -= months[m]
+                                day = days - sum_months
                         else:
-                            months = (31,28,31,30,31,30,31,31,30,31,30,31)
 
-                        days = round(remains * sum(months))
+                            dec = float(date)
+                            years = int(dec // 1)
+                            remains = dec % 1
 
-                        if days < 1:
-                            month = 1
+                            if ( (int(years % 4) == 0) and (int(years % 100) != 0)) or (int(years % 400) == 0):
+                                months = (31,29,31,30,31,30,31,31,30,31,30,31)
+                                lyear = 366
+                            else:
+                                months = (31,28,31,30,31,30,31,31,30,31,30,31)
+                                lyear = 365
+
+                            alldays = remains * lyear
+                            month = int((alldays/30.44)//1 + 1)
+                            if month > 12:
+                                month = 12
+
+                            day = int((alldays - sum(months[0:(month-1)]))//1 + 1)
+
+
+                        if day > months[(month-1)] and month < 12:
                             day = 1
-
-                        elif days >= sum(months):
-                            month=12
-                            day=31
-
-                        else:
-                            sum_months = 0
-                            m = -1
-                            while sum_months <= days:
-                                m += 1
-                                sum_months += months[m]
-                            month = m+1
-                            sum_months -= months[m]
-                            day = days - sum_months
+                            month = month + 1
+                        elif day > months[(month-1)] and month == 12:
+                            day = 31
+                        elif day < 1 and month > 1:
+                            day = months[(month - 2)]
+                            month = month -1
+                        elif day < 1 and month == 1:
+                            day = 1
+                            month = 1
 
                         newdate = str(years)+'-'+str(month)+'-'+str(day)
                         return(datetime.strftime(datetime.strptime(newdate, '%Y-%m-%d').date(), '%Y-%m-%d'))

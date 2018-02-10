@@ -51,7 +51,7 @@ class MainApplication(tk.Frame):
 
         # Somehow this doesn't work...
         font = nametofont('TkDefaultFont')
-        font.config(family='Helvetica',size=64)
+        font.config(family='Helvetica',size=10)
         self.master.option_add("*Font", font)
 
 

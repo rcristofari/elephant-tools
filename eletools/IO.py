@@ -78,18 +78,18 @@ def read_elephants(elefile, sep=';', is_file=True):
         else:
             cwx.append(x)
     for x in alive:
-        if x.casefold().strip() in ('y','yes','alive'):
+        if x.casefold().strip() in ('1', 'y','yes','alive'):
             ax.append('Y')
-        elif x.casefold().strip() in ('n','no','dead'):
+        elif x.casefold().strip() in ('0', 'n','no','dead'):
             ax.append('N')
         elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
             ax.append('UKN')
         else:
             ax.append(x)
     for x in research:
-        if x.casefold().strip() in ('y','yes'):
+        if x.casefold().strip() in ('1','y','yes'):
             rx.append('Y')
-        elif x.casefold().strip() in ('n','no','','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('0','n','no','','none','na','null','unknown','ukn','n/a'):
             rx.append('N')
         else:
             rx.append(x)
@@ -186,7 +186,7 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## caught
-        if re.search(r"^[0-9]+$", str(row[6])):
+        if re.search(r"^[0-9.]+$", str(row[6])):
             pass
         elif row[6] is None and cw[i] == 'wild':
             warnings.append("Missing age at capture at line " + str(i+1) + " fo a wild-born elephant.")
@@ -744,25 +744,37 @@ def read_events(elefile, sep=',', solved='N'):
         for row in eleread:
             if row != []:
                 num.append(row[0])
-                calf_num.append(row[1])
-                date.append(row[2])
-                loc.append(row[3])
+
+                if row[1] is not None:
+                    calf_num.append(row[1])
+                else:
+                    calf_num.append('')
+
+                if row[2] is not None:
+                    date.append(row[2])
+                else:
+                    date.append('')
+
+                if row[3] is not None:
+                    loc.append(row[3])
+                else:
+                    loc.append('')
+
                 code.append(row[4])
 
     #reformat as rows
     rows=[]
-    for i,n in enumerate(num):
+    for i, n in enumerate(num):
         warnings, reject = [], 0
-
-        row=[str(num[i]),str(calf_num[i]),str(date[i]),str(loc[i]),str(code[i])]
+        row=[str(num[i]), calf_num[i], str(date[i]), loc[i], str(code[i])]
         rows.append(row)
 
     ########## num [COMPLUSORY or calf_num]
         if re.search(r"^[0-9a-zA-Z]+$", row[0]):
             pass
-        elif row[0] == '' and calf_num[i] != '':
+        elif row[0] == '' and row[1] != '':
             warnings.append("Missing number at line " + str(i+1))
-        elif row[0] == '' and calf_num[i] == '':
+        elif row[0] == '' and row[1] == '':
             warnings.append("Missing number at line " + str(i+1) + ", and no calf number. You need at least one.")
             reject = 1
         else:
@@ -772,27 +784,27 @@ def read_events(elefile, sep=',', solved='N'):
     ########## calf_num
         if re.search(r"^[0-9a-zA-Z]+$", row[1]):
             pass
-        elif row[1] == '' and num[i] == '':
+        elif row[1] == '' and row[0] == '':
             warnings.append("Missing calf number at line " + str(i+1) + ". You need at least one number.")
             reject = 1
-        elif row[1] == '' and num[i] != '':
+        elif row[1] == '' and row[0] != '':
             pass
         else:
             warnings.append("Format problem with calf number: " + str(row[1]) + " at line " + str(i+1))
             reject = 1
 
     ########## date
-        date = format_date(str(row[2]))
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
+        this_date = format_date(str(row[2]))
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", this_date):
             try:
-                row[2] = date
+                row[2] = this_date
             except ValueError:
                 reject = 1
-                warnings.append("Invalid date " + str(date) + " at line " + str(i+1))
+                warnings.append("Invalid date " + str(this_date) + " at line " + str(i+1))
         elif date is None:
             warnings.append("Missing birth date at line " + str(i+1))
         else:
-            warnings.append("Format problem with birth date: " + str(date) + " at line " + str(i+1))
+            warnings.append("Format problem with birth date: " + str(this_date) + " at line " + str(i+1))
             reject = 1
 
     ########## loc
