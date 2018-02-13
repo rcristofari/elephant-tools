@@ -653,11 +653,11 @@ def read_measures(elefile, sep=';', solved='N'):
                 u[2] = date
             except ValueError:
                 reject = 1
-                warnings.append("Invalid date " + str(date) + " at line " + str(u[0]))
+                w.append("Invalid date " + str(date) + " at line " + str(u[0]))
         elif date is None:
-            warnings.append("Missing date at line " + str(u[0]))
+            w.append("Missing date at line " + str(u[0]))
         else:
-            warnings.append("Format problem with date: " + str(date) + " at line " + str(u[0]))
+            w.append("Format problem with date: " + str(date) + " at line " + str(u[0]))
             flag = 1
 
         # Check code format

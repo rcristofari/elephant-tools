@@ -566,7 +566,7 @@ class read_calf_file(tk.Frame):
 
     def create_widgets(self):
         self.result = tk.Text(self.master, height=15, width=45)
-        self.result.grid(row=1, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+        self.result.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
 
         self.reloadbutton = tk.Button(self.master, text='Reload', width=15, command=self.reload_file, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.reloadbutton.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
@@ -585,18 +585,15 @@ class read_calf_file(tk.Frame):
         self.master.bind('<space>', self.show_file_content)
 
     def call_read_calves(self):
-        if self.name is None and self.master.manual_add_elephant is None:
-            self.name = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an elephant definition file")
-            self.master.shortname=os.path.split(self.name)[1]
-            self.master.file_content = read_calves(self.name, ',', is_file = True)
+        if self.name is None:
+            self.name = askopenfilename(initialdir=self.master.wdir, filetypes=(("CSV File", "*.csv"),
+                                        ("All Files", "*.*")), title="Choose a calf definition file")
+            self.master.shortname = os.path.split(self.name)[1]
+            self.master.file_content = read_calves(self.name, ',', is_file=True)
 
-        elif self.master.manual_add_elephant is not None and self.master.pass_from_add_elephant is True:
-            self.master.file_content = read_elephants(self.master.manual_add_elephant, ',', is_file = False)
-            self.name=asksaveasfilename(initialdir=self.master.wdir, defaultextension='.csv')
-            self.master.shortname=os.path.split(self.name)[1]
         else:
-            self.master.shortname=os.path.split(self.name)[1]
-            self.master.file_content = read_elephants(self.name, ',', is_file = True)
+            self.master.shortname = os.path.split(self.name)[1]
+            self.master.file_content = read_calves(self.name, ',', is_file=True)
 
         n_accepted = self.master.file_content[1].__len__()
         n_rejected = self.master.file_content[3].__len__()
@@ -605,16 +602,16 @@ class read_calf_file(tk.Frame):
 
         self.result.config(state=tk.NORMAL)
         self.result.delete(1.0,tk.END)
-        self.result_text = ("\n  The file contains "+str(n_accepted+n_rejected)+" lines:\n"
-            +"\n\t-"+str(n_accepted)+" were accepted,"
-            +"\n\t-"+str(n_rejected)+" were rejected.\n"
-            +"\n  Accepted and rejected entries and logs were written out in:\n\n"
-            +"\t"+self.master.shortname.partition('.')[0]+"_accepted.reads\n"
-            +"\t"+self.master.shortname.partition('.')[0]+"_accepted.log\n"
-            +"\t"+self.master.shortname.partition('.')[0]+"_rejected.reads\n"
-            +"\t"+self.master.shortname.partition('.')[0]+"_rejected.log")
         self.result.insert(tk.END, self.result_text)
         # self.result.config(state=tk.DISABLED)
+        self.result_text = ("\n  The file contains "+str(n_accepted+n_rejected)+" lines:\n"
+            + "\n\t-"+str(n_accepted)+" were accepted,"
+            + "\n\t-"+str(n_rejected)+" were rejected.\n"
+            + "\n  Accepted and rejected entries and logs were written out in:\n\n"
+            + "\t"+str(self.master.shortname.partition('.')[0])+"_accepted.reads\n"
+            + "\t"+str(self.master.shortname.partition('.')[0])+"_accepted.log\n"
+            + "\t"+str(self.master.shortname.partition('.')[0])+"_rejected.reads\n"
+            + "\t"+str(self.master.shortname.partition('.')[0])+"_rejected.log")
 
     def show_file_content(self, *args):
         rows = self.master.file_content[5]
@@ -626,7 +623,8 @@ class read_calf_file(tk.Frame):
         self.view_window.grid_rowconfigure(2, weight=1)
 
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('calf_num','calf_name','sex','birth','cw','caught','camp','alive','research','mother_num','mother_name')
+        self.tv['columns'] = ('calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research',
+                              'mother_num', 'mother_name')
 
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
@@ -638,8 +636,8 @@ class read_calf_file(tk.Frame):
 
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
-        for i,row in enumerate(rows):
-            self.tv.insert('','end',text=str(i+1), values=row[0:11], tags = (row[11],))
+        for i, row in enumerate(rows):
+            self.tv.insert('', 'end', text=str(i+1), values=row[0:11], tags=(row[11],))
 
         self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)

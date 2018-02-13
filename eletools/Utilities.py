@@ -1,4 +1,5 @@
 import string
+import re
 from datetime import datetime
 from calendar import isleap
 
@@ -43,6 +44,8 @@ def add_years(d, years):
 
 # Try to guess date format from excel
 def format_date(date, proper_decimal=False):
+    # Remove double quotes if some are left in:
+    date = re.sub('"', '', date)
     try:
         newdate = datetime.strptime(str(date), '%Y-%m-%d')
         return(datetime.strftime(newdate, '%Y-%m-%d'))
@@ -126,5 +129,5 @@ def format_date(date, proper_decimal=False):
                         return(datetime.strftime(datetime.strptime(newdate, '%Y-%m-%d').date(), '%Y-%m-%d'))
 
                     except:
-                        print("There's been a problem with date conversion - unknown format")
+                        print("There's been a problem with date conversion - unknown format for "+str(date))
                         return(date)

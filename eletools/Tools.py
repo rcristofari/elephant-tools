@@ -238,8 +238,8 @@ def fuzzy_match_measure(db, type, cutoff=0.6):
 ####################################################################################
 
 
-def analyse_calf(calf_num, birth, mother_num, db, sex=None, cw=None, caught=None, camp=None, alive=None, research=None,
-                 mother_name=None, solved=False, flag=0, limit_age=28):
+def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=None, caught=None, camp=None, alive=None,
+                 research=None, mother_name=None, solved=False, flag=0, limit_age=28):
 
     total_flag = flag
     wmother = None
@@ -281,8 +281,8 @@ def analyse_calf(calf_num, birth, mother_num, db, sex=None, cw=None, caught=None
         ##################################################################################
         # Identify the calf
 
-        calf = elephant(calf_num=calf_num, sex=sex, birth=birth, cw=cw, caught=caught, camp=camp, alive=alive,
-                        research=research, flag=flag)
+        calf = elephant(name=calf_name, calf_num=calf_num, sex=sex, birth=birth, cw=cw, caught=caught, camp=camp, alive=alive,
+                        research=research, flag=flag, solved=solved)
         calf.source(db)
         calf.check()
         wcalf = calf.write(db)
@@ -290,7 +290,8 @@ def analyse_calf(calf_num, birth, mother_num, db, sex=None, cw=None, caught=None
         if 1 in break_flag(wcalf[10]):
             total_flag = total_flag + 4
             message.append("This calf is unknown.")
-            # In this case we need to check if a similar calf already exists
+
+            # In this case we need to check if a similar calf already exists:
             duplicates = db.get_all_offsprings(num=mother_num, candidate=calf, limit_age=limit_age)
             if duplicates is not None:
                 total_flag = total_flag + 1
@@ -317,8 +318,8 @@ def analyse_calf(calf_num, birth, mother_num, db, sex=None, cw=None, caught=None
 
                 # Calf is unknown yet, shall be written in
                 if 1 in break_flag(wcalf[10]):
-                    relationship = pedigree(eleph_1=mother_num, eleph_2_as_object=calf, rel='mother',
-                                            eleph_2_is_calf=True, flag=flag)
+                    relationship = pedigree(eleph_1=mother_num, eleph_2=calf, rel='mother', eleph_2_is_calf=True,
+                                            flag=flag)
                     relationship.source(db)
                     relationship.check()
                     wrelationship = relationship.write(db)

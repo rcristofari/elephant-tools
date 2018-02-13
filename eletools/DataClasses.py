@@ -90,9 +90,10 @@ class elephant: ##MAKE A __repr__ function !!
             self.camp=string.capwords(camp)
         else:
             self.camp=camp
-        self.flag = flag
         self.alive=alive
         self.research=research
+        self.flag = flag
+
 
         # Prefixed parameters describe database content. They are private and are not modified (declared here for reference only)
         self.__db_id = None
@@ -143,10 +144,30 @@ class elephant: ##MAKE A __repr__ function !!
             +"\nResearch:\t\t-")
         self.in_input = ''
         # Getter function for some private variables that could be useful in scripting
+
+    def __repr__(self):
+        r = ("\n-----------------------------------------"
+                         + "\nNumber:\t\t" + str(self.__num)
+                         + "\nName:\t\t" + str(self.name)
+                         + "\nCalf number:\t" + str(self.calf_num)
+                         + "\nSex:\t\t" + str(self.sex)
+                         + "\nBirth date:\t" + str(self.birth) + ", " + str(self.cw)
+                         + "\nAge at capture:\t" + str(self.caught)
+                         + "\nCamp:\t\t" + str(self.camp)
+                         + "\nAlive:\t\t" + str(self.alive)
+                         + "\n-----------------------------------------"
+                         + "\nResearch:\t" + str(self.research))
+        return(r)
+
+    def get_list(self):
+        return((0, self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, None))
+
     def get_num(self):
         return(self.__num)
+
     def get_solved(self):
         return(self.__solved)
+
     def set_solved(solved):
         self.__solved=solved
 
@@ -687,10 +708,7 @@ class elephant: ##MAKE A __repr__ function !!
 
 class pedigree:
 
-    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, eleph_2_as_object=None, flag=0):
-
-        ## REWRITE THE FUCKING ELEPH 2 AS OBJECT
-
+    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, flag=0):
 
 
         # Non-prefixed parameters describe user input
@@ -715,8 +733,13 @@ class pedigree:
         self.__rel_2 = None
         self.__rel_fwd = None
         self.__rel_rev = None
-        self.eleph_2_as_object = eleph_2_as_object
         self.flag = flag
+
+        # Elephant 2 mode:
+        if type(self.eleph_2) is elephant:
+            self.eleph_2_is_object = True
+        else:
+            self.eleph_2_is_object = False
 
         # These variables pass the state of each operation to the next
         self.__sourced=0
@@ -743,14 +766,14 @@ class pedigree:
 
     def source(self, db):
 
-        self.__db=db
+        self.__db = db
         self.__db_eleph_1 = None
         self.__db_eleph_2 = None
         self.elephant_absent = 0
 
-
         # Standard case, both elephants are normally in the database:
-        if self.eleph_2_as_object is None:
+
+        if self.eleph_2_is_object is False:
 
             try:
                 el1 = self.__db.get_elephant(num=self.eleph_1)
@@ -771,9 +794,9 @@ class pedigree:
                 missing = ''
                 if el1 is None and el2 is None:
                     missing = ("Impossible to find elephant "+self.eleph_1+" nor "+self.eleph_2+" in the database.")
-                if el1 is None and el2 is not None:
+                elif el1 is None and el2 is not None:
                     missing = ("Impossible to find elephant "+self.eleph_1+" in the database.")
-                if el1 is not None and el2 is None:
+                elif el1 is not None and el2 is None:
                     missing = ("Impossible to find elephant "+self.eleph_2+" in the database.")
                 self.warnings.append(missing)
                 print(missing)
@@ -783,7 +806,7 @@ class pedigree:
                 self.__rel_1 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[0]
                 self.__rel_2 = self.__db.get_pedigree(self.__db_id1, self.__db_id2)[1]
 
-            #If the relationship already exists, check exact consistency of the entry:
+            # If the relationship already exists, check exact consistency of the entry:
 
             if self.__rel_1 is not None and self.__rel_2 is not None:
 
@@ -883,16 +906,53 @@ class pedigree:
                 self.__sourced = 2
                 print("This relationship is not in the database yet. You can proceed to check()")
 
+        # Alternative case, the second elephant is an object:
+
+        elif self.eleph_2_is_object is True:
+
+            try:
+                el1 = self.__db.get_elephant(num=self.eleph_1)
+                el2 = self.eleph_2.get_list()
+
+                # Reformat the self.eleph_2 variable to match the general case
+                if self.eleph_2_is_calf is False:
+                    self.eleph_2 = el2[1]
+                else:
+                    self.eleph_2 = el2[3]
+
+                self.__db_eleph_1 = []
+                self.__db_eleph_2 = []
+
+                for x in (0, 4, 5, 9):
+                    self.__db_eleph_1.append(el1[x])
+                    self.__db_eleph_2.append(el2[x])
+                self.__db_id1 = self.__db_eleph_1[0]
+                self.__db_id2 = self.__db_eleph_2[0]
+                self.__sourced = 2
+                print("This relationship is not in the database yet. You can proceed to check()")
+
+            except TypeError:
+                if el1 is None and el2 is not None:
+                    missing = ("Impossible to find elephant " + self.eleph_1 + " in the database.")
+                else:
+                    missing = ("Error in the elephant input.")
+                self.warnings.append(missing)
+                self.elephant_absent = 1
+                self.sourced = 0
+
     ################################################################################
     ## 'check' function, checks consistency between database and new data         ##
     ################################################################################
 
     def check(self):
 
-    ### THIS HERE POSES A PROBLEM ((LATER  WHAT THE HECK WAS THAT PROBLEM??))
         if self.__sourced == 0:
+            if self.elephant_absent == 1:
+                print("This relationship involves an unknown elephant. Impossible to process it.")
+            else:
+                print("\nThis relationship is present in the database with an error. Please correct it manually")
             self.__checked = 3
-            print("\nThis relationship is present in the database with an error. Please correct it manually")
+
     #####################################
 
         elif self.__sourced == 1:
@@ -906,10 +966,11 @@ class pedigree:
 
             delta = (self.__db_eleph_2[2] - self.__db_eleph_1[2]).days / 365.25
 
-            print("\nThe proposed relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1], "), born on ", self.__db_eleph_1[2],
-                    ", is the ", self.rel, " of elephant ", self.eleph_2, " (", self.__db_eleph_2[1], "), born on ", self.__db_eleph_2[2], ".\n", sep="")
+            print("\nThe proposed relationship states that elephant ", self.eleph_1, " (", self.__db_eleph_1[1],
+                  "), born on ", self.__db_eleph_1[2], ", is the ", self.rel, " of elephant ", self.eleph_2, " (",
+                  self.__db_eleph_2[1], "), born on ", self.__db_eleph_2[2], ".\n", sep="")
 
-            #Check that this elephant does not already have a father or mother.
+            # Check that this elephant does not already have a father or mother.
             redundancywarning = None
             if self.rel == "mother": # elephant 2 should not already have a mother or a father.
                 if self.__db.get_mother(self.eleph_2) is not None:
@@ -924,7 +985,7 @@ class pedigree:
                 self.warnings.append(redundancywarning)
 
             structurewarning = None
-            if self.rel == 'mother': #eleph_1 must be a female, and older than self.eleph_2 (between 10 and 70 years age difference)
+            if self.rel == 'mother':  # eleph_1 must be a female older than self.eleph_2 (10 to 70 years age difference)
                 if self.__db_eleph_1[1] != 'F':
                     self.__xsex = 0
                     self.__checked = 0
@@ -940,7 +1001,7 @@ class pedigree:
                 else:
                     pass
 
-            elif self.rel == 'father': #eleph_1 must be a male, and older than self.eleph_2 (between 7 and 90 years age difference)
+            elif self.rel == 'father':  # eleph_1 must be a male older than self.eleph_2 (10 to 70 years age difference)
                 if self.__db_eleph_1[1] != 'M':
                     self.__xsex = 0
                     self.__checked = 0
@@ -956,7 +1017,7 @@ class pedigree:
                 else:
                     pass
 
-            elif self.rel == 'offspring': #eleph_1 must be younger than self.eleph_2 (between 7 and 90 years age difference)
+            elif self.rel == 'offspring':  # eleph_1 must be younger than self.eleph_2 (10 to 70 years age difference)
                 if delta > -10:
                     self.__xbirth = 0
                     self.__checked = 0
@@ -1013,9 +1074,9 @@ class pedigree:
                 self.__rel_rev = quote("unknown")
 
         if self.coef is None:
-            self.coef='null'
+            self.coef = 'null'
         else:
-            self.coef=quote(self.coef)
+            self.coef = quote(self.coef)
 
         if self.__checked == 1:
             self.out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)

@@ -7,6 +7,8 @@ from datetime import datetime
 
 # Cross-dependencies:
 from eletools.Utilities import *
+from eletools.DataClasses import *
+from eletools.DataClasses import *
 
 
    ##########################################################################
@@ -547,7 +549,7 @@ class mysqlconnect:
 ## 'get_all_offsprings' function                                              ##
 ################################################################################
 
-    def get_all_offsprings(self, num=None, id=None, age_gap=False, pairs = True, limit_age = 28):
+    def get_all_offsprings(self, num=None, id=None, age_gap=False, pairs=True, candidate=None, limit_age = 28):
 
         if age_gap is False:
             pairs = False
@@ -562,50 +564,66 @@ class mysqlconnect:
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
+
         except:
             print("Impossible to connect to the database")
 
-        if age_gap is False:
-            return(result)
-        else:
-            ages = []
-            ids = []
-            nums = []
-            for r in result:
-                ids.append(r[1])
-                nums.append(r[2])
-                ages.append(r[3])
-            differences = []
-            for i in range(result.__len__()-1):
-                difference = round((ages[i+1]-ages[i]).days/30.5)
-                differences.append(difference)
+        if candidate is None:
 
-            if pairs is False:
-                return(differences)
+            if age_gap is False:
+                return(result)
 
             else:
-                diff_array = np.array(differences)
-                suspicious_array = np.where(diff_array < limit_age)
-                out = list(map(list, suspicious_array))[0]
+                ages = []
+                ids = []
+                nums = []
+                for r in result:
+                    ids.append(r[1])
+                    nums.append(r[2])
+                    ages.append(r[3])
+                differences = []
+                for i in range(result.__len__()-1):
+                    difference = round((ages[i+1]-ages[i]).days/30.5)
+                    differences.append(difference)
 
-                index = [0]
-                for d in differences:
-                    index.append(d)
+                if pairs is False:
+                    return(differences)
 
-                elephants = []
-                for i,j in enumerate(index):
-                    line = [ids[i], nums[i], ages[i],j,0]
-                    elephants.append(line)
+                else:
+                    diff_array = np.array(differences)
+                    suspicious_array = np.where(diff_array < limit_age)
+                    out = list(map(list, suspicious_array))[0]
 
-                e_out = []
-                for i,e in enumerate(elephants):
-                    if any(x == i for x in out) or any(x == i-1 for x in out):
-                        e[4] = 1
-                        e_out.append(e)
-                    else:
-                        e_out.append(e)
+                    index = [0]
+                    for d in differences:
+                        index.append(d)
 
-                return(e_out)
+                    elephants = []
+                    for i,j in enumerate(index):
+                        line = [ids[i], nums[i], ages[i],j,0]
+                        elephants.append(line)
+
+                    e_out = []
+                    for i,e in enumerate(elephants):
+                        if any(x == i for x in out) or any(x == i-1 for x in out):
+                            e[4] = 1
+                            e_out.append(e)
+                        else:
+                            e_out.append(e)
+
+                    return(e_out)
+
+        else:
+            if type(candidate) is not elephant:
+                print("Error: the candidate must be an elephant object")
+
+            else:
+                duplicates = []
+                for r in result:
+                    if abs((r[3] - candidate.birth).days / 30.5) < limit_age:
+                        duplicates.append(r)
+
+                print(duplicates)
 
 ################################################################################
 ## 'get_measure_list' function                                                ##
