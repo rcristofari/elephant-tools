@@ -51,7 +51,7 @@ from eletools.Utilities import *
  ##############################################################################
    ##########################################################################
 
-class elephant: ##MAKE A __repr__ function !!
+class elephant:
 
     def __init__(self, num=None, name=None, calf_num=None, sex=None, birth=None, cw=None, caught=None, camp=None, alive=None, research=None, solved='N', flag=0):
 
@@ -175,9 +175,9 @@ class elephant: ##MAKE A __repr__ function !!
     ## 'source' function reads the elephant from the database if it exists        ##
     ################################3################################################
 
-    def source(self,db):
+    def source(self, db):
 
-        self.__db=db #db is a database connection object of class elephant.mysqlconnect()
+        self.__db = db
         self.__sourced = 0
 
         if self.__num is not None:
@@ -191,18 +191,19 @@ class elephant: ##MAKE A __repr__ function !!
             results = None
             print("You need either an elephant number or a calf number to proceed")
 
-
         if results is None:
             self.__sourced = 2
             if self.__num is not None:
                 print("Elephant number", self.__num, "is absent from the database.")
             elif self.__num is None and self.calf_num is not None:
                 print("Calf number", self.calf_num, "is absent from the database.")
+
         else:
             self.__sourced = 1
 
             self.__db_id = results[0]
             self.__db_num = results[1]
+
             if results[2] is not None:
                 self.__db_name = string.capwords(results[2])
             self.__db_calf_num = results[3]
@@ -210,6 +211,7 @@ class elephant: ##MAKE A __repr__ function !!
             self.__db_birth = results[5]
             self.__db_cw = results[6]
             self.__db_caught = results[7]
+
             if results[8] is not None:
                 self.__db_camp = string.capwords(results[8])
             self.__db_alive = results[9]
@@ -217,17 +219,17 @@ class elephant: ##MAKE A __repr__ function !!
             self.__db_commits = results[11]
 
             self.in_db = ("Index:\t\t"+str(self.__db_id)
-                    +"\n-----------------------------------------"
-                    +"\nNumber:\t\t"+str(self.__db_num)
-                    +"\nName:\t\t"+str(self.__db_name)
-                    +"\nCalf number:\t\t"+str(self.__db_calf_num)
-                    +"\nSex:\t\t"+str(self.__db_sex)
-                    +"\nBirth date:\t\t"+str(self.__db_birth)+", "+str(self.__db_cw)
-                    +"\nAge at capture:\t"+str(self.__db_caught)
-                    +"\nCamp:\t\t"+str(self.__db_camp)
-                    +"\nAlive:\t\t"+str(self.__db_alive)
-                    +"\n-----------------------------------------"
-                    +"\nResearch:\t\t"+str(self.__db_research))
+                    + "\n-----------------------------------------"
+                    + "\nNumber:\t\t"+str(self.__db_num)
+                    + "\nName:\t\t"+str(self.__db_name)
+                    + "\nCalf number:\t\t"+str(self.__db_calf_num)
+                    + "\nSex:\t\t"+str(self.__db_sex)
+                    + "\nBirth date:\t\t"+str(self.__db_birth)+", "+str(self.__db_cw)
+                    + "\nAge at capture:\t"+str(self.__db_caught)
+                    + "\nCamp:\t\t"+str(self.__db_camp)
+                    + "\nAlive:\t\t"+str(self.__db_alive)
+                    + "\n-----------------------------------------"
+                    + "\nResearch:\t\t"+str(self.__db_research))
 
             print("\nThis elephant is present in the database as:\n", self.in_db, sep='')
 
@@ -579,7 +581,7 @@ class elephant: ##MAKE A __repr__ function !!
 
     def write(self, db):
 
-        self.__db=db
+        self.__db = db
 
         if self.__xnum == 2:
             wnum = self.__num
@@ -628,20 +630,30 @@ class elephant: ##MAKE A __repr__ function !!
 
         ########## If this elephant is not in the database yet,
         # write an insert statement (consistency of data assumed).
+
         elif self.__sourced == 2:
+
             if self.__num is not None and self.birth is not None:
-                #this is outsourced to mysqlconnect
-                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
-                if self.__toggle_write_flag == 0:
-                    self.flag = self.flag + 2
-            elif self.calf_num is not None and self.birth is not None:
-                #this is outsourced to mysqlconnect
+
+                # this is outsourced to mysqlconnect
                 self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 2
 
+            elif self.calf_num is not None and self.birth is not None:
+
+                # this is outsourced to mysqlconnect
+                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 2
+
+            elif self.birth is None:
+                self.out = "[Conflict] Elephant number " + str(self.__num) + " is not in the database yet, but you must provide at least number and birth date"
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 1
 
         ########## If the elephant has been checked and there is no conflict, write an update statement.
+
         elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
 
         ########## All fields are matching, no update (special case as "data already known")
@@ -657,6 +669,7 @@ class elephant: ##MAKE A __repr__ function !!
                     self.flag = self.flag + 4
 
         ########## If there is a pending conflict, we write out the conflicts and build the corresponding flag
+
         else:
 
             # Check which fields are conflicting
@@ -678,9 +691,7 @@ class elephant: ##MAKE A __repr__ function !!
 
             self.out = self.warnings
 
-            if self.__sourced == 2:
-                self.out.append("[Conflict] Elephant number "+str(self.__num)+" is not in the database yet, but you must provide at least number and birth date")
-            elif self.__sourced != 2 and self.__num is not None:
+            if self.__sourced != 2 and self.__num is not None:
                 self.out.append("[Conflict] Elephant number "+str(self.__num)+": you need to solve conflicts for: "+conflicts)
             elif self.__sourced != 2 and self.__num is None:
                 self.out.append("[Conflict] Calf number "+str(self.calf_num)+": you need to solve conflicts for: "+conflicts)
@@ -972,17 +983,18 @@ class pedigree:
 
             # Check that this elephant does not already have a father or mother.
             redundancywarning = None
-            if self.rel == "mother": # elephant 2 should not already have a mother or a father.
-                if self.__db.get_mother(self.eleph_2) is not None:
-                    self.__checked = 0
-                    redundancywarning = ("Elephant "+self.eleph_2+" already has a registered mother ("+self.__db.get_mother(self.eleph_2)+").")
-            elif self.rel == "father":
-                if self.__db.get_father(self.eleph_2) is not None:
-                    self.__checked = 0
-                    redundancywarning = ("Elephant "+self.eleph_2+" already has a registered father ("+self.__db.get_father(self.eleph_2)+").")
-            if redundancywarning is not None:
-                print(redundancywarning)
-                self.warnings.append(redundancywarning)
+            if self.eleph_2_is_object is False:
+                if self.rel == "mother": # elephant 2 should not already have a mother or a father.
+                    if self.__db.get_mother(self.eleph_2) is not None:
+                        self.__checked = 0
+                        redundancywarning = ("Elephant "+self.eleph_2+" already has a registered mother ("+self.__db.get_mother(self.eleph_2)+").")
+                elif self.rel == "father":
+                    if self.__db.get_father(self.eleph_2) is not None:
+                        self.__checked = 0
+                        redundancywarning = ("Elephant "+self.eleph_2+" already has a registered father ("+self.__db.get_father(self.eleph_2)+").")
+                if redundancywarning is not None:
+                    print(redundancywarning)
+                    self.warnings.append(redundancywarning)
 
             structurewarning = None
             if self.rel == 'mother':  # eleph_1 must be a female older than self.eleph_2 (10 to 70 years age difference)

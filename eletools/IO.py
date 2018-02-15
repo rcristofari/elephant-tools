@@ -842,7 +842,7 @@ def read_events(elefile, sep=',', solved='N'):
 ##  parse_output() parses the total output into mysql and warings                 ##
 ####################################################################################
 
-def parse_output(stream, db, folder=None, is_elephant=True):
+def parse_output(stream, db, folder=None, is_elephant=True, conflicts_only=False):
 
     stamp = db.get_stamp()
     statements = []
@@ -865,20 +865,27 @@ def parse_output(stream, db, folder=None, is_elephant=True):
                 for r in row:
                     statements.append(r)
             else:
-                warnings.append(row)
+                if type(row) is list:
+                    for r in row:
+                        if re.search(r"Conflict", str(r)):
+                            warnings.append(r)
+                else:
+                    if re.search(r"Conflict", str(row)):
+                        warnings.append(row)
+
 
         with open(statement_name,"w") as s:
-            for x in statements:
+            for x in list(set(statements)):
                 s.write(str(x)+'\n')
 
         with open(warnings_name, "w") as w:
-            for x in warnings:
+            for x in list(set(warnings)):
                 if x != '' and x is not None:
                     w.write((str(x))+'\n')
 
     else:
         for row in stream:
-            if type(row) is list: ##WONT WORK, LENGTH OF THE STRING
+            if type(row) is list:
                 for r in row:
                     if re.search(r"^INSERT", str(r)):
                         statements.append(row)
@@ -900,13 +907,13 @@ def parse_output(stream, db, folder=None, is_elephant=True):
                 else:
                     warnings.append(row)
 
-
         with open(statement_name,"w") as s:
-            for x in statements:
+            for x in list(set(statements)):
                 s.write(str(x)+'\n')
 
+
         with open(warnings_name, "w") as w:
-            for x in warnings:
+            for x in list(set(warnings)):
                 if x != '' and x is not None:
                     w.write((str(x))+'\n')
 

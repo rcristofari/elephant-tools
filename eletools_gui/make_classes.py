@@ -108,7 +108,7 @@ class make_measure_set(tk.Frame):
 
         if self.__mode.get() == 1:
             with open(self.__templatefilename) as templatefile:
-                lines = csv.reader(templatefile, delimiter = ',')
+                lines = csv.reader(templatefile, delimiter=',')
                 self.__measures_tags = next(lines)
                 self.__tag = self.__measures_tags.pop(0)
                 if re.search(r"^[bim]:.*", self.__tag.casefold()):
@@ -127,7 +127,7 @@ class make_measure_set(tk.Frame):
                             self.__elephants.append(line[0])
 
         # Parse the 'latest' or 'mean' tags, and complete them if missing
-        if self.__key.casefold() in ('m','b'):
+        if self.__key.casefold() in ('m', 'b'):
             __buffer = []
 
             for m in self.__measures_tags:
@@ -155,7 +155,7 @@ class make_measure_set(tk.Frame):
         self.__out = []
         for e in self.__elephants:
             line = [e]
-            for i,m in enumerate(self.__measures):
+            for i, m in enumerate(self.__measures):
                 result = self.master.db.get_measure_values(e, "('"+m+"')")
                 if result is not None:
                     if result.__len__() == 1 or (result.__len__() != 1 and self.__filter[i] == 'l'):
@@ -185,7 +185,7 @@ class make_measure_set(tk.Frame):
 
         for e in self.__elephants:
             line = []
-            for m in __measure_list:
+            for i, m in enumerate(__measure_list):
                 result = self.master.db.get_measure_values(e, "('"+m+"')")
                 if result is not None:
                     if result.__len__() == 1 or (result.__len__() != 1 and self.__filter[i] == 'l'):
@@ -234,7 +234,7 @@ class make_measure_set(tk.Frame):
         for e in __elephant_list_all:
             __elephant_list.append(e)
 
-        for m in self.__measures:
+        for i, m in enumerate(self.__measures):
             line = []
             for e in __elephant_list:
                 result = self.master.db.get_measure_values(e, "('"+m+"')")

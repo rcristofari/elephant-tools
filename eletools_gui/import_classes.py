@@ -602,8 +602,7 @@ class read_calf_file(tk.Frame):
 
         self.result.config(state=tk.NORMAL)
         self.result.delete(1.0,tk.END)
-        self.result.insert(tk.END, self.result_text)
-        # self.result.config(state=tk.DISABLED)
+
         self.result_text = ("\n  The file contains "+str(n_accepted+n_rejected)+" lines:\n"
             + "\n\t-"+str(n_accepted)+" were accepted,"
             + "\n\t-"+str(n_rejected)+" were rejected.\n"
@@ -612,6 +611,10 @@ class read_calf_file(tk.Frame):
             + "\t"+str(self.master.shortname.partition('.')[0])+"_accepted.log\n"
             + "\t"+str(self.master.shortname.partition('.')[0])+"_rejected.reads\n"
             + "\t"+str(self.master.shortname.partition('.')[0])+"_rejected.log")
+
+        self.result.insert(tk.END, self.result_text)
+        # self.result.config(state=tk.DISABLED)
+
 
     def show_file_content(self, *args):
         rows = self.master.file_content[5]
@@ -622,12 +625,16 @@ class read_calf_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
 
-        self.tv = ttk.Treeview(self.view_window, height=32)
+        self.tv = ttk.Treeview(self.view_window, height=32, selectmode='browse')
         self.tv['columns'] = ('calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research',
                               'mother_num', 'mother_name')
 
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
+
+        vsb = ttk.Scrollbar(self.view_window, orient="vertical", command=self.tv.yview)
+        vsb.grid(row=1, column=2, sticky=tk.NS)
+        self.tv.configure(yscrollcommand=vsb.set)
 
         # Create fields
         for c in self.tv['columns']:
@@ -652,7 +659,7 @@ class read_calf_file(tk.Frame):
         item = self.tv.selection()[0]
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.warning_window.title("")
-        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][11]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][12]
         self.warningbox = tk.Text(self.warning_window, height=5, width=45)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
         if warning != []:
@@ -675,4 +682,4 @@ class read_calf_file(tk.Frame):
             self.call_read_elephants()
 
     def call_analyse(self, *args):
-        analyse_elephant_file(self.master, solved=self.solved.get())
+        analyse_calf_file(self.master, solved=self.solved.get())

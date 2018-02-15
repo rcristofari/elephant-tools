@@ -551,6 +551,8 @@ class mysqlconnect:
 
     def get_all_offsprings(self, num=None, id=None, age_gap=False, pairs=True, candidate=None, limit_age = 28):
 
+        result = None
+
         if age_gap is False:
             pairs = False
 
@@ -599,12 +601,12 @@ class mysqlconnect:
                         index.append(d)
 
                     elephants = []
-                    for i,j in enumerate(index):
-                        line = [ids[i], nums[i], ages[i],j,0]
+                    for i, j in enumerate(index):
+                        line = [ids[i], nums[i], ages[i], j, 0]
                         elephants.append(line)
 
                     e_out = []
-                    for i,e in enumerate(elephants):
+                    for i, e in enumerate(elephants):
                         if any(x == i for x in out) or any(x == i-1 for x in out):
                             e[4] = 1
                             e_out.append(e)
@@ -619,9 +621,10 @@ class mysqlconnect:
 
             else:
                 duplicates = []
-                for r in result:
-                    if abs((r[3] - candidate.birth).days / 30.5) < limit_age:
-                        duplicates.append(r)
+                if result:
+                    for r in result:
+                        if abs((r[3] - candidate.birth).days / 30.5) < limit_age:
+                            duplicates.append(r)
 
                 print(duplicates)
 

@@ -244,6 +244,7 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
     total_flag = flag
     wmother = None
     wcalf = None
+    wrelationship = None
     message = []
     duplicates = None
 
@@ -253,10 +254,11 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
     # Add 4 if the calf doesn't pose a problem
     # Add 8 if the relationship doesn't pose a problem
     # Add 16 if there is nothing to be added to the database
+    # Add 32 if the pedigree itself is already known
     # To be written out, the flag must contain 2, 4, and 8
     # Details of the problems are contained in the respective flags
 
-    if 1 not in break_flag(flag):
+    if 0 not in break_flag(total_flag):
 
         ##################################################################################
         # Identify the mother
@@ -276,13 +278,17 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
             message.append("The mother is known, nothing to change")
         else:
             total_flag = total_flag + 1
-            message.append("This mother is not valid.")
+            message.append("This mother is not valid:")
+            if type(wmother[11]) is list:
+                message = message + wmother[11]
+            elif type(wmother[11]) is str:
+                message.append(wmother[11])
 
         ##################################################################################
         # Identify the calf
 
-        calf = elephant(name=calf_name, calf_num=calf_num, sex=sex, birth=birth, cw=cw, caught=caught, camp=camp, alive=alive,
-                        research=research, flag=flag, solved=solved)
+        calf = elephant(name=calf_name, calf_num=calf_num, sex=sex, birth=birth, cw=cw, caught=caught, camp=camp,
+                        alive=alive, research=research, flag=flag, solved=solved)
         calf.source(db)
         calf.check()
         wcalf = calf.write(db)
@@ -292,26 +298,40 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
             message.append("This calf is unknown.")
 
             # In this case we need to check if a similar calf already exists:
+
             duplicates = db.get_all_offsprings(num=mother_num, candidate=calf, limit_age=limit_age)
             if duplicates is not None:
                 total_flag = total_flag + 1
-                message.append("This mother already has a calf around that age in the database.")
+                dup_message = "This mother already has a calf around that age in the database("
+                for d in duplicates:
+                    dup_message = dup_message + d[1] + ' '
+                dup_message = dup_message.strip(' ') + ')'
+                message.append(dup_message)
 
         elif 2 in break_flag(wcalf[10]):
             message.append("This calf will be updated.")
             total_flag = total_flag + 4
+
         elif 3 in break_flag(wcalf[10]):  # The calf is already known
             message.append("This calf is already known")
             if 3 in break_flag(wmother[10]):
-                total_flag = total_flag + 16  # Means that nothing will be done
+                total_flag = total_flag + 16  # Means that nothing will be done here
 
-        if 1 not in break_flag(flag):  # Check again that no error has arisen in the meantime
+        else:
+            message.append("This calf is not valid:")
+            if type(wcalf[11]) is list:
+                message = message + wcalf[11]
+            elif type(wcalf[11]) is str:
+                message.append(wcalf[11])
+
+        if 0 not in break_flag(total_flag):  # Check again that no error has arisen in the meantime
 
             ##################################################################################
             # Extract the relationship
             relationship = None
+            wrelationship = None
 
-            if 1 in break_flag(total_flag) and 2 in break_flag(total_flag):  # Both the mother and the calf are OK
+            if all(x in break_flag(total_flag) for x in [1, 2]):
 
                 # Distinguish the case where the calf exists in the DB (as-is, or to be updated)
                 # and the case where it is not present yet
@@ -320,45 +340,36 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
                 if 1 in break_flag(wcalf[10]):
                     relationship = pedigree(eleph_1=mother_num, eleph_2=calf, rel='mother', eleph_2_is_calf=True,
                                             flag=flag)
-                    relationship.source(db)
-                    relationship.check()
-                    wrelationship = relationship.write(db)
 
                 # Calf exists but needs to be updated
                 elif 2 in break_flag(wcalf[10]):
                     relationship = pedigree(eleph_1=mother_num, eleph_2=calf_num, rel='mother',
                                             eleph_2_is_calf=True, flag=flag)
+
+
                 if relationship is not None:
                     relationship.source(db)
                     relationship.check()
                     wrelationship = relationship.write(db)
 
-            else: ### +++
-                # This is under another condition now
-                # Calf exists and does not need to be updated - drop the line gracefully.
-                if 3 in break_flag(wcalf[10]):
-                    pass # Print something to tell that everything's cool and have gray shading
-
-
-
-
-
-
-                
+                    if any(x in [1, 2] for x in break_flag(wrelationship[4])):
+                        total_flag = total_flag + 8
+                        message.append("The relationship is valid: the calf can be registered")
+                    elif 3 in break_flag(wcalf[10]) and 3 in break_flag(wrelationship[4]):
+                        message.append("Nothing to do here, the database is already up to date")
+                        total_flag = total_flag + 32
+                    elif 3 in break_flag(wcalf[10]) and 3 not in break_flag(wrelationship[4]):
+                        message.append("The calf is known, but you should still register the pedigree information.")
+                    elif all(x not in [1, 2, 3] for x in break_flag(wrelationship[4])):
+                        message.append("The relationship is not valid:")
+                        if type(wrelationship[5]) is list:
+                            message = message + wrelationship[5]
+                        elif type(wrelationship[5]) is str:
+                            message.append(wrelationship[5])
+                    else:
+                        message.append("This is an unhandled case, look into it.")
 
         ##################################################################################
         # Parse out the results
-
-        # If there is any error with the mother:
-        if 1 not in break_flag(total_flag):
-            pass
-
-        # if 1 in break_flag(wcalf[11]) or 2 in break_flag(wcalf[11]) or 3 in break_flag(wcalf[11]):
-        #     pass
-            # 2, 4 : ok
-            # 8 already known.
-
-        # All we want is to return the calf if the rest of the data is OK, and eventually the update on the mother's name
-    if 1 in break_flag(wrelationship[4]) or 3 in break_flag(wrelationship[4]):
-        out = [wcalf, wmother, message, duplicates, total_flag]
+        out = [wcalf, wmother, wrelationship, message, duplicates, total_flag]
         return(out)

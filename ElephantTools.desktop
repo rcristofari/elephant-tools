@@ -4,7 +4,7 @@
 Type=Application
 Terminal=false
 Name=ElephantTools
-Exec=/home/parallels/elephants/elephant-tools/ElephantGUI.py
-Path=/home/parallels/elephants/elephant-tools/
-Icon=/home/parallels/elephants/elephant-tools/__resources/icon.png
+Exec=/home/robin/Elephants/elephant-tools/ElephantGUI.py
+Path=/home/robin/Elephants/elephant-tools/
+Icon=/home/robin/Elephants/elephant-tools/__resources/icon.png
 StartupWMClass=eletools

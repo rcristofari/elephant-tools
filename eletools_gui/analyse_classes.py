@@ -786,11 +786,13 @@ class analyse_calf_file(tk.Frame):
         self.in_db = []
         self.in_input = []
 
+        self.messages = []
+
         self.break_loop = 0
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
-        self.call_analyse_elephants()
+        self.call_analyse_calves()
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
@@ -820,20 +822,22 @@ class analyse_calf_file(tk.Frame):
     def stop_loop(self):
         self.break_loop = 1
 
-    def call_analyse_elephants(self):
+    def call_analyse_calves(self):
         sV=0 # Number of valid elephants so far
         sC=0 # Number of conflicting elephants so far
         sK=0 # Number of known elephants sor far
         # We scan over all elephants, including the ones flagged out during the reading process
         # These will simply be ignored.
-        self.elephants = self.master.file_content[5]
-        # Noumber of valid elephants is read from the partial list 'Accepted'
+
+        self.calves = self.master.file_content[5]
+        self.joint_flags = []
+        # Number of valid elephants is read from the partial list 'Accepted'
         n_elephs = self.master.file_content[1].__len__()
         counter = 0
 
-        for i,row in enumerate(self.elephants):
+        for i, row in enumerate(self.calves):
             # Evaluating and displaying the counter
-            statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
+            statenow = "Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=2, highlightbackground=self.master.darkcolour)
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
             # Toggle for the "stop" button to abort a long import
@@ -841,37 +845,42 @@ class analyse_calf_file(tk.Frame):
                 break
 
             # In case that row has been flagged off at the import stage
-            if row[10] == 1:
-                self.in_db.append('')
-                self.in_input.append('')
+            if row[11] == 1:
+                self.in_db.append('Not implemented yet')
+                self.in_input.append('Not implemented yet')
+                self.joint_flags.append(1)
+                self.messages.append(self.master.file_content[5][i][12])
+
 
             else:
                 counter += 1
                 # Setting the values from the current row
-                num, name, calf_num, sex, birth, cw, caught, camp, alive, research = row[0:10]
-                ele = elephant(num, name, calf_num, sex, birth, cw, caught, camp, alive, research, solved=self.solved, flag=int(row[10]))
-                ele.source(self.master.db)
-                ele.check()
+                calf = analyse_calf(calf_name=row[0], calf_num=row[1], sex=row[2], birth=row[3], cw=row[4], caught=row[5],
+                                  camp=row[6], alive=row[7], research=row[8], mother_num=row[9], mother_name=row[10],
+                                  solved=self.solved, flag=int(row[11]), limit_age=28, db=self.master.db)
 
-                self.in_db.append(ele.in_db)
-                self.in_input.append(ele.in_input)
+                self.joint_flags.append(calf[5])
 
-                w = ele.write(self.master.db)
-                self.master.common_out.append(w[11])
-                # Add up the flag values
-                row[10] = row[10] + w[10]
-                # Add the warnings field
-                row[11] = w[11]
-                if 1 in break_flag(row[10]) or 2 in break_flag(row[10]):
-                    say = 'valid'
-                    sV += 1
-                elif 3 in break_flag(row[10]):
-                    say = 'known'
-                    sK += 1
-                else:
+                self.in_db.append('Not implemented yet')
+                self.in_input.append('Not implemented yet')
+
+                self.master.common_out.append(calf[0][11])
+                self.master.common_out.append(calf[1][11])
+                self.messages.append(calf[3])
+
+                if 0 in break_flag(calf[5]):
                     say = 'conflicting'
                     sC += 1
-                self.result.insert(tk.END, ("\tAnalysing elephant number "+str(num)+"\t\t("+str(counter)+" of "+str(n_elephs)+"): "+say+"\n"))
+                elif 1 in break_flag(calf[5]) and 2 in break_flag(calf[5]) and 3 in break_flag(calf[5]):
+                    say = 'valid'
+                    sV += 1
+                elif 4 in break_flag(calf[5]) or 5 in break_flag(calf[5]):
+                    say = 'known'
+                    sK += 1
+                else:  # redundant but better to be waterproof
+                    say = 'conflicting'
+                    sC += 1
+                self.result.insert(tk.END, ("\tAnalysing elephant number "+str(row[1])+"\t\t("+str(counter)+" of "+str(n_elephs)+"): "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
 
@@ -886,7 +895,9 @@ class analyse_calf_file(tk.Frame):
         self.result.update()
         self.result.see(tk.END)
 
+
     def show_conflicts(self, *args):
+
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Elephant file "+self.master.shortname)
@@ -895,23 +906,30 @@ class analyse_calf_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('num','name','calf_num','sex','birth','cw','caught','camp','alive','research')
+        self.tv['columns'] = ('calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research',
+                              'mother_num', 'mother_name')
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=100)
+
+        vsb = ttk.Scrollbar(self.view_window, orient="vertical", command=self.tv.yview)
+        vsb.grid(row=1, column=2, sticky=tk.NS)
+        self.tv.configure(yscrollcommand=vsb.set)
+
         for c in self.tv['columns']:
             self.tv.heading(c, text=c)
             self.tv.column(c, anchor='w', width=100)
+
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
-        for i,row in enumerate(rows):
-            if 1 in break_flag(row[10]) or 2 in break_flag(row[10]):
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('valid',))
-            elif 3 in break_flag(row[10]):
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('known',))
-            elif row[10] == 1:
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('rejected',))
+        for i, row in enumerate(rows):
+            if 1 in break_flag(self.joint_flags[i]) and 2 in break_flag(self.joint_flags[i]) and 3 in break_flag(self.joint_flags[i]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:11], tags=('valid',))
+            elif 4 in break_flag(self.joint_flags[i]) or 5 in break_flag(self.joint_flags[i]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:11], tags=('known',))
+            elif 0 in break_flag(self.joint_flags[i]) and 0 in break_flag(row[11]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:11], tags=('rejected',))
             else:
-                self.tv.insert('','end',text=str(i+1), values=row[0:10], tags = ('conflicting',))
+                self.tv.insert('','end',text=str(i+1), values=row[0:11], tags=('conflicting',))
 
         self.tv.tag_configure('rejected', background='#E08E45')
         self.tv.tag_configure('known', background='#D5D0CD')
@@ -925,8 +943,8 @@ class analyse_calf_file(tk.Frame):
         self.view_window.destroy()
 
     def OnDoubleClick(self, event):
+
         item = self.tv.selection()[0]
-        print(int(self.tv.item(item,"text"))-1)
 
         self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.warning_window.title("")
@@ -945,15 +963,15 @@ class analyse_calf_file(tk.Frame):
         self.warningbox = tk.Text(self.warning_window, height=12, width=85)
         self.warningbox.grid(row=3, column = 1, columnspan=2, sticky=tk.EW, padx=5, pady=5)
 
-        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][10]
-        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][11]
+        flag = self.joint_flags[int(self.tv.item(item,"text"))-1]
+        warning = self.messages[int(self.tv.item(item,"text"))-1]
 
         if flag != 1:
             self.dbbox.insert(tk.END, self.in_db[int(self.tv.item(item,"text"))-1])
             self.inbox.insert(tk.END, self.in_input[int(self.tv.item(item,"text"))-1])
 
-        if flag == 8:
-            self.warningbox.insert(tk.END, 'This elephant is already in the database')
+        if 4 in break_flag(flag) or 5 in break_flag(flag):
+            self.warningbox.insert(tk.END, 'These two elephants are already in the database')
         else:
             for w in warning:
                 if w.__len__() > 1:
@@ -969,8 +987,7 @@ class analyse_calf_file(tk.Frame):
 
     def write_sql(self):
         folder = askdirectory(title='Choose SQL file directory...')
-        print(self.master.common_out)
-        parse_output(self.master.common_out, self.master.db, folder)
+        parse_output(self.master.common_out+self.messages, self.master.db, folder, conflicts_only=True)
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()
         self.result.see(tk.END)

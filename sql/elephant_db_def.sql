@@ -16,7 +16,8 @@ commits TEXT
 CREATE TABLE remarks (
 id INT(12) NOT NULL primary key auto_increment,
 elephant_id INT(10) NOT NULL,
-remark TEXT
+remark TEXT,
+author VARCHAR(16)
 );
 
 CREATE TABLE events (
@@ -65,6 +66,14 @@ descript TEXT,
 commits TEXT
 );
 
+CREATE TABLE location (
+id INT(4) NOT NULL primary key auto_increment,
+name VARCHAR(32) UNIQUE,
+lat FLOAT NOT NULL,
+lon FLOAT NOT NULL,
+details TEXT
+);
+
 CREATE TABLE commits (
 id INT(10) NOT NULL primary key auto_increment,
 stamp VARCHAR(14) NOT NULL UNIQUE, #format YYYYMMDDHHMMSS
@@ -78,6 +87,7 @@ ALTER TABLE `events` ENGINE = InnoDB ;
 ALTER TABLE `event_code` ENGINE = InnoDB ;
 ALTER TABLE `pedigree` ENGINE = InnoDB ;
 ALTER TABLE `measures` ENGINE = InnoDB ;
+ALTER TABLE `location` ENGINE = InnoDB ;
 ALTER TABLE `measure_code` ENGINE = InnoDB ;
 
 ALTER TABLE `events` ADD INDEX (`elephant_id`);
@@ -87,6 +97,7 @@ ALTER TABLE `pedigree` ADD INDEX (`elephant_1_id`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_2_id`);
 ALTER TABLE `measures` ADD INDEX (`elephant_id`);
 ALTER TABLE `measures` ADD INDEX (`code`);
+ALTER TABLE `elephants` ADD INDEX (`camp`);
 
 ALTER TABLE `remarks` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `events` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
@@ -95,3 +106,4 @@ ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_1_id`) REFERENCES `elephants` 
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_2_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`code`) REFERENCES `measure_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
+ALTER TABLE `elephants` ADD FOREIGN KEY (`camp`) REFERENCES `location` (`name`) ON DELETE CASCADE ON UPDATE CASCADE ;
