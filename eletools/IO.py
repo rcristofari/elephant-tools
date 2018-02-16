@@ -249,7 +249,7 @@ def read_elephants(elefile, sep=';', is_file=True):
 # calf_name, sex, birth, cw, caught, camp, alive, research, mother_num, mother_name
 # field names irrelevant, but order necessary
 
-def read_calves(elefile, sep=';', is_file=True):
+def read_calves(elefile, sep=';', is_file=True, limit_age=28):
     # Prepare empty list for column-wise parsing
     calf_name, calf_num, sex, birth, cw, caught, camp, alive, research, mother_num, mother_name = [], [], [], [], [], [], [], [], [], [], []
     fields = ['calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research', 'mother_num', 'mother_name']
@@ -375,12 +375,14 @@ def read_calves(elefile, sep=';', is_file=True):
             reject = 1
 
         ########## birth
+        date_problem = False
         date = format_date(str(row[3]))
         if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
             try:
                 row[3] = date
             except ValueError:
                 reject = 1
+                date_problem = True
                 warnings.append("Invalid date " + str(date) + " at line " + str(i+1))
         elif date is None:
             warnings.append("Missing birth date at line " + str(i+1))
@@ -463,21 +465,96 @@ def read_calves(elefile, sep=';', is_file=True):
                     +random.choice(string.ascii_letters[0:26]))
 
     ######### Send out to the correct lists for writing to file
+
     ######### Set the Flag field (1 if the row is rejected, 0 if it can go further)
 
         # allwarnings.append(warnings)
         if reject == 0:
             row.append(0)
-            if warnings != []:
-                remarks.append(warnings)
-            valid.append(row)
+            # if warnings != []:
+            #     remarks.append(warnings)
+            # valid.append(row)
         elif reject == 1:
             row.append(1)
-            issues.append(warnings)
-            rejected.append(row)
+            # issues.append(warnings)
+            # rejected.append(row)
 
     ######### In all cases, append the warnings to the row.
         row.append(warnings)
+
+    # Verify that no two calves from the same mother have too close birth dates within the file
+
+    # Get the unique mothers:
+    mothers = []
+    all_mothers = []
+    for i, row in enumerate(rows):
+        all_mothers.append(row[9])
+        if row[9] not in mothers:
+            mothers.append(row[9])
+
+    # Keep only mothers that have more than one calf in the dataset:
+    non_unique_mothers = []
+    for m in mothers:
+        if all_mothers.count(m) > 1:
+            non_unique_mothers.append(m)
+    print(str(non_unique_mothers.__len__()) + " mothers have more than one calf in the input file: ", non_unique_mothers)
+
+    # For each non-unique mother, scan through calf birth dates:
+    for m in non_unique_mothers:
+
+        half_sibs_birth = []
+        half_sibs_index = []
+        for i, row in enumerate(rows):
+            if row[3] is not None and date_problem is False and row[9] == m:
+                half_sibs_birth.append(row[3])
+                half_sibs_index.append(i)
+                # print(half_sibs_index)
+                # print(half_sibs_birth)
+
+        if half_sibs_birth.__len__() > 1:
+            duplicate_birth_index = []
+            for i in range(half_sibs_birth.__len__()-1):
+                delta = abs((datetime.strptime(half_sibs_birth[(i+1)], '%Y-%m-%d')
+                            - datetime.strptime(half_sibs_birth[i], '%Y-%m-%d')).days / 30.44)
+                print(delta)
+                if delta < limit_age:
+                    duplicate_birth_index.append(half_sibs_index[i])
+                    duplicate_birth_index.append(half_sibs_index[(i+1)])
+
+
+            duplicate_birth_index = list(set(duplicate_birth_index))
+            duplicate_birth_index.sort()
+
+            print(duplicate_birth_index)
+
+            if duplicate_birth_index is not None and duplicate_birth_index.__len__() > 1:
+
+                for i, d in enumerate(duplicate_birth_index):
+                    rows[d][11] = 1
+                    others = []
+                    for z in duplicate_birth_index:
+                        others.append(z)
+                    others.pop(i)
+                    other_nums = [rows[x][1] for x in others]
+                    twin_message = '[Conflict] Calf number ' + rows[d][1] + ' may be a duplicate of: '
+                    for o in other_nums:
+                        twin_message = twin_message + str(o) + ' '
+                    print(rows[d])
+                    if rows[d][12]:
+                        rows[d][12].append(twin_message)
+                    else:
+                        rows[d][12] = [twin_message]
+
+    # Sort rows in accepted or rejected:
+    for row in rows:
+        if row[11] == 0:
+            if row[12] != []:
+                remarks.append(row[12])
+            valid.append(row)
+        elif row[11] == 1:
+            issues.append(row[12])
+            rejected.append(row)
+
 
     return[fields, valid, remarks, rejected, issues, rows]
 
