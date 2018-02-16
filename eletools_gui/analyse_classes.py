@@ -852,8 +852,8 @@ class analyse_calf_file(tk.Frame):
 
             # In case that row has been flagged off at the import stage
             if row[11] == 1:
-                self.in_db.append('Not implemented yet')
-                self.in_input.append('Not implemented yet')
+                self.in_db.append('')
+                self.in_input.append('')
                 self.joint_flags.append(1)
                 self.messages.append(self.master.file_content[5][i][12])
 
@@ -867,20 +867,21 @@ class analyse_calf_file(tk.Frame):
 
                 self.joint_flags.append(calf[5])
 
-                self.in_db.append('Not implemented yet')
-                self.in_input.append('Not implemented yet')
+                self.in_db.append(calf[6])
+                self.in_input.append(calf[7])
 
                 self.master.common_out.append(calf[0][11])
-                self.master.common_out.append(calf[1][11])
+                if calf[1] is not None:
+                    self.master.common_out.append(calf[1][11])
                 self.messages.append(calf[3])
 
                 if 0 in break_flag(calf[5]):
                     say = 'conflicting'
                     sC += 1
-                elif 1 in break_flag(calf[5]) and 2 in break_flag(calf[5]) and 3 in break_flag(calf[5]):
+                elif all(x in break_flag(calf[5]) for x in [1, 2, 3]) or all(x in break_flag(calf[5]) for x in [2, 6]):
                     say = 'valid'
                     sV += 1
-                elif 4 in break_flag(calf[5]) or 5 in break_flag(calf[5]):
+                elif any(x in break_flag(calf[5]) for x in [4, 5]):
                     say = 'known'
                     sK += 1
                 else:  # redundant but better to be waterproof
@@ -928,7 +929,7 @@ class analyse_calf_file(tk.Frame):
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
         for i, row in enumerate(rows):
-            if 1 in break_flag(self.joint_flags[i]) and 2 in break_flag(self.joint_flags[i]) and 3 in break_flag(self.joint_flags[i]):
+            if all(x in break_flag(self.joint_flags[i]) for x in [1, 2, 3]) or all(x in break_flag(self.joint_flags[i]) for x in [2, 6]):
                 self.tv.insert('','end',text=str(i+1), values=row[0:11], tags=('valid',))
             elif 4 in break_flag(self.joint_flags[i]) or 5 in break_flag(self.joint_flags[i]):
                 self.tv.insert('','end',text=str(i+1), values=row[0:11], tags=('known',))

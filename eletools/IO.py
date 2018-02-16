@@ -489,7 +489,7 @@ def read_calves(elefile, sep=';', is_file=True, limit_age=28):
     all_mothers = []
     for i, row in enumerate(rows):
         all_mothers.append(row[9])
-        if row[9] not in mothers:
+        if row[9] not in mothers and row[9] is not None:
             mothers.append(row[9])
 
     # Keep only mothers that have more than one calf in the dataset:
@@ -516,7 +516,7 @@ def read_calves(elefile, sep=';', is_file=True, limit_age=28):
             for i in range(half_sibs_birth.__len__()-1):
                 delta = abs((datetime.strptime(half_sibs_birth[(i+1)], '%Y-%m-%d')
                             - datetime.strptime(half_sibs_birth[i], '%Y-%m-%d')).days / 30.44)
-                print(delta)
+
                 if delta < limit_age:
                     duplicate_birth_index.append(half_sibs_index[i])
                     duplicate_birth_index.append(half_sibs_index[(i+1)])
@@ -524,8 +524,6 @@ def read_calves(elefile, sep=';', is_file=True, limit_age=28):
 
             duplicate_birth_index = list(set(duplicate_birth_index))
             duplicate_birth_index.sort()
-
-            print(duplicate_birth_index)
 
             if duplicate_birth_index is not None and duplicate_birth_index.__len__() > 1:
 
@@ -535,11 +533,10 @@ def read_calves(elefile, sep=';', is_file=True, limit_age=28):
                     for z in duplicate_birth_index:
                         others.append(z)
                     others.pop(i)
-                    other_nums = [rows[x][1] for x in others]
-                    twin_message = '[Conflict] Calf number ' + rows[d][1] + ' may be a duplicate of: '
+                    other_nums = [rows[x][0:2] for x in others]
+                    twin_message = '[Conflict] Calf number ' + str(rows[d][0]) + ' (' + str(rows[d][1]) + ') may be a duplicate of: '
                     for o in other_nums:
-                        twin_message = twin_message + str(o) + ' '
-                    print(rows[d])
+                        twin_message = twin_message + str(o[0]) + ' (' + str(o[1]) + ') '
                     if rows[d][12]:
                         rows[d][12].append(twin_message)
                     else:

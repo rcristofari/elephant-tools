@@ -1042,9 +1042,33 @@ class pedigree:
                 else:
                     pass
 
+            # Check that the parent was alive at the moment of birth:
+            if self.rel in ('mother', 'father'):
+                if self.__db_eleph_1[3] == 'N':
+                    # Get the parent's death date:
+                    dod = self.__db.get_date_of_death(id=self.__db_id1)
+                    if dod:
+                        delta = (dod - self.__db_eleph_2[2]).days
+                        if delta < 0: # then the birth is posterior to the parent's death
+                            self.__xbirth = 0
+                            self.__checked = 0
+                            structurewarning = ("Parent died (" + str(round(abs(delta)/365.25)) + " years before this calf's birth)")
+
+            elif self.rel == 'offspring':
+                if self.__db_eleph_2[3] == 'N':
+                    # Get the parent's death date:
+                    dod = self.__db.get_date_of_death(id=self.__db_id2)
+                    if dod:
+                        delta = (dod - self.__db_eleph_1[2]).days
+                        if delta < 0: # then the birth is posterior to the parent's death
+                            self.__xbirth = 0
+                            self.__checked = 0
+                            structurewarning = ("Parent died (" + str(round(abs(delta)/365.25)) + " years before this calf's birth)")
+
             if structurewarning is not None:
                 print(structurewarning)
                 self.warnings.append(structurewarning)
+
 
             else:
                 pass
@@ -1054,10 +1078,7 @@ class pedigree:
             else:
                 print("There are inconsistencies in the proposed relationship. Check your input.")
                 self.status = (self.__xsex, self.__xbirth)
-                #The actual writing of error will be done by write()
-
-
-                #### si alive == F vérifier les dates ####
+                # The actual writing of error will be done by write()
 
     ################################################################################
     ## 'write' function writes out two sql instert statements or an error         ##

@@ -679,7 +679,7 @@ class read_calf_file(tk.Frame):
             text = "You haven't loaded any file yet."
             text.insert(tk.END, self.result_text)
         else:
-            self.call_read_elephants()
+            self.call_read_calves()
 
     def call_analyse(self, *args):
         analyse_calf_file(self.master, solved=self.solved.get())

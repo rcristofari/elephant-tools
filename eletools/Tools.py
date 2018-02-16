@@ -247,6 +247,7 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
     wrelationship = None
     message = []
     duplicates = None
+    mother = None
 
     # Local flag system: starts by default at 0, or at 1 if the row is excluded (in which case we break)
     # Add 1 if there is a prohibitive error
@@ -264,25 +265,31 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
         # Identify the mother
         # Either she doesn't exist (2^1), or she exists with a different name (2^2), or she exists as-is (2^3).
 
-        mother = elephant(num=mother_num, name=mother_name, solved=solved, flag=flag)
-        mother.source(db)
-        mother.check()
-        wmother = mother.write(db)
+        if mother_num is not None:
 
-        # If the mother is known (eventually under an alias name)
-        if 2 in break_flag(wmother[10]):
-            total_flag = total_flag + 2
-            message.append("The mother is known under a different name, the database will be updated")
-        elif 3 in break_flag(wmother[10]):
-            total_flag = total_flag + 2
-            message.append("The mother is known, nothing to change")
+            mother = elephant(num=mother_num, name=mother_name, solved=solved, flag=flag)
+            mother.source(db)
+            mother.check()
+            wmother = mother.write(db)
+
+            # If the mother is known (eventually under an alias name)
+            if 2 in break_flag(wmother[10]):
+                total_flag = total_flag + 2
+                message.append("The mother is known under a different name, the database will be updated")
+            elif 3 in break_flag(wmother[10]):
+                total_flag = total_flag + 2
+                message.append("The mother is known, nothing to change")
+            else:
+                total_flag = total_flag + 1
+                message.append("This mother is not valid:")
+                if type(wmother[11]) is list:
+                    message = message + wmother[11]
+                elif type(wmother[11]) is str:
+                    message.append(wmother[11])
+
         else:
-            total_flag = total_flag + 1
-            message.append("This mother is not valid:")
-            if type(wmother[11]) is list:
-                message = message + wmother[11]
-            elif type(wmother[11]) is str:
-                message.append(wmother[11])
+            total_flag = total_flag + 64
+            message.append("No mother declared, this calf will be anonymous")
 
         ##################################################################################
         # Identify the calf
@@ -299,7 +306,9 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
 
             ##################################################################################
             # In this case we need to check if a similar calf already exists:
-            duplicates = db.get_all_offsprings(num=mother_num, candidate=calf, limit_age=limit_age)
+            duplicates = None
+            if mother_num is not None:
+                duplicates = db.get_all_offsprings(num=mother_num, candidate=calf, limit_age=limit_age)
             if duplicates:
                 total_flag = total_flag + 1
                 dup_message = "This mother already has a calf around that age in the database("
@@ -324,7 +333,7 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
             elif type(wcalf[11]) is str:
                 message.append(wcalf[11])
 
-        if 0 not in break_flag(total_flag):  # Check again that no error has arisen in the meantime
+        if all(x not in [0, 6] for x in break_flag(total_flag)):  # Check again that no error has arisen in the meantime
 
             ##################################################################################
             # Extract the relationship
@@ -345,7 +354,6 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
                 elif 2 in break_flag(wcalf[10]):
                     relationship = pedigree(eleph_1=mother_num, eleph_2=calf_num, rel='mother',
                                             eleph_2_is_calf=True, flag=flag)
-
 
                 if relationship is not None:
                     relationship.source(db)
@@ -371,5 +379,9 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
 
         ##################################################################################
         # Parse out the results
-        out = [wcalf, wmother, wrelationship, message, duplicates, total_flag]
+        if mother:
+            out = [wcalf, wmother, wrelationship, message, duplicates, total_flag, mother.in_db, mother.in_input]
+        else:
+            out = [wcalf, wmother, wrelationship, message, duplicates, total_flag, 'No known mother', 'No known mother']
+
         return(out)
