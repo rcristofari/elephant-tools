@@ -297,10 +297,10 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
             total_flag = total_flag + 4
             message.append("This calf is unknown.")
 
+            ##################################################################################
             # In this case we need to check if a similar calf already exists:
-
             duplicates = db.get_all_offsprings(num=mother_num, candidate=calf, limit_age=limit_age)
-            if duplicates is not None:
+            if duplicates:
                 total_flag = total_flag + 1
                 dup_message = "This mother already has a calf around that age in the database("
                 for d in duplicates:

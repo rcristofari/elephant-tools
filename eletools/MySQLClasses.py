@@ -452,23 +452,34 @@ class mysqlconnect:
 ## 'insert_pedigree' function                                                 ##
 ################################################################################
 
-    def insert_pedigree(self, id1, id2, rel_fwd, rel_rev, coef):
+    def insert_pedigree(self, id1=None, id2=None, rel_fwd=None, rel_rev=None, coef=None, last_id=None, last_id_only=False):
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
-            sql = "SELECT max(rel_id) FROM pedigree;"
-            try:
-                self.__cursor.execute(sql)
-                y = self.__cursor.fetchall()[0][0]
-                if y is not None:
-                    last_id = y+1
-                else:
-                    last_id = 1
-            except:
-                print("Unable to connect to database")
 
-            statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id1, id2, rel_fwd, coef, quote(self.__i))
-            statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id2, id1, rel_rev, coef, quote(self.__i))
+            if last_id_only is True:
+                last_id = None
+
+            if not last_id:
+                sql = "SELECT max(rel_id) FROM pedigree;"
+                try:
+                    self.__cursor.execute(sql)
+                    y = self.__cursor.fetchall()[0][0]
+                    if y is not None:
+                        last_id = y+1
+                    else:
+                        last_id = 1
+                    if last_id_only is True:
+                        return(last_id)
+
+                except:
+                    print("Unable to fetch latest relationship id from the database")
+            if coef:
+                statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, coef, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id1, id2, rel_fwd, coef, quote(self.__i))
+                statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, coef, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id2, id1, rel_rev, coef, quote(self.__i))
+            else:
+                statement_1 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id1, id2, rel_fwd, quote(self.__i))
+                statement_2 = "INSERT INTO pedigree (rel_id, elephant_1_id, elephant_2_id, rel, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (last_id, id2, id1, rel_rev, quote(self.__i))
 
             return(statement_1, statement_2)
 

@@ -267,6 +267,10 @@ class analyse_pedigree_file(tk.Frame):
         sK=0
         self.pedigrees = self.master.file_content[5]
         n_pedigree = self.pedigrees.__len__()
+
+        # Get the first rel_id index, and increment it after each insert.
+        self.last_id = self.master.db.insert_pedigree(last_id_only=True)
+
         for i,row in enumerate(self.pedigrees):
             statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=2, highlightbackground=self.master.darkcolour)
@@ -278,16 +282,18 @@ class analyse_pedigree_file(tk.Frame):
             else:
                 elephant_1_id, elephant_2_id, rel, coef  = row[0:4]
 
-                p = pedigree(elephant_1_id, elephant_2_id, rel, coef, eleph_2_is_calf=self.master.eleph_2_is_calf, flag=row[4])
+                p = pedigree(elephant_1_id, elephant_2_id, rel, coef, eleph_2_is_calf=self.master.eleph_2_is_calf, flag=row[4], last_id=self.last_id)
 
                 p.source(self.master.db)
                 p.check()
                 w = p.write(self.master.db)
                 row[4] = row[4] + w[4]
                 row[5] = w[5]
+
                 if 1 in break_flag(row[4]) or 2 in break_flag(row[4]):
                     say = 'valid'
                     sV += 1
+                    self.last_id += 1
                 elif 3 in break_flag(row[4]):
                     say = 'known'
                     sK += 1

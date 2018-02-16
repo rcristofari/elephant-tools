@@ -719,7 +719,7 @@ class elephant:
 
 class pedigree:
 
-    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, flag=0):
+    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, flag=0, last_id=None):
 
 
         # Non-prefixed parameters describe user input
@@ -728,6 +728,7 @@ class pedigree:
         self.rel=rel
         self.coef=coef
         self.eleph_2_is_calf=eleph_2_is_calf
+        self.last_id = last_id
 
         # Prefixed parameters describe database content
         self.__db_id = None
@@ -1091,7 +1092,7 @@ class pedigree:
             self.coef = quote(self.coef)
 
         if self.__checked == 1:
-            self.out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef)
+            self.out = self.__db.insert_pedigree(self.__db_id1, self.__db_id2, self.__rel_fwd, self.__rel_rev, self.coef, last_id=self.last_id)
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 2
 
