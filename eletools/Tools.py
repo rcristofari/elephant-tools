@@ -12,10 +12,12 @@ from eletools.DataClasses import *
 
 def matriline_tree(id, db):
     offspring = id
-    central_ind = db.get_elephant(id = id)[1]
-    #Start upwards to the oldest existing maternal ancestor
+    central_ind = db.get_elephant(id=id)[1]
+
+    # Start upwards to the oldest existing maternal ancestor
     direct_mothers = []
-    mother = int
+    mother = str
+
     while mother is not None:
         mother = db.get_mother(id=offspring)
         direct_mothers.append(mother)
@@ -23,34 +25,37 @@ def matriline_tree(id, db):
 
         if direct_mothers[-1] is None:
             direct_mothers.pop()
-    #Find the oldest known female in the line
+
+    # Find the oldest known female in the line
     if direct_mothers != []:
         oldest_mother = direct_mothers.pop()
     else:
         oldest_mother = id
-    #Go back down. The criterion to stop is that no female of generation 'n'
-    #has any offspring.
 
+    # Go back down. The criterion to stop is that no female of generation 'n' has any offspring.
     mothers = [oldest_mother]
     generation_n = [1]
-    oldest_mother_num = db.get_elephant(id = oldest_mother)[1]
-    newick="('"+str(oldest_mother_num)+"_\u2640')"
-    branch_length = [[oldest_mother_num,2]]
+    oldest_mother_num = db.get_elephant(id=oldest_mother)[1]
+    newick = "('" + str(oldest_mother_num) + "_\u2640')"
+    branch_length = [[oldest_mother_num, 2]]
 
     while generation_n.__len__() != 0:
         generation_n = []
 
         for m in mothers:
-            m_num = db.get_elephant(id = m)[1]
-            m_birth = db.get_elephant(id = m)[5]
-            o = db.get_offsprings(id = m)
+            m_num = db.get_elephant(id=m)[1]
+            m_birth = db.get_elephant(id=m)[5]
+            o = db.get_offsprings(id=m)
+
             if o is not None:
                 taxon = []
 
                 for i in o:
                     generation_n.append(i)
-                    info = db.get_elephant(id = i)
+                    info = db.get_elephant(id=i)
                     num = info[1]
+                    if not num:
+                        num = info[3]
                     sex = info[4]
                     birth = info[5]
                     age_of_mother_at_birth = round((birth - m_birth).days / 365.25)
@@ -63,33 +68,35 @@ def matriline_tree(id, db):
                         u = '?'
                     taxon.append(str(num)+'_'+u)
 
-                #Could be refined so that branch length equals age of mother at childbirth
-                newick = newick.replace(("'"+str(m_num)+"_\u2640'"), (str(taxon).replace('[','(').replace(']',')').replace(' ','')+str(m_num)+'_\u2640'))
+                newick = newick.replace(("'" + str(m_num) + "_\u2640'"),
+                                        (str(taxon).replace('[', '(').replace(']', ')').replace(' ', '')
+                                         + str(m_num) + '_\u2640'))
         mothers = generation_n
-    newick = newick.replace("'","")+';'
+    newick = newick.replace("'", "")+';'
 
-    #Now formatting for the actual plotting in ete3:
-    t = Tree(newick , format=8)
+    # Now formatting for the actual plotting in ete3:
+    t = Tree(newick, format=8)
     # print(t.get_ascii(attributes=['name'], show_internal=True))
     ts = TreeStyle()
     ts.show_leaf_name = False
     ts.rotation = 90
     ts.show_scale = False
     ts.min_leaf_separation = 50
+
     def my_layout(node):
-         F = TextFace(node.name, tight_text=True)
-         F.fsize=6
-         F.margin_left=5
-         F.margin_right=5
-         F.margin_top=0
-         F.margin_bottom=15
-         F.rotation=-90
-         add_face_to_node(F, node, column=0, position="branch-right")
+        F = TextFace(node.name, tight_text=True)
+        F.fsize = 6
+        F.margin_left = 5
+        F.margin_right = 5
+        F.margin_top = 0
+        F.margin_bottom = 15
+        F.rotation = -90
+        add_face_to_node(F, node, column=0, position="branch-right")
     ts.layout_fn = my_layout
-    ts.margin_left=10
-    ts.margin_right=10
-    ts.margin_top=10
-    ts.margin_bottom=10
+    ts.margin_left = 10
+    ts.margin_right = 10
+    ts.margin_top = 10
+    ts.margin_bottom = 10
 
     i = 0
 
@@ -119,7 +126,8 @@ def matriline_tree(id, db):
     taxa = []
     for n in t.traverse():
         taxa.append(n.name)
-    return(t.write(format=1),taxa)
+
+    return(t.write(format=1), taxa)
 
 ####################################################################################
 ##  nexus_tree() function writes a Newick tree as a Nexus file                    ##

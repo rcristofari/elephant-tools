@@ -789,6 +789,7 @@ class pedigree:
 
             try:
                 el1 = self.__db.get_elephant(num=self.eleph_1)
+
                 if self.eleph_2_is_calf is False:
                     el2 = self.__db.get_elephant(num=self.eleph_2)
                 else:
@@ -805,11 +806,11 @@ class pedigree:
             except TypeError:
                 missing = ''
                 if el1 is None and el2 is None:
-                    missing = ("Impossible to find elephant "+self.eleph_1+" nor "+self.eleph_2+" in the database.")
+                    missing = ("Impossible to find elephant " + self.eleph_1 + " nor " + self.eleph_2 + " in the database.")
                 elif el1 is None and el2 is not None:
-                    missing = ("Impossible to find elephant "+self.eleph_1+" in the database.")
+                    missing = ("Impossible to find elephant " + self.eleph_1 + " in the database.")
                 elif el1 is not None and el2 is None:
-                    missing = ("Impossible to find elephant "+self.eleph_2+" in the database.")
+                    missing = ("Impossible to find elephant " + self.eleph_2 + " in the database.")
                 self.warnings.append(missing)
                 print(missing)
                 self.elephant_absent = 1
@@ -985,14 +986,17 @@ class pedigree:
             # Check that this elephant does not already have a father or mother.
             redundancywarning = None
             if self.eleph_2_is_object is False:
+
                 if self.rel == "mother": # elephant 2 should not already have a mother or a father.
-                    if self.__db.get_mother(self.eleph_2) is not None:
+                    if self.__db.get_mother(id=self.__db_id2) is not None:
                         self.__checked = 0
-                        redundancywarning = ("Elephant "+self.eleph_2+" already has a registered mother ("+self.__db.get_mother(self.eleph_2)+").")
+                        redundancywarning = ("Elephant " + self.eleph_2 + " already has a registered mother ("
+                                             + self.__db.get_mother(self.eleph_2) + ").")
                 elif self.rel == "father":
-                    if self.__db.get_father(self.eleph_2) is not None:
+                    if self.__db.get_father(id=self.__db_id2) is not None:
                         self.__checked = 0
-                        redundancywarning = ("Elephant "+self.eleph_2+" already has a registered father ("+self.__db.get_father(self.eleph_2)+").")
+                        redundancywarning = ("Elephant " + self.eleph_2 + " already has a registered father ("
+                                             + self.__db.get_father(self.eleph_2) + ").")
                 if redundancywarning is not None:
                     print(redundancywarning)
                     self.warnings.append(redundancywarning)
@@ -1002,15 +1006,15 @@ class pedigree:
                 if self.__db_eleph_1[1] != 'F':
                     self.__xsex = 0
                     self.__checked = 0
-                    structurewarning = (self.eleph_1+" is not a female in the database, you cannot declare it as 'mother' here.")
+                    structurewarning = (self.eleph_1 + " is not a female in the database, you cannot declare it as 'mother' here.")
                 elif delta < 10:
                     self.__xbirth = 0
                     self.__checked = 0
-                    structurewarning = ("Mother too young ("+str(round(abs(delta)))+" years old)")
+                    structurewarning = ("Mother too young (" + str(round(abs(delta))) + " years old)")
                 elif delta > 70:
                     self.__xbirth = 0
                     self.__checked = 0
-                    structurewarning = ("Mother too old ("+str(round(abs(delta)))+" years old)")
+                    structurewarning = ("Mother too old (" + str(round(abs(delta))) + " years old)")
                 else:
                     pass
 
