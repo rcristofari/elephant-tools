@@ -1,7 +1,7 @@
 //connexion parameters
-username=robin
+username=
 password=
 host=
 database=
 port=3306
-wdir=/home/robin/Dropbox/MTEPdb/commit
+wdir=

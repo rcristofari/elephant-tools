@@ -8,6 +8,7 @@ import re
 import csv
 from datetime import datetime
 from eletools import *
+from eletools_gui.plot_classes import plot_measures
 
 ################################################################################
 ## Search for an elephant                                                     ##
@@ -297,6 +298,9 @@ class find_measure(tk.Frame):
         self.exportbutton = tk.Button(self.master, text='Export as file', width=20, command=self.write_csv, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.exportbutton.grid(row=5, column=3, columnspan=2, sticky = tk.W, padx=5, pady=5)
 
+        self.plotbutton = tk.Button(self.master, text='Graph', width=20, command=self.call_plot_measures, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.plotbutton.grid(row=5, column=1, columnspan=2, sticky = tk.W, padx=5, pady=5)
+
         self.master.focus_set()
         self.master.bind('<Return>', self.choose_measures)
 
@@ -548,12 +552,15 @@ class find_measure(tk.Frame):
                 self.tv2.insert(globals()[name+'s'], "end", text=t[1], values=t[2:4], tags = ('type',))
 
     def fetch_values(self):
-        print(self.__selected_types)
         measure_str = '('
         for m in self.__selected_types:
             measure_str = measure_str+"'"+m[1]+"',"
         measure_str = measure_str.rstrip(',')+')'
         self.measures = self.master.db.get_measure_values(self.e1.get(), measure_str)
+
+        # We also get details on the elephant (num, name, sex, and birth date)
+        self.details = self.master.db.get_elephant(num=self.e1.get())
+
         for item in self.tv.get_children():
             self.tv.delete(item)
         try:
@@ -574,6 +581,21 @@ class find_measure(tk.Frame):
                 f.write(str(x[3])+',')
                 f.write(str(x[4]))
                 f.write('\n')
+
+    def call_plot_measures(self):
+        self.plot_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.plot_window.title("Measure graph")
+        # self.plot_window.geometry("400x400")
+        self.plot_window.db = self.master.db
+        self.plot_window.lightcolour = self.master.lightcolour
+        self.plot_window.darkcolour = self.master.darkcolour
+        self.plot_window.grid_rowconfigure(0, weight=1)
+        self.plot_window.grid_columnconfigure(0, weight=1)
+        self.plot_window.grid_rowconfigure(7, weight=1)
+        self.plot_window.grid_columnconfigure(5, weight=1)
+        self.master.plot_measures = plot_measures(self.plot_window, self.measures, self.details)
+
+
 
 ################################################################################
 ## Search for events on an elephant                                           ##
