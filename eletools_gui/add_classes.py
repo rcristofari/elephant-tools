@@ -9,7 +9,6 @@ from datetime import datetime
 from eletools import *
 from eletools_gui.import_classes import *
 
-
 ################################################################################
 ## Manually add some elephants                                                ##
 ################################################################################

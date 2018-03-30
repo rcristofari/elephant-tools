@@ -3,15 +3,16 @@ import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 from eletools.Utilities import *
 import numpy as np
+import pandas
 from datetime import datetime
+from PIL import Image
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-
 import matplotlib.dates as mdates
-import matplotlib.mlab as mlab
-import matplotlib.cbook as cbook
+import seaborn
+
 
 class plot_measures(tk.Frame):
 
@@ -117,9 +118,6 @@ class plot_measures(tk.Frame):
 
         graph.grid(ls='dotted')
 
-        # Start the graph at the elephant's birth
-        # datemin = self.details[5]
-        # graph.set_xlim(left=datemin)
 
         # Set main and axis labels
         graph.set_title(str(chosen_measure) + ' ~ time for ' + str(self.details[2]) + ' (' + str(self.details[1])
@@ -130,3 +128,51 @@ class plot_measures(tk.Frame):
         canvas.draw()
         canvas.get_tk_widget().grid(row=2, column=1, columnspan=4, sticky = tk.EW, padx=5, pady=5)
         canvas._tkcanvas.grid(row=2, column=1, columnspan=4, sticky = tk.EW, padx=5, pady=5)
+
+    def save_plot(self):
+        pass
+
+##################################################################################################
+#
+class plot_relatedness(tk.Frame):
+
+    def __init__(self, master, rdataframe):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.rdataframe = rdataframe
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+        self.call_draw()
+
+    def configure_gui(self):
+        self.master.title("Relatedness cluster map")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        # Save button:
+        self.savebutton = tk.Button(self.master, text='Save', command=self.call_save, width=20, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.savebutton.grid(row=1, column=4, columnspan=1, sticky = tk.EW, padx=5, pady=5)
+
+        # Create the plot canvas
+        self.canvas = tk.Canvas(self.master, width=600, height=600)
+        self.canvas.grid(row=2, column=1, columnspan=4, sticky = tk.EW, padx=5, pady=5)
+#
+    def call_draw(self):
+        clusmap = seaborn.clustermap(self.rdataframe, cmap='inferno_r', yticklabels=False)
+        clusmap.ax_row_dendrogram.set_visible(False)
+        clusmap.cax.set_visible(False)
+        clusmap.savefig('plot.png')
+        # img = Image.open('./plot.png','r')
+        self.mapbox = tk.Text(self.master, height=60, width=100)
+        self.map = tk.PhotoImage(file='./plot.png')
+        self.mapbox.image_create(tk.END, image=self.map)
+        self.mapbox.grid(row=2, column=1, columnspan=4)
+
+    def call_save(self):
+        mapfile = asksaveasfilename(title='Save map image...', defaultextension='.png')
+        clusmap.savefig(mapfile)

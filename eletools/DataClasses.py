@@ -1243,7 +1243,10 @@ class measure:
                     self.warnings.append(missing)
 
             else:
-                self.__db_line = self.__db.get_measure(self.__num, self.__date, self.__code)
+                if self.__num is not None:
+                    self.__db_line = self.__db.get_measure(self.__num, self.__date, self.__code)
+                elif self.__num is None and self.__calf_num is not None:
+                    self.__db_line = self.__db.get_measure(self.__calf_num, self.__date, self.__code) # get_measure recognises the calf number format
 
                 #Cases where the measure is already entered in a similar form in the database:
                 if self.__db_line is not None:

@@ -129,22 +129,40 @@ class mysqlconnect:
 ## 'get_mother' function                                                          ##
 ################################################################################
 
-    def get_mother(self, num=None, id=None):
+    def get_mother(self, num=None, calf_num=None, id=None):
         self.__num=num
+        self.__calf_num=calf_num
         self.__id=id
-        if self.__num is not None and self.__id is None:
+        x = None
+        result = None
+
+        if self.__num is not None and self.__id is None and self.__calf_num is None:
             sql = "SELECT id FROM elephants WHERE num = %s" % (self.__num)
             self.__cursor.execute(sql)
-            id1 = self.__cursor.fetchall()[0][0]
-            sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'mother';" % (id1)
+            x = self.__cursor.fetchall()
+            if x:
+                id1 = x[0][0]
+                sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'mother';" % (id1)
+                self.__cursor.execute(sql)
+                result = self.__cursor.fetchall()
+
+        elif self.__calf_num is not None and self.__id is None and self.__num is None:
+            sql = "SELECT id FROM elephants WHERE calf_num = %s" % (quote(self.__calf_num))
             self.__cursor.execute(sql)
-            result = self.__cursor.fetchall()
-        elif self.__num is None and self.__id is not None:
+            x = self.__cursor.fetchall()
+            if x:
+                id1 = x[0][0]
+                sql = "SELECT num FROM elephants INNER JOIN pedigree ON elephants.id = pedigree.elephant_1_id WHERE pedigree.elephant_2_id = %s AND rel = 'mother';" % (id1)
+                self.__cursor.execute(sql)
+                result = self.__cursor.fetchall()
+
+        elif self.__num is None and self.__calf_num is None and self.__id is not None:
             sql = "SELECT elephant_1_id FROM pedigree WHERE elephant_2_id = %s AND rel = 'mother';" % (self.__id)
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
+
         else:
-            print("You must provide an ID number OR an elephant number")
+            print("You must provide an ID number OR an elephant number OR a calf number")
         if result:
             return result[0][0]
 
@@ -219,7 +237,13 @@ class mysqlconnect:
         self.__date=date
         self.__code=code
 
-        sql = "SELECT id FROM elephants WHERE num = %s;" % (self.__num)
+        if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.__num):
+            sql = "SELECT id FROM elephants WHERE calf_num = %s;" % (quote(self.__num))
+            print(sql)
+        else:
+            sql = "SELECT id FROM elephants WHERE num = %s;" % (quote(self.__num))
+            print(sql)
+
         try:
             self.__cursor.execute(sql)
             self.__eleph_id = self.__cursor.fetchall()[0][0]
@@ -770,7 +794,6 @@ class mysqlconnect:
             line = r[1]
             out.append(line)
         return(out)
-
 
 ################################################################################
 ## 'write_new_measure' function                                               ##

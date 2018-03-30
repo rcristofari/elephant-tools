@@ -6,6 +6,8 @@ import os
 import re
 import csv
 from eletools import *
+from eletools_gui.plot_classes import plot_relatedness
+import pandas
 
 ################################################################################
 ## make_measure_set                                                           ##
@@ -278,7 +280,6 @@ class make_measure_set(tk.Frame):
         self.master.update()
 
     def choose_measures(self, *args):
-
 
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
         self.view_window.title("Select measures")
@@ -565,3 +566,72 @@ class make_measure_set(tk.Frame):
         del self.__measures
         del self.__elephants
         del self.__out
+
+
+
+################################################################################
+## make_relatedness_matrix                                                    ##
+# ################################################################################
+
+class make_relatedness_matrix(tk.Frame):
+
+    def __init__(self, master):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        self.loadlistbutton = tk.Button(self.master, text="Load list", width=35, command=self.load_list, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.loadlistbutton.grid(row=2, column=1, columnspan=2, sticky=tk.EW, padx=5, pady=5)
+        self.drawbutton = tk.Button(self.master, text="Draw clusters", width=35, command=self.call_plot_relatedness, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.drawbutton.grid(row=4, column=1, columnspan = 2, sticky=tk.EW, padx=5, pady=5)
+        self.drawbutton.config(state='disabled')
+        self.exportbutton = tk.Button(self.master, text="Save as CSV", width=35, command=self.write_csv, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.exportbutton.grid(row=5, column=1, columnspan = 2, sticky=tk.EW, padx=5, pady=5)
+        self.exportbutton.config(state='disabled')
+
+    def load_list(self):
+        self.drawbutton.config(state='disabled')
+        self.exportbutton.config(state='disabled')
+        self.__listfilename = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV file", "*.csv"),("All Files","*.*")), title = "Choose a list file")
+        self.__numlist = []
+        with open(self.__listfilename) as listfile:
+            lines = csv.reader(listfile, delimiter=',')
+            next(lines)
+            for l in lines:
+                self.__numlist.append(l[0])
+
+        rmatrix = relatedness_matrix(self.__numlist, self.master.db)
+        self.drawbutton.config(state='normal')
+        self.exportbutton.config(state='normal')
+        self.rdataframe = pandas.DataFrame(rmatrix)
+        self.rdataframe.columns = self.__numlist
+
+        self.call_plot_relatedness()
+
+    def call_plot_relatedness(self):
+        self.plot_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.plot_window.title("Relatedness cluster map")
+        self.plot_window.db = self.master.db
+        self.plot_window.lightcolour = self.master.lightcolour
+        self.plot_window.darkcolour = self.master.darkcolour
+        self.plot_window.grid_rowconfigure(0, weight=1)
+        self.plot_window.grid_columnconfigure(0, weight=1)
+        self.plot_window.grid_rowconfigure(7, weight=1)
+        self.plot_window.grid_columnconfigure(5, weight=1)
+        plot_relatedness(self.plot_window, self.rdataframe)
+
+
+    def write_csv(self):
+        filename = asksaveasfilename(initialdir=self.master.wdir, defaultextension='.csv')
+        self.rdataframe.to_csv(filename)

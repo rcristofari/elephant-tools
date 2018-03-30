@@ -569,9 +569,9 @@ class analyse_measure_file(tk.Frame):
         tk.Frame.__init__(self, self.master)
         self.name = None
         self.break_loop = 0
-        self.calfvar=calfvar
-        self.repvar=repvar
-        self.solvedvar=solvedvar
+        self.calfvar = calfvar
+        self.repvar = repvar
+        self.solvedvar = solvedvar
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
@@ -616,7 +616,7 @@ class analyse_measure_file(tk.Frame):
         counter = 0
 
         for i,row in enumerate(self.events):
-            statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
+            statenow = "Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=2, highlightbackground=self.master.darkcolour)
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
@@ -657,11 +657,11 @@ class analyse_measure_file(tk.Frame):
                 self.result.see(tk.END)
 
         if self.break_loop == 0:
-            self.result.insert(tk.END, ("\n\tFinished..!\n"))
+            self.result.insert(tk.END, "\n\tFinished..!\n")
             self.writebutton.config(state="normal")
             self.stopbutton.config(state="disabled")
         else:
-            self.result.insert(tk.END, ("\n\tStopped.\n"))
+            self.result.insert(tk.END, "\n\tStopped.\n")
             self.stopbutton.config(state="disabled")
         self.result.update()
         self.result.see(tk.END)
@@ -686,7 +686,7 @@ class analyse_measure_file(tk.Frame):
             self.tv.column(c, anchor='w', width=100)
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
-        for i,row in enumerate(rows):
+        for i, row in enumerate(rows):
             if row[5] == 1:
                 self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('rejected',))
             elif 1 in break_flag(row[5]) or 2 in break_flag(row[5]):

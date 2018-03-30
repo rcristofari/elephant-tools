@@ -711,7 +711,7 @@ def read_measures(elefile, sep=';', solved='N'):
         w, flag = [], 0
 
         # Check num format
-        if re.search(r"^[0-9]+$", u[1]):
+        if re.search(r"^[0-9A-Za-z]+$", u[1]):
             pass
         elif u[1] == '':
             w.append("Missing elephant number at line " + str(u[0]) + ". You need one.")

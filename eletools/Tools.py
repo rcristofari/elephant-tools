@@ -4,15 +4,22 @@ from datetime import datetime
 import difflib as df
 from eletools.Utilities import *
 from eletools.DataClasses import *
+import numpy as np
+import math
+import re
 
 ####################################################################################
 ##  matriline_tree() function builds a Newick tree string around an individual    ##
 ####################################################################################
 
 
-def matriline_tree(id, db):
+def matriline_tree(id, db, as_list=False):
     offspring = id
-    central_ind = db.get_elephant(id=id)[1]
+    e = db.get_elephant(id=id)
+    if e:
+        central_ind = e[1]
+    else:
+        return(None)
 
     # Start upwards to the oldest existing maternal ancestor
     direct_mothers = []
@@ -39,6 +46,69 @@ def matriline_tree(id, db):
     newick = "('" + str(oldest_mother_num) + "_\u2640')"
     branch_length = [[oldest_mother_num, 2]]
 
+    ############################
+    # Exporation in list form
+    if as_list is True:
+        # at each generation, we will make two objects: an unstructured list giving all individuals,
+        # and a structured list keeping track of paths
+
+        # We make a first pass to create the unstructured list:
+        tree_list_unstructured = [oldest_mother_num]
+
+        g = 0
+        generation_n = [0]
+        while generation_n.__len__() != 0:
+            generation_n = []
+            # these_off = None
+
+            if type(tree_list_unstructured[g]) is list:
+                for i in tree_list_unstructured[g]:
+                    these_off = db.get_offsprings(num=i)
+                    if these_off:
+                        for o in these_off:
+                            generation_n.append(o)
+
+            else:
+                these_off = db.get_offsprings(num=tree_list_unstructured[g])
+                if these_off:
+                    for o in these_off:
+                        generation_n.append(o)
+            g += 1
+            tree_list_unstructured.append(generation_n)
+
+        if tree_list_unstructured[-1] == []:
+            tree_list_unstructured.pop()
+
+        # Now the genealogy is explored, we go through it and structure it:
+        tree_list_structured = [oldest_mother_num]
+
+        for generation in tree_list_unstructured:
+            next_generation = []
+            these_off = None
+
+            if type(generation) is not list:
+                these_off = db.get_offsprings(num=generation)
+                if these_off:
+                    next_generation = these_off
+                else:
+                    next_generation = []
+
+            elif type(generation) is list and generation != []:
+                for g in generation:
+                    these_off = db.get_offsprings(num=g)
+                    if these_off:
+                        next_generation.append(these_off)
+                    else:
+                        next_generation.append([])
+
+            if not all(x==[] for x in next_generation):
+                tree_list_structured.append(next_generation)
+
+        return([tree_list_structured, tree_list_unstructured])
+
+
+    ############################
+    # Exploration in Newick form
     while generation_n.__len__() != 0:
         generation_n = []
 
@@ -151,6 +221,68 @@ def nexus_tree(newick, file):
     with open(file,"w") as f:
         for l in lines:
             f.write(str(l)+'\n')
+
+####################################################################################
+##  relatedness_matrix() builds an empirical relatedness matrix from a list       ##
+####################################################################################
+#
+def relatedness_matrix(numlist, db, bifurcating=True):  # Need to extend it to incude known paternal links
+
+    # bifurcating: here, trees are matrilines, so we consider only one path through genealogy
+    # We use the definition of Wright 1922 (sum of the path lengths, both ways)
+
+    # We create a square matrix of the same order as the number of individuals in the list
+
+    nInd = numlist.__len__()
+    tree_matrix = np.zeros(shape=(nInd, nInd))
+
+    # For each individual in the list, we make a direct matriline vector (same as matriline_tree first step)
+    matrilines = []
+    for id in numlist:
+        offspring = id
+        direct_mothers = [str(offspring)]
+        mother = []
+
+        while mother is not None:
+
+            if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', str(offspring)):  # then it's a calf
+                mother = db.get_mother(calf_num=offspring)
+            else:
+                mother = db.get_mother(num=offspring)
+
+            direct_mothers.append(str(mother))
+            offspring = mother
+
+            if direct_mothers[-1] is None or direct_mothers[-1] == '' or direct_mothers[-1] == 'None':
+                direct_mothers.pop()
+
+        matrilines.append(direct_mothers)
+
+
+    # Now, the matriline list contains direct lines for each elephant in list. We can calculate pairwise coefficients.
+    for x, ind_1 in enumerate(matrilines):
+        for y, ind_2 in enumerate(matrilines):
+            i = list(ind_1)
+            j = list(ind_2)
+
+            if i == j:
+                coef = 1  # This populates the diagonal and eventual redundancies in the list
+            else:
+                # We use the fact that if any ancestor is shared, the oldest known common ancestor is also shared
+                if i[-1] != j[-1]:  # No contact between the lines
+                    coef = 0
+                else:
+                    while i.__len__() > 0 and j.__len__() > 0 and i[-1] == j[-1]:
+                        i.pop()
+                        j.pop()
+                    # This leaves us with only the non-shared nodes/tips between the lineages (excluding the MRCA)
+                    coef = math.pow(.5, ((i + j).__len__()))
+
+            tree_matrix[x, y] = coef
+            tree_matrix[y, x] = coef
+
+    return(tree_matrix)
+
 
 ####################################################################################
 ## censor_elephant() function builds a Newick tree string around an individual    ##

@@ -80,6 +80,7 @@ class MainApplication(tk.Frame):
         self.searchmenu.add_command(label="Find a measure", command=self.call_find_measure, underline=0, accelerator="^M")
         self.searchmenu.add_separator()
         self.searchmenu.add_command(label="Make a measure Set", command=self.call_make_measure_set, underline=15, accelerator="^S")
+        self.searchmenu.add_command(label='Make a relatedness matrix', command=self.call_make_matrix)
         self.searchmenu.add_command(label="Make a time series", command=self.notimplemented)
         self.searchmenu.add_command(label="Make a log book", command=self.notimplemented)
         self.searchmenu.add_separator()
@@ -186,6 +187,9 @@ class MainApplication(tk.Frame):
 
     def call_make_measure_set(self, *args):
         make_measure_set(self.master)
+
+    def call_make_matrix(self, *args):
+        make_relatedness_matrix(self.master)
 
 ###################################################
 
