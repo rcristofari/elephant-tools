@@ -51,10 +51,8 @@ class MainApplication(tk.Frame):
 
         # Somehow this doesn't work...
         font = nametofont('TkDefaultFont')
-        font.config(family='Helvetica',size=10)
+        font.config(family='Helvetica',size=8)
         self.master.option_add("*Font", font)
-
-
 
     def create_widgets(self):
         self.master.menubar = tk.Menu(self)
@@ -84,7 +82,7 @@ class MainApplication(tk.Frame):
         self.searchmenu.add_command(label="Make a time series", command=self.notimplemented)
         self.searchmenu.add_command(label="Make a log book", command=self.notimplemented)
         self.searchmenu.add_separator()
-        self.searchmenu.add_command(label="Control birth Gaps", command=self.call_age_gaps, underline=14, accelerator="^G")
+        self.searchmenu.add_command(label="Find babies", command=self.call_age_gaps, underline=14, accelerator="^G")
         self.searchmenu.add_command(label="Censoring date", command=self.call_censor_date, underline=0, accelerator="^C")
         self.searchmenu.add_command(label="Advanced search", command=self.notimplemented)
         self.searchmenu.config(bg=self.master.lightcolour, fg=self.master.darkcolour, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
@@ -119,7 +117,7 @@ class MainApplication(tk.Frame):
         self.master.bind_all("<Control-q>", self.shutdown)
         self.master.bind_all("<Control-e>", self.call_read_elephants)
         self.master.bind_all("<Control-p>", self.call_read_pedigree)
-        self.master.bind_all("<Control-v>", self.call_read_events)
+        # self.master.bind_all("<Control-v>", self.call_read_events)
         self.master.bind_all("<Control-m>", self.call_read_measures)
         self.master.bind_all("<Control-f>", self.set_wdir)
 

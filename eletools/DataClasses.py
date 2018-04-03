@@ -1413,9 +1413,11 @@ class event:
         self.__db=db
 
         #Get the ID of the elephant:
-        if self.__num is not None:
+        print(self.__num, type(self.__num))
+        print(self.__calf_num, type(self.__calf_num))
+        if self.__num not in (None, ''):
             self.__elephant = self.__db.get_elephant(num = self.__num)
-        elif self.__num is None and self.__calf_num is not None:
+        elif self.__calf_num not in (None, ''):
             self.__elephant = self.__db.get_elephant(calf_num = self.__calf_num)
         else:
             print("You need at least one identifying number")

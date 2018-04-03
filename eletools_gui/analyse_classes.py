@@ -474,6 +474,7 @@ class analyse_event_file(tk.Frame):
                 self.result.insert(tk.END, ("\tAnalysing event number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
+
         if self.break_loop == 0:
             self.result.insert(tk.END, ("\n\tFinished..!\n"))
             self.writebutton.config(state="normal")

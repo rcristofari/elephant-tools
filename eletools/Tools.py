@@ -7,11 +7,11 @@ from eletools.DataClasses import *
 import numpy as np
 import math
 import re
+import collections
 
 ####################################################################################
 ##  matriline_tree() function builds a Newick tree string around an individual    ##
 ####################################################################################
-
 
 def matriline_tree(id, db, as_list=False):
     offspring = id
@@ -525,3 +525,53 @@ def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=N
             out = [wcalf, wmother, wrelationship, message, duplicates, total_flag, 'No known mother', 'No known mother']
 
         return(out)
+
+####################################################################################
+## generate_calf_names() generate calf names for adults that need it              ##
+####################################################################################
+
+def regularise_calf_names(db, true_twin_list=None):
+    # true_twin_list is a list with three columns: mother number and twin birth
+    # dates, and gender, which will be 'MM', 'FF', or 'FM'/'MF'
+
+    # Extract the list and data for the elephants which do not have a calf number
+    anonymous_calves = db.get_anonymous_calves(anonymous=True)
+    named_calves = db.get_anonymous_calves(anonymous=False)
+
+    new_calf_names = []
+    new_ids = []
+    for a in anonymous_calves:
+        new_calf_names.append(str(a[1].year)+'B'+str(a[2]))
+        new_ids.append(a[0])
+
+    known_calf_names = []
+    known_ids = []
+    for a in named_calves:
+        known_calf_names.append(a[4])
+        known_ids.append(a[0])
+
+    all_calf_names = known_calf_names + new_calf_names
+    all_ids = known_ids + new_ids
+
+    duplicate_calves = [item for item, count in collections.Counter(all_calf_names).items() if count > 1]
+    duplicate_calves.sort()
+
+    print("The following calves are either twins or duplicates:")
+    for d in duplicate_calves:
+        print(d)
+
+    if true_twin_list is not None:
+        twin_mothers = []
+        twin_births = []
+        twin_sex = []
+        with open(true_twin_list) as t:
+            # t.next()
+            for x in t:
+                twin_mothers.append(x[0])
+                twin_births.append(datetime.strptime(format_date(x[1]), '%Y-%m-%d'))
+                twin_sex.append(x[2])
+        print(twin_births)
+
+
+
+    return([all_calf_names, all_ids])

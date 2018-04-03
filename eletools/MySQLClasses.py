@@ -289,16 +289,21 @@ class mysqlconnect:
 ################################################################################
 
     def get_event(self, num, date, event_class):
-        sql = "SELECT id FROM elephants WHERE num = %s" % (num)
+        result = None
+
+        if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', num):
+            sql = "SELECT id FROM elephants WHERE calf_num = %s" % (num)
+        else:
+            sql = "SELECT id FROM elephants WHERE num = %s" % (num)
         try:
             self.__cursor.execute(sql)
             self.__eleph_id = self.__cursor.fetchall()[0][0]
+            sql = "SELECT events.id, events.elephant_id, events.date, events.loc, events.code FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND events.date = %s AND event_code.class = %s" % (quote(self.__eleph_id), quote(date), quote(event_class))
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
         except:
             print("This elephant is absent from the database")
 
-        sql = "SELECT events.id, events.elephant_id, events.date, events.loc, events.code FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND events.date = %s AND event_code.class = %s" % (quote(self.__eleph_id), quote(date), quote(event_class))
-        self.__cursor.execute(sql)
-        result = self.__cursor.fetchall()
         if result:
             return(result[0])
 
@@ -805,3 +810,19 @@ class mysqlconnect:
         else:
             out = None
         return(out)
+
+################################################################################
+## 'write_new_measure' function                                               ##
+################################################################################
+
+    def get_anonymous_calves(self, anonymous=True):
+        if anonymous == True:
+            sql =  "SELECT e1.id, e1.birth, e2.num, e1.sex, e1.calf_num FROM pedigree LEFT JOIN elephants as e1 ON e1.id = pedigree.elephant_2_id LEFT JOIN elephants as e2 ON e2.id = pedigree.elephant_1_id WHERE pedigree.rel = 'mother' AND e1.calf_num IS null;"
+        else:
+            sql =  "SELECT e1.id, e1.birth, e2.num, e1.sex, e1.calf_num FROM pedigree LEFT JOIN elephants as e1 ON e1.id = pedigree.elephant_2_id LEFT JOIN elephants as e2 ON e2.id = pedigree.elephant_1_id WHERE pedigree.rel = 'mother' AND e1.calf_num IS NOT null;"
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        return(result)

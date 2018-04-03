@@ -555,7 +555,6 @@ def read_calves(elefile, sep=';', is_file=True, limit_age=28):
 
     return[fields, valid, remarks, rejected, issues, rows]
 
-
 ####################################################################################
 ##  read_pedigree() READ PEDIGREE RELATIONSHIP FILE                               ##
 ####################################################################################
@@ -735,7 +734,7 @@ def read_measures(elefile, sep=';', solved='N'):
             flag = 1
 
         # Check code format
-        if re.search(r"^[a-zA-Z_]+$", u[3]):
+        if re.search(r"^[0-9a-zA-Z_]+$", u[3]):
             pass
         else:
             w.append("Format problem with code: " + str(u[3]) + " at line " + str(u[0]))
@@ -787,7 +786,6 @@ def read_measures(elefile, sep=';', solved='N'):
                 u[5] = 1
                 u[6].append(str(u[3])+": value "+str(u[4])+" seems out of range for elephant "+str(u[1])+" at line "+str(u[0])+" (median = "+str(vm)+").")
         units.append(u)
-
 
     for u in units:
         if u[5] == 0:
