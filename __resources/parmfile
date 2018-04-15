@@ -1,7 +1,7 @@
 //connexion parameters
 username=
 password=
-host=localhost
+host=
 database=
 port=3306
-wdir=~
+wdir=

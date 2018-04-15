@@ -470,7 +470,8 @@ class analyse_event_file(tk.Frame):
                     say = 'conflicting'
                     sC += 1
 
-                self.master.common_out.append(w[6])
+                self.master.common_out.append(w[6][0]) # Here, there appeared a weird issue that forced me to add the [0]. Investigate further.
+                # print(self.master.common_out)
                 self.result.insert(tk.END, ("\tAnalysing event number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)

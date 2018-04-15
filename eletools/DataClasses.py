@@ -1413,8 +1413,8 @@ class event:
         self.__db=db
 
         #Get the ID of the elephant:
-        print(self.__num, type(self.__num))
-        print(self.__calf_num, type(self.__calf_num))
+#        print(self.__num, type(self.__num))
+#        print(self.__calf_num, type(self.__calf_num))
         if self.__num not in (None, ''):
             self.__elephant = self.__db.get_elephant(num = self.__num)
         elif self.__calf_num not in (None, ''):
@@ -1489,7 +1489,7 @@ class event:
             self.__last_breeding = self.__db.get_last_breeding(self.__elephant_id)
             self.__update_cw = 0
             self.__update_alive = 0
-            print(self.__date, self.__last_breeding)
+            # print(self.__date, self.__last_breeding)
 
             deltawarning = None
             if delta < 0:
@@ -1516,7 +1516,7 @@ class event:
                         self.__xdate = 1
 
                 elif self.__event_class in ('capture','accident','health','alive','metadata'):
-                    if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0:
+                    if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0 and self.__code != 'logbook_end':
                         deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was already six feet under by then. Please check your input.")
                         self.__xdate = 0
                     elif self.__date_of_death is None and self.__db_alive == 'UKN':
@@ -1622,6 +1622,7 @@ class event:
             self.out.append(w)
 
         self.__toggle_write_flag = 1
+
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
         output_row = [self.__num, self.__calf_num, self.__date, self.__loc, self.__code, self.flag, self.out]
         return(output_row)

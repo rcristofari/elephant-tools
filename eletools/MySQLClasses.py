@@ -311,29 +311,43 @@ class mysqlconnect:
 ## 'get_date_of_death' function                                               ##
 ################################################################################
 
-    def get_date_of_death(self, id):
-        sql = "SELECT date FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND event_code.class = 'death';" % (id)
+    def get_date_of_death(self, id, with_type=False):
+        sql = "SELECT date, type FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND event_code.class = 'death';" % (id)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result:
-            return(result[0][0])
+            if with_type is False:
+                return(result[0][0])
+            else:
+                return(result[0])
 
 ################################################################################
 ## 'get_last_alive' function                                                  ##
 ################################################################################
 # Should include all event dates (apart from death)
 
-    def get_last_alive(self, id):
+    def get_last_alive(self, id, with_type=False):
         sql = "SELECT MAX(date) FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND event_code.class != 'death';" % (id)
         self.__cursor.execute(sql)
         result = self.__cursor.fetchall()
         if result[0][0] is not None:
-            return(result[0][0])
+            if with_type is True:
+                sql = "SELECT event_code.type FROM events INNER JOIN event_code ON events.code = event_code.id WHERE events.elephant_id = %s AND events.date = %s AND event_code.class != 'death';" % (id, quote(result[0][0]))
+                self.__cursor.execute(sql)
+                etype = self.__cursor.fetchall()
+                return([result[0][0], etype[0][0]])
+            else:
+                return(result[0][0])
+
         else:
             sql = "SELECT birth FROM elephants WHERE id = %s;" % (id)
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
-            return(result[0][0])
+
+            if with_type is True:
+                return([result[0][0], 'birth'])
+            else:
+                return(result[0][0])
 
 ################################################################################
 ## 'get_last_breeding' function                                                  ##
@@ -671,14 +685,15 @@ class mysqlconnect:
 ## 'get_measure_list' function                                                ##
 ################################################################################
 
-    def get_measure_list(self, num=None, calf_num = None):
-        if num is None and calf_num is None:
-            sql = "SELECT class, type, unit, descript FROM measure_code;"
+    def get_measure_list(self, id=id, num=None, calf_num = None):
+        if id is not None:
+            sql = "SELECT measure_code.class, measure_code.type, measure_code.unit, measure_code.descript FROM measure_code INNER JOIN measures ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.id = %s;" % (id)
         elif num is not None:
             sql = "SELECT measure_code.class, measure_code.type, measure_code.unit, measure_code.descript FROM measure_code INNER JOIN measures ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num = %s;" % (num)
-        elif num is None and calf_num is not None:
+        elif calf_num is not None:
             sql = "SELECT measure_code.class, measure_code.type, measure_code.unit, measure_code.descript FROM measure_code INNER JOIN measures ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.calf_num = %s;" % (calf_num)
-
+        else:
+            sql = "SELECT class, type, unit, descript FROM measure_code;"
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()
@@ -708,6 +723,26 @@ class mysqlconnect:
                 line = list(r)
                 out.append(line)
             return(out)
+
+################################################################################
+## 'get_measure_events' function retrieves independant measurement experiments##
+################################################################################
+
+    def get_measure_events(self, id):
+        result = None
+        sql = "SELECT measure_code.class AS m1, measures.date AS m2, COUNT(measures.date) AS m3 FROM measures INNER JOIN measure_code ON measures.code = measure_code.id WHERE measures.elephant_id = %s GROUP BY m1, m2;" % (id)
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+        out = []
+        if result:
+            for r in result:
+                line = list(r)
+                out.append(line)
+            return(out)
+
 
 ################################################################################
 ## 'get_mean_measure' function                                                ##
@@ -812,7 +847,7 @@ class mysqlconnect:
         return(out)
 
 ################################################################################
-## 'write_new_measure' function                                               ##
+## 'get_anonymous_calves' function                                               ##
 ################################################################################
 
     def get_anonymous_calves(self, anonymous=True):
@@ -825,4 +860,39 @@ class mysqlconnect:
             result = self.__cursor.fetchall()
         except:
             print("Impossible to connect to the database")
+        return(result)
+
+################################################################################
+## 'get_logbook_coordinates' function (start and end dates)                   ##
+################################################################################
+
+    def get_logbook_coordinates(self, id=None, num=None):
+        if id is not None:
+            sql_start = "SELECT elephants.id, elephants.num, events.date, event_code.type from events INNER JOIN event_code ON events.code = event_code.id INNER JOIN elephants on events.elephant_id = elephants.id WHERE elephants.id = %s AND event_code.type = 'logbook_start' ORDER BY events.date ASC;" % (id)
+            sql_end = "SELECT events.date from events INNER JOIN event_code ON events.code = event_code.id INNER JOIN elephants on events.elephant_id = elephants.id WHERE elephants.id = %s AND event_code.type = 'logbook_end' ORDER BY events.date ASC;" % (id)
+
+        elif num is not None:
+            sql_start = "SELECT elephants.id, elephants.num, events.date from events INNER JOIN event_code ON events.code = event_code.id INNER JOIN elephants on events.elephant_id = elephants.id WHERE elephants.num = %s AND event_code.type = 'logbook_start' ORDER BY events.date ASC;" % (num)
+            sql_end = "SELECT events.date from events INNER JOIN event_code ON events.code = event_code.id INNER JOIN elephants on events.elephant_id = elephants.id WHERE elephants.num = %s AND event_code.type = 'logbook_end' ORDER BY events.date ASC;" % (num)
+
+        else:
+            print("You must provide an ID or an MTE number")
+
+        try:
+            self.__cursor.execute(sql_start)
+            start = self.__cursor.fetchall()
+            self.__cursor.execute(sql_end)
+            end = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+
+        result = []
+        if end.__len__() < start.__len__():
+            e = list(end)
+            e.append((datetime.now().date(),))
+            end = tuple(e)
+
+        for i, l in enumerate(start):
+            result.append(l[0:3] + end[i])
+
         return(result)

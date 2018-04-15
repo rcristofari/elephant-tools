@@ -7,7 +7,14 @@ from eletools.DataClasses import *
 import numpy as np
 import math
 import re
+import csv
 import collections
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import matplotlib.dates as mdates
+from matplotlib import pyplot as plt
 
 ####################################################################################
 ##  matriline_tree() function builds a Newick tree string around an individual    ##
@@ -203,7 +210,6 @@ def matriline_tree(id, db, as_list=False):
 ##  nexus_tree() function writes a Newick tree as a Nexus file                    ##
 ####################################################################################
 
-
 def nexus_tree(newick, file):
     lines = []
     lines.append('#NEXUS')
@@ -283,13 +289,11 @@ def relatedness_matrix(numlist, db, bifurcating=True):  # Need to extend it to i
 
     return(tree_matrix)
 
-
 ####################################################################################
 ## censor_elephant() function builds a Newick tree string around an individual    ##
 ####################################################################################
 # Database id of the elephant, yearly survival probability curve, probability cutoff
 # Could be extended to include more cues
-
 
 def censor_elephant(db, id, survival=None, cutoff=0.05):
     key = 0 # this means that we have no positive info so far about this elephant being dead
@@ -302,28 +306,36 @@ def censor_elephant(db, id, survival=None, cutoff=0.05):
         print("Impossible to find that elephant in the database")
 
     # Do we know a death date for this elephant ?
-    death = db.get_date_of_death(id = id)
-    if death is not None:
+    death_type = db.get_date_of_death(id=id, with_type=True)
+    if death_type is not None:
         key = 1
+        death = death_type[0]
+        dtype = death_type[1]
+
 
     else:
         # Start by getting the last date we have data about that elephant
         by_event = None
         by_breeding = None
-        by_event = db.get_last_alive(id)
+        by_event_type = db.get_last_alive(id, with_type=True)
+        by_event = by_event_type[0]
+        etype = by_event_type[1]
         by_breeding = db.get_last_breeding(id)
 
         if by_event and by_breeding:
             if by_event < by_breeding:
                 last_seen = by_breeding
+                etype = 'breeding'
             else:
                 last_seen = by_event
         elif by_event:
             last_seen = by_event
         elif by_breeding:
             last_seen = by_breeding
+            etype = 'breeding'
         else:
             last_seen = birth
+            etype = 'birth'
 
         # identify the maximum age in the curve (when survival falls to 0)
         for i,s in enumerate(survival):
@@ -352,12 +364,11 @@ def censor_elephant(db, id, survival=None, cutoff=0.05):
         #     "\nProbability that it is alive today:", round(p_alive_now,3))
 
     if key == 0:
-        out = (key, birth, last_seen, add_years(birth, i), i, p_alive_now)
+        out = (key, birth, last_seen, add_years(birth, i), i, p_alive_now, etype)
     elif key == 1:
-        out = (key, birth, death)
+        out = (key, birth, death, dtype)
 
     return(out)
-
 
 ####################################################################################
 ## fuzzy_match_measure() checks whether a similar measure exitst                  ##
@@ -376,7 +387,6 @@ def fuzzy_match_measure(db, type, cutoff=0.6):
 ####################################################################################
 ## analyse_calf() examines a composite row defining a calf                        ##
 ####################################################################################
-
 
 def analyse_calf(calf_num, birth, mother_num, db, calf_name=None, sex=None, cw=None, caught=None, camp=None, alive=None,
                  research=None, mother_name=None, solved=False, flag=0, limit_age=28):
@@ -564,14 +574,146 @@ def regularise_calf_names(db, true_twin_list=None):
         twin_mothers = []
         twin_births = []
         twin_sex = []
-        with open(true_twin_list) as t:
-            # t.next()
-            for x in t:
-                twin_mothers.append(x[0])
-                twin_births.append(datetime.strptime(format_date(x[1]), '%Y-%m-%d'))
-                twin_sex.append(x[2])
+        with open(true_twin_list) as twinfile:
+            twinread = csv.reader(twinfile, delimiter=sep, quotechar="'")
+            next(twinread)
+            for t in twinread:
+                print(t)
+                twin_mothers.append(t[0])
+                twin_births.append(datetime.strptime(format_date(t[1]), '%Y-%m-%d'))
+                twin_sex.append(t[2])
         print(twin_births)
 
 
 
     return([all_calf_names, all_ids])
+
+    ## IN PROGRESS
+
+####################################################################################
+## create_lifeline() generates the core plot for the lifeline plot class          ##
+####################################################################################
+
+def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True, censoring=True, events=True, measures=True):
+    # Start by retrieving the elephant data:
+    elephant = None
+    if id is not None:
+        elephant = db.get_elephant(id = id)
+    elif num is not None:
+        elephant = db.get_elephant(num = num)
+        id = elephant[0]
+
+    if not elephant:
+        print("This id does not correspond to any elephant in the database")
+    else:
+
+        # Load survival curves:
+        Sx = []
+        categories = ['SxFC','SxMC','SxFW','SxMW']
+        descript = ['captive female','captive male','wild female','wild male']
+        with open('./__resources/Sx_curves') as sxfile:
+            sx = csv.reader(sxfile, delimiter = ',')
+            for s in sx:
+                Sx.append(list(s))
+        for i,s in enumerate(Sx):
+            if s[0] == categories[i]:
+                s.pop(0)
+                for j,x in enumerate(s):
+                    s[j] = float(x)
+        SxFC = Sx[0]
+        SxMC = Sx[1]
+        SxFW = Sx[2]
+        SxMW = Sx[3]
+
+
+        birth = elephant[5]
+        censor_list = censor_elephant(db, id, survival=SxFC, cutoff=0.05)
+        if censor_list[0] == 0: # elephant not known dead yet
+            last_seen = censor_list[2]
+            likely_death = censor_list[3]
+        else: # elephant known dead
+            death = censor_list[2]
+
+        # The main axis will span from the birth to the death or censoring. If not
+        # death, it will be followed by dashes until projected death, only in the
+        # case that this projected death already happened.
+
+        plttype = None
+        # Probably dead
+        if censor_list[0] == 0 and (datetime.now().date() - likely_death).days >= 0:
+            linelim = [birth, likely_death]
+            etype = censor_list[6]
+            plttype = 0
+        # Probably alive
+        elif censor_list[0] == 0 and (datetime.now().date() - likely_death).days < 0:
+            linelim = [birth, datetime.now().date()]
+            plttype = 1
+        # Dead
+        else:
+            linelim = [birth, death]
+            dtype = censor_list[3]
+            plttype = 2
+
+        # We can now initiate the plot:
+        if plttype in [1,2]:
+            plt.plot_date(np.array(linelim), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
+        else:
+            plt.plot_date(np.array([birth, last_seen]), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
+            plt.plot_date(np.array([last_seen, likely_death]), np.array([0,0]), marker = 'x', linestyle = ':', color = 'k')
+        plt.grid(b=True, which='major', color='k', linestyle='-', alpha=0.5)
+
+        # Adding censoring landmarks:
+        if censoring is True:
+            plt.annotate(datetime.strftime(birth, '%Y-%m-%d'), xy=(birth, 0.15), verticalalignment='bottom', rotation=90, ha='center')
+            if plttype == 1:
+                pass # Placeholder for later
+            elif plttype == 2:
+                plt.annotate(datetime.strftime(death, '%Y-%m-%d') + ' (aged ' + str(round((death - birth).days / 365.25)) + ', ' + dtype.replace('_', ' ') + ')', xy=(death, 0.15), verticalalignment='bottom', rotation=90, ha='center')
+            elif plttype == 0:
+                plt.annotate(datetime.strftime(likely_death, '%Y-%m-%d') + ' (aged ' + str(round((likely_death - birth).days / 365.25)) + ')', xy=(likely_death, 0.15), verticalalignment='bottom', rotation=90, ha='center')
+                plt.annotate(datetime.strftime(last_seen, '%Y-%m-%d') + ' (' + etype + ')', xy=(last_seen, 0.15), verticalalignment='bottom', rotation=90, ha='center')
+
+        # Adding calves:
+        if breeding is True:
+            offspring_id = db.get_offsprings(id=id)
+            if offspring_id:
+
+                offsprings = []
+                for o in offspring_id:
+                    offsprings.append(db.get_elephant(id = o))
+
+                for i, x in enumerate(offsprings):
+                    plt.plot_date(np.array([x[5], x[5]]), np.array([-1,0]), marker=None, linestyle = '--', color = 'r')
+                    #plt.axvline(x=x[5], ymin=0.35, ymax=0.5, linestyle = '--', color = 'r')
+                    if x[1] is not None:
+                        plt.annotate(str(x[1]) + ' (' + str(x[4]) + ')', xy = (x[5], -1.1), verticalalignment='top', rotation=90, ha='center', backgroundcolor='w')
+                    else:
+                        plt.annotate(str(x[3]) + ' (' + str(x[4]) + ')', xy = (x[5], -1.1), verticalalignment='top', rotation=90, ha='center')
+
+        # Adding the logbook periods:
+        if logs is True:
+            logbooks = db.get_logbook_coordinates(id=id)
+            if logbooks:
+                for l in logbooks:
+                    plt.plot_date(np.array(l[2:4]), np.array([0,0]), marker = '', linestyle = '-', color = 'g', linewidth=10, alpha=0.5, solid_capstyle='butt')
+
+        # Adding measurement events:
+        if measures is True:
+            measure_dates = db.get_measure_events(id=id)
+            print(measure_dates)
+            if measure_dates:
+                for m in measure_dates:
+                    plt.plot_date(np.array([m[1], m[1]]), np.array([0,1]), marker=None, linestyle = '-', color = 'k', linewidth=.5)
+                    # plt.axvline(x=m[1], ymin=0.5, ymax=0.75, linestyle = '-', color = 'k', linewidth=.5)
+                    # plt.annotate(str(m[0]), xy = (m[1], 0.02), verticalalignment='middle', rotation=90)
+
+        if plttype in [1,2]:
+            plt.plot_date(np.array(linelim), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
+        else:
+            plt.plot_date(np.array([birth, last_seen]), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
+            plt.plot_date(np.array([last_seen, likely_death]), np.array([0,0]), marker = 'x', linestyle = ':', color = 'k')
+
+
+        plt.axes().get_yaxis().set_ticks([])
+        plt.ylim(ymax = 2, ymin = -2)
+        plt.show()

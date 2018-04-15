@@ -26,6 +26,7 @@ elephant_id INT(10) NOT NULL,
 date DATE NOT NULL,
 loc VARCHAR(64),
 code INT(4) NOT NULL,
+details TEXT,
 commits TEXT
 );
 

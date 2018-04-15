@@ -176,3 +176,39 @@ class plot_relatedness(tk.Frame):
     def call_save(self):
         mapfile = asksaveasfilename(title='Save map image...', defaultextension='.png')
         clusmap.savefig(mapfile)
+
+
+##################################################################################################
+#
+class plot_lifeline(tk.Frame):
+
+    def __init__(self, master, id):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.__id = id
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+        self.call_draw()
+
+    def configure_gui(self):
+        self.master.title("Life line")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        # Save button:
+        self.savebutton = tk.Button(self.master, text='Save', command=self.call_save, width=20, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.savebutton.grid(row=1, column=4, columnspan=1, sticky = tk.EW, padx=5, pady=5)
+
+        # Create the plot canvas
+        self.canvas = tk.Canvas(self.master, width=600, height=600)
+        self.canvas.grid(row=2, column=1, columnspan=4, sticky = tk.EW, padx=5, pady=5)
+
+    # We start by selecting the info we want to plot as tickboxes with linked events.
+    # Selected by default: logbooks, offsprings, taming period.
+    # Main axis is bounded by birth and death or projected death. If death, we also plot
+    # the expected value for death. If expected death, we plot censoring.
