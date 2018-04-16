@@ -9,6 +9,7 @@ import csv
 from datetime import datetime
 from eletools import *
 from eletools_gui.plot_classes import plot_measures
+import matplotlib.pyplot as plt
 
 ################################################################################
 ## Search for an elephant                                                     ##
@@ -20,8 +21,10 @@ class findeleph(tk.Frame):
         self.back = back
         self.master = master
         tk.Frame.__init__(self, self.master)
-        self.age = tk.IntVar()
-        self.age.set(1)
+        # Following lines were used for manual calf/adult toggle.
+        # self.age = tk.IntVar()
+        # self.age.set(1)
+        self.lifeline_control = None
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
@@ -41,32 +44,48 @@ class findeleph(tk.Frame):
         self.numlabel = tk.Label(self.master, text="Number:\t", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
-        self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=0, pady=5)
+        self.e1.grid(row=1, column=3, columnspan=1, sticky = tk.EW, padx=0, pady=5)
 
-        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
-        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
+        # Following lines were used for manual calf/adult toggle.
+        # self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        # self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
+        # self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        # self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
 
-        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour).grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
-        self.treebutton = tk.Button(self.master, text='Show tree', width=15, command=self.call_show_matriline, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour).grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.findbutton.grid(row=3, column=1, sticky=tk.EW, padx=0, pady=5)
+        self.treebutton = tk.Button(self.master, text='Pedigree', width=15, command=self.call_show_matriline, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.treebutton.grid(row=3, column=3, sticky=tk.EW, padx=0, pady=5)
+        self.linebutton = tk.Button(self.master, text='Lifeline', width=15, command=self.call_lifeline, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.linebutton.grid(row=4, column=1, sticky=tk.EW, padx=0, pady=5)
+        self.censorbutton = tk.Button(self.master, text='Censoring', width=15, command=self.call_censoring, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.censorbutton.grid(row=4, column=3, sticky=tk.EW, padx=0, pady=5)
 
         self.result = tk.Text(self.master, height=15, width=45)
-        self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+        self.result.grid(row=5, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
         self.master.focus_set()
         self.master.bind("<Return>", self.call_get_elephant)
         self.master.bind("<space>", self.call_show_matriline)
 
     def call_get_elephant(self, *args):
+        self.close_plot()
         self.result.config(state=tk.NORMAL)
         if self.back == 0:
-            if self.age.get() == 1:
-                self.eleph = self.master.db.get_elephant(num = self.e1.get())
-                self.master.eleph_now = self.eleph
-            elif self.age.get() == 2:
+            if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.e1.get()):
                 self.eleph = self.master.db.get_elephant(calf_num = self.e1.get())
                 self.master.eleph_now = self.eleph
+            else:
+                self.eleph = self.master.db.get_elephant(num = self.e1.get())
+                self.master.eleph_now = self.eleph
+            # Following lines were used for manual calf/adult toggle.
+            # if self.age.get() == 1:
+            #     self.eleph = self.master.db.get_elephant(num = self.e1.get())
+            #     self.master.eleph_now = self.eleph
+            # elif self.age.get() == 2:
+            #     self.eleph = self.master.db.get_elephant(calf_num = self.e1.get())
+            #     self.master.eleph_now = self.eleph
+
         elif self.back == 1:
             self.back = 0
             self.eleph = self.master.eleph_now
@@ -89,7 +108,7 @@ class findeleph(tk.Frame):
                 +"\n Sex:\t\t"+str(self.eleph[4])
                 +"\n Birth date:\t\t"+str(self.eleph[5])+" ("+str(age)+" y.b.p.)"
                 +"\n Origin:\t\t"+str(self.eleph[6])
-                +"\n Age at capture:\t"+str(self.eleph[7])
+                +"\n Age at capture:\t\t"+str(self.eleph[7])
                 +"\n Camp:\t\t"+str(self.eleph[8])
                 +"\n Alive:\t\t"+str(self.eleph[9])
                 +"\n--------------------------------------------------"
@@ -101,6 +120,73 @@ class findeleph(tk.Frame):
     def call_show_matriline(self, *args):
         self.master.newick = matriline_tree(id=self.eleph[0], db=self.master.db)
         show_matriline(self.master)
+
+    def call_lifeline(self, *args):
+        self.lifeline_control = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.lifeline_control.title("Lifeline options")
+        self.lifeline_control.grid_columnconfigure(0, weight=1)
+        self.lifeline_control.grid_columnconfigure(2, weight=1)
+        self.lifeline_control.grid_rowconfigure(0, weight=1)
+        self.lifeline_control.grid_rowconfigure(8, weight=1)
+        self.lifeline_control.geometry("200x200")
+        self.lifeline_control.resizable(False, False)
+        self.lifeline_control.lightcolour = self.master.lightcolour
+        self.lifeline_control.darkcolour = self.master.darkcolour
+        self.lifeline_control.db = self.master.db
+        self.lifeline_control.id = self.eleph[0]
+
+        self.logs = tk.BooleanVar()
+        self.logs.set(True)
+        self.taming = tk.BooleanVar()
+        self.taming.set(True)
+        self.breeding = tk.BooleanVar()
+        self.breeding.set(True)
+        self.censoring = tk.BooleanVar()
+        self.censoring.set(True)
+        self.events = tk.BooleanVar()
+        self.events.set(False)
+        self.measures = tk.BooleanVar()
+        self.measures.set(False)
+
+        # Put a watch on these buttons to auto refresh
+        self.lifeline_control.logsbutton  = tk.Checkbutton(self.lifeline_control, command=self.call_create_lifeline, text="Logbooks", variable=self.logs, onvalue=True, offvalue=False, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.lifeline_control.logsbutton.grid(row=1, column=1, sticky=tk.W)
+        self.lifeline_control.tamingbutton  = tk.Checkbutton(self.lifeline_control, command=self.call_create_lifeline, text="Taming", variable=self.taming, onvalue=True, offvalue=False, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.lifeline_control.tamingbutton.grid(row=2, column=1, sticky=tk.W)
+        self.lifeline_control.breedingbutton  = tk.Checkbutton(self.lifeline_control, command=self.call_create_lifeline, text="Breeding", variable=self.breeding, onvalue=True, offvalue=False, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.lifeline_control.breedingbutton.grid(row=3, column=1, sticky=tk.W)
+        self.lifeline_control.censoringbutton  = tk.Checkbutton(self.lifeline_control, command=self.call_create_lifeline, text="Censoring", variable=self.censoring, onvalue=True, offvalue=False, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.lifeline_control.censoringbutton.grid(row=4, column=1, sticky=tk.W)
+        self.lifeline_control.eventsbutton  = tk.Checkbutton(self.lifeline_control, command=self.call_create_lifeline, text="Events", variable=self.events, onvalue=True, offvalue=False, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.lifeline_control.eventsbutton.grid(row=5, column=1, sticky=tk.W)
+        self.lifeline_control.measuresbutton  = tk.Checkbutton(self.lifeline_control, command=self.call_create_lifeline, text="Measures", variable=self.measures, onvalue=True, offvalue=False, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.lifeline_control.measuresbutton.grid(row=6, column=1, sticky=tk.W)
+        self.lifeline_control.protocol("WM_DELETE_WINDOW", self.close_plot)
+        create_lifeline(self.lifeline_control.db, id=self.lifeline_control.id, logs=self.logs.get(), taming=self.taming.get(), breeding=self.breeding.get(), censoring=self.censoring.get(), events=self.events.get(), measures=self.measures.get())
+
+    def call_create_lifeline(self, *args):
+        plt.close()
+        create_lifeline(self.lifeline_control.db, id=self.lifeline_control.id, logs=self.logs.get(), taming=self.taming.get(), breeding=self.breeding.get(), censoring=self.censoring.get(), events=self.events.get(), measures=self.measures.get())
+
+    def close_plot(self):
+        if self.lifeline_control:
+            plt.close()
+            self.lifeline_control.destroy()
+
+    def call_censoring(self, *args):
+        self.censor_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.censor_window.title("Censoring details")
+        # self.view_window.group(self.master)
+        self.censor_window.grid_columnconfigure(0, weight=1)
+        self.censor_window.grid_columnconfigure(4, weight=1)
+        self.censor_window.grid_rowconfigure(0, weight=1)
+        self.censor_window.grid_rowconfigure(4, weight=1)
+        self.censor_window.geometry("350x300")
+        self.censor_window.resizable(False, False)
+        self.censor_window.lightcolour = self.master.lightcolour
+        self.censor_window.darkcolour = self.master.darkcolour
+        self.censor_window.db = self.master.db
+        censor_date(self.censor_window, call_censoring_from_eleph=self.e1.get())
 
 ################################################################################
 ## Display matriline                                                          ##
@@ -160,7 +246,6 @@ class show_matriline(tk.Frame):
 
         self.view_window.focus_set()
         self.view_window.bind("<Escape>", self.close_tree)
-
 
     def call_show_matriline(self):
         matriline_tree(id=self.eleph[0], db=self.master.db)
@@ -595,8 +680,6 @@ class find_measure(tk.Frame):
         self.plot_window.grid_columnconfigure(5, weight=1)
         self.master.plot_measures = plot_measures(self.plot_window, self.measures, self.details)
 
-
-
 ################################################################################
 ## Search for events on an elephant                                           ##
 ################################################################################
@@ -939,11 +1022,12 @@ class find_event(tk.Frame):
 
 class censor_date(tk.Frame):
 
-    def __init__(self, master):
+    def __init__(self, master, call_censoring_from_eleph=None):
         self.master = master
         tk.Frame.__init__(self, self.master)
-        self.age = tk.IntVar()
-        self.age.set(1)
+        # self.age = tk.IntVar()
+        # self.age.set(1)
+        self.call_censoring_from_eleph = call_censoring_from_eleph
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
@@ -962,21 +1046,26 @@ class censor_date(tk.Frame):
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=5, pady=5)
-        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
-        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
+        # self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        # self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
+        # self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        # self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
         self.cutofflabel = tk.Label(self.master, text="P cut-off:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.cutofflabel.grid(row=3, column=1, sticky = tk.W, padx=0, pady=5)
+        self.cutofflabel.grid(row=2, column=1, sticky = tk.W, padx=0, pady=5)
         self.e2 = tk.Entry(self.master, width=8)
         self.e2.insert(10, 0.05)
-        self.e2.grid(row=3, column=2, columnspan=1, sticky = tk.EW, padx=5, pady=5)
+        self.e2.grid(row=2, column=2, columnspan=1, sticky = tk.EW, padx=5, pady=5)
         self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_censor_date, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.findbutton.grid(row=3, column=3, sticky=tk.EW, padx=5, pady=5)
+        self.findbutton.grid(row=2, column=3, sticky=tk.EW, padx=5, pady=5)
         self.result = tk.Text(self.master, height=9, width=47)
-        self.result.grid(row=4, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+        self.result.grid(row=3, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
         self.master.focus_set()
         self.master.bind("<Return>", self.call_censor_date)
+
+        if self.call_censoring_from_eleph is not None:
+            self.e1.insert(10, self.call_censoring_from_eleph)
+            self.call_censor_date()
+            self.e1.config(state=tk.DISABLED)
 
     def load_survival(self):
         self.__Sx = []
@@ -1005,15 +1094,19 @@ class censor_date(tk.Frame):
         self.__eleph = None
         self.__cutoff = float(self.e2.get())
         try:
-            if self.age.get() == 1:
-                self.__eleph = self.master.db.get_elephant(num = self.e1.get())
-            elif self.age.get() == 2:
+            if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.e1.get()):
                 self.__eleph = self.master.db.get_elephant(calf_num = self.e1.get())
             else:
-                self.result.delete(1.0,tk.END)
-                self.result_text = ("This elephant does not exist in the database")
-                self.result.insert(tk.END, self.result_text)
-                self.result.config(state=tk.DISABLED)
+                self.__eleph = self.master.db.get_elephant(num = self.e1.get())
+            # if self.age.get() == 1:
+            #     self.__eleph = self.master.db.get_elephant(num = self.e1.get())
+            # elif self.age.get() == 2:
+            #     self.__eleph = self.master.db.get_elephant(calf_num = self.e1.get())
+            # else:
+            #     self.result.delete(1.0,tk.END)
+            #     self.result_text = ("This elephant does not exist in the database")
+            #     self.result.insert(tk.END, self.result_text)
+            #     self.result.config(state=tk.DISABLED)
         except:
             print("Impossible to connect to the database.")
 

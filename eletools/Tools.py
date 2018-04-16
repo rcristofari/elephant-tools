@@ -15,6 +15,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 from matplotlib import pyplot as plt
+import pylab
 
 ####################################################################################
 ##  matriline_tree() function builds a Newick tree string around an individual    ##
@@ -634,10 +635,6 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         else: # elephant known dead
             death = censor_list[2]
 
-        # The main axis will span from the birth to the death or censoring. If not
-        # death, it will be followed by dashes until projected death, only in the
-        # case that this projected death already happened.
-
         plttype = None
         # Probably dead
         if censor_list[0] == 0 and (datetime.now().date() - likely_death).days >= 0:
@@ -654,6 +651,7 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
             dtype = censor_list[3]
             plttype = 2
 
+        ########################################################################
         # We can now initiate the plot:
         if plttype in [1,2]:
             plt.plot_date(np.array(linelim), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
@@ -661,18 +659,21 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
             plt.plot_date(np.array([birth, last_seen]), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
             plt.plot_date(np.array([last_seen, likely_death]), np.array([0,0]), marker = 'x', linestyle = ':', color = 'k')
         plt.grid(b=True, which='major', color='k', linestyle='-', alpha=0.5)
+        plt.ylim(ymax = 2, ymin = -2)
 
+        ########################################################################
         # Adding censoring landmarks:
         if censoring is True:
-            plt.annotate(datetime.strftime(birth, '%Y-%m-%d'), xy=(birth, 0.15), verticalalignment='bottom', rotation=90, ha='center')
+            plt.annotate(datetime.strftime(birth, '%Y-%m-%d'), xy=(birth, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
             if plttype == 1:
                 pass # Placeholder for later
             elif plttype == 2:
-                plt.annotate(datetime.strftime(death, '%Y-%m-%d') + ' (aged ' + str(round((death - birth).days / 365.25)) + ', ' + dtype.replace('_', ' ') + ')', xy=(death, 0.15), verticalalignment='bottom', rotation=90, ha='center')
+                plt.annotate(datetime.strftime(death, '%Y-%m-%d') + ' (aged ' + str(round((death - birth).days / 365.25)) + ', ' + dtype.replace('_', ' ') + ')', xy=(death, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
             elif plttype == 0:
-                plt.annotate(datetime.strftime(likely_death, '%Y-%m-%d') + ' (aged ' + str(round((likely_death - birth).days / 365.25)) + ')', xy=(likely_death, 0.15), verticalalignment='bottom', rotation=90, ha='center')
-                plt.annotate(datetime.strftime(last_seen, '%Y-%m-%d') + ' (' + etype + ')', xy=(last_seen, 0.15), verticalalignment='bottom', rotation=90, ha='center')
+                plt.annotate(datetime.strftime(likely_death, '%Y-%m-%d') + ' (aged ' + str(round((likely_death - birth).days / 365.25)) + ')', xy=(likely_death, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
+                plt.annotate(datetime.strftime(last_seen, '%Y-%m-%d') + ' (' + etype + ')', xy=(last_seen, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
 
+        ########################################################################
         # Adding calves:
         if breeding is True:
             offspring_id = db.get_offsprings(id=id)
@@ -683,13 +684,14 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
                     offsprings.append(db.get_elephant(id = o))
 
                 for i, x in enumerate(offsprings):
-                    plt.plot_date(np.array([x[5], x[5]]), np.array([-1,0]), marker=None, linestyle = '--', color = 'r')
+                    plt.plot_date(np.array([x[5], x[5]]), np.array([-0.75,0]), marker=None, linestyle = '--', color = 'r')
                     #plt.axvline(x=x[5], ymin=0.35, ymax=0.5, linestyle = '--', color = 'r')
                     if x[1] is not None:
-                        plt.annotate(str(x[1]) + ' (' + str(x[4]) + ')', xy = (x[5], -1.1), verticalalignment='top', rotation=90, ha='center', backgroundcolor='w')
+                        plt.annotate(str(x[1]) + ' (' + str(x[4]) + ')', xy = (x[5], -0.85), verticalalignment='top', rotation=90, ha='center', backgroundcolor='w', fontsize=8)
                     else:
-                        plt.annotate(str(x[3]) + ' (' + str(x[4]) + ')', xy = (x[5], -1.1), verticalalignment='top', rotation=90, ha='center')
+                        plt.annotate(str(x[3]) + ' (' + str(x[4]) + ')', xy = (x[5], -0.85), verticalalignment='top', rotation=90, ha='center', fontsize=8)
 
+        ########################################################################
         # Adding the logbook periods:
         if logs is True:
             logbooks = db.get_logbook_coordinates(id=id)
@@ -697,23 +699,55 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
                 for l in logbooks:
                     plt.plot_date(np.array(l[2:4]), np.array([0,0]), marker = '', linestyle = '-', color = 'g', linewidth=10, alpha=0.5, solid_capstyle='butt')
 
+        ########################################################################
         # Adding measurement events:
         if measures is True:
             measure_dates = db.get_measure_events(id=id)
             print(measure_dates)
             if measure_dates:
                 for m in measure_dates:
-                    plt.plot_date(np.array([m[1], m[1]]), np.array([0,1]), marker=None, linestyle = '-', color = 'k', linewidth=.5)
-                    # plt.axvline(x=m[1], ymin=0.5, ymax=0.75, linestyle = '-', color = 'k', linewidth=.5)
-                    # plt.annotate(str(m[0]), xy = (m[1], 0.02), verticalalignment='middle', rotation=90)
+                    # Plot on 6 levels depending on the measure type (morpho, physio, immuno, parasito, behav, genet)
+                    if m[0]=='morphology':
+                        plt.plot_date(np.array([m[1], m[1]]), np.array([0,0.35]), marker=None, linestyle = '-', color = "#E08E45", linewidth=.5)
+                        plt.annotate('M', xy = (m[1], 0.36), verticalalignment='bottom', ha='center', fontsize=8)
+                    elif m[0]=='physiology':
+                        plt.plot_date(np.array([m[1], m[1]]), np.array([0,0.45]), marker=None, linestyle = '-', color = "#E08E45", linewidth=.5)
+                        plt.annotate('P', xy = (m[1], 0.46), verticalalignment='bottom', ha='center', fontsize=8)
+                    elif m[0]=='immunology':
+                        plt.plot_date(np.array([m[1], m[1]]), np.array([0,0.55]), marker=None, linestyle = '-', color = "#E08E45", linewidth=.5)
+                        plt.annotate('I', xy = (m[1], 0.56), verticalalignment='bottom', ha='center', fontsize=8)
+                    elif m[0]=='parasitology':
+                        plt.plot_date(np.array([m[1], m[1]]), np.array([0,0.65]), marker=None, linestyle = '-', color = "#E08E45", linewidth=.5)
+                        plt.annotate('Pa', xy = (m[1], 0.66), verticalalignment='bottom', ha='center', fontsize=8)
+                    elif m[0]=='behaviour':
+                        plt.plot_date(np.array([m[1], m[1]]), np.array([0,0.75]), marker=None, linestyle = '-', color = "#E08E45", linewidth=.5)
+                        plt.annotate('B', xy = (m[1], 0.76), verticalalignment='bottom', ha='center', fontsize=8)
+                    elif m[0]=='genomics':
+                        plt.plot_date(np.array([m[1], m[1]]), np.array([0,0.85]), marker=None, linestyle = '-', color = "#E08E45", linewidth=.5)
+                        plt.annotate('G', xy = (m[1], 0.86), verticalalignment='bottom', ha='center', fontsize=8)
 
+
+
+
+
+
+        ########################################################################
+        # Re-plotting the life line on top
         if plttype in [1,2]:
             plt.plot_date(np.array(linelim), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
         else:
             plt.plot_date(np.array([birth, last_seen]), np.array([0,0]), marker = 'x', linestyle = '-', color = 'k')
             plt.plot_date(np.array([last_seen, likely_death]), np.array([0,0]), marker = 'x', linestyle = ':', color = 'k')
 
+        ########################################################################
+        # Final details
 
-        plt.axes().get_yaxis().set_ticks([])
-        plt.ylim(ymax = 2, ymin = -2)
+        w = pylab.gcf()
+        if elephant[1] is not None:
+            w.canvas.set_window_title('Lifeline of ' + str(elephant[2]) + ' (' + str(elephant[1]) + ')')
+        else:
+            w.canvas.set_window_title('Lifeline of ' + str(elephant[2]) + ' (' + str(elephant[3]) + ')')
+
+        w.set_facecolor("#E08E45")
+        plt.axes().get_yaxis().set_visible(False)
         plt.show()

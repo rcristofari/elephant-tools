@@ -10,7 +10,7 @@ from eletools import *
 # from eletools_gui.master import *
 # from eletools_gui.import_classes import *
 # from eletools_gui.add_classes import *
-# from eletools_gui.search_classes import *
+from eletools_gui.search_classes import *
 
 ################################################################################
 ## SQL connexion window                                                       ##
@@ -122,6 +122,8 @@ class dbconnect(tk.Frame):
             print("You are connected!")
             self.master.db_state = 1
             self.set_states()
+
+            findeleph(self.master, back = 0)
 
         except: #still an error here.
             print("Impossible to connect to database.")

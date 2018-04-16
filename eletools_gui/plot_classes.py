@@ -207,8 +207,3 @@ class plot_lifeline(tk.Frame):
         # Create the plot canvas
         self.canvas = tk.Canvas(self.master, width=600, height=600)
         self.canvas.grid(row=2, column=1, columnspan=4, sticky = tk.EW, padx=5, pady=5)
-
-    # We start by selecting the info we want to plot as tickboxes with linked events.
-    # Selected by default: logbooks, offsprings, taming period.
-    # Main axis is bounded by birth and death or projected death. If death, we also plot
-    # the expected value for death. If expected death, we plot censoring.
