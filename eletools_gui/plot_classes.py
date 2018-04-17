@@ -328,8 +328,9 @@ class plot_measures(tk.Frame):
                 if birthday > min_date_in_data:
                     birthdays.append(matplotlib.dates.date2num(birthday))
                     ages.append(round((birthday - self.elephant[5]).days / 365.25))
-            # birthdays.pop() # remove the last values to avoid empty space on the plot
-            # ages.pop()
+            if birthdays.__len__() > 1:
+                    birthdays.pop() # remove the last values to avoid empty space on the plot
+                    ages.pop()
 
             # get the Y coordinate for annotations:
             y_coord = plt.gca().get_ylim()[1] - (plt.gca().get_ylim()[1] - plt.gca().get_ylim()[0]) / 40
@@ -363,20 +364,50 @@ class plot_measures(tk.Frame):
                 host_values.append(d[3])
             host.plot_date(np.array(host_dates), host_values, marker = 'o', linestyle = ':', label=self.multiple_select[0])
 
+            print(self.multiple_data[0])
+
+            # If the unit is percents, we set the limit to the full range.
+            if self.multiple_data[0][0][4] == 'percent':
+                host.set_ylabel('percent')
+                host.set_ylim(0,100)
+            elif self.multiple_data[0][0][4] == 'mmHg':
+                host.set_ylabel('mmHg')
+                host.set_ylim(0,200)
+
             par = []
             offset = 50
+            k = 0
             for i, m in enumerate(self.multiple_select[1:]):
-                par.append(host.twinx())
-                par[i].axis["right"] = par[i].get_grid_helper().new_fixed_axis(loc="right", axes=par[i], offset=(offset, 0))
-                par[i].axis["right"].toggle(all=True)
-                par[i].set_ylabel(str(m), backgroundcolor='w')
-                dates = []
-                values = []
-                for d in self.multiple_data[(i+1)]:
-                    dates.append(d[2])
-                    values.append(d[3])
-                par[i].plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
-                offset += 50
+                if self.multiple_data[(i+1)][0][4]=='percent' and self.multiple_data[0][0][4] == 'percent':
+                    dates = []
+                    values = []
+                    for d in self.multiple_data[(i+1)]:
+                        dates.append(d[2])
+                        values.append(d[3])
+                    host.plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
+                elif self.multiple_data[(i+1)][0][4]=='mmHg' and self.multiple_data[0][0][4] == 'mmHg':
+                    dates = []
+                    values = []
+                    for d in self.multiple_data[(i+1)]:
+                        dates.append(d[2])
+                        values.append(d[3])
+                    host.plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
+
+
+
+                else:
+                    par.append(host.twinx())
+                    par[k].axis["right"] = par[k].get_grid_helper().new_fixed_axis(loc="right", axes=par[k], offset=(offset, 0))
+                    par[k].axis["right"].toggle(all=True)
+                    par[k].set_ylabel(str(m))
+                    dates = []
+                    values = []
+                    for d in self.multiple_data[(i+1)]:
+                        dates.append(d[2])
+                        values.append(d[3])
+                    par[k].plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
+                    k += 1
+                    offset += 50
 
 
             # Calculate the birthdays and corresponding add vertical lines to the plot
@@ -391,18 +422,15 @@ class plot_measures(tk.Frame):
                 if birthday > min_date_in_data:
                     birthdays.append(matplotlib.dates.date2num(birthday))
                     ages.append(round((birthday - self.elephant[5]).days / 365.25))
+            if birthdays.__len__() > 1:
+                    birthdays.pop() # remove the last values to avoid empty space on the plot
+                    ages.pop()
 
             # # get the Y coordinate for annotations:
             y_coord = plt.gca().get_ylim()[1] - (plt.gca().get_ylim()[1] - plt.gca().get_ylim()[0]) / 40
             for i, xc in enumerate(birthdays):
                 plt.axvline(x=xc, linestyle = '--', color = 'k', linewidth=.75)
                 plt.annotate(str(ages[i]) + 'y.o.', xy = (xc, y_coord), verticalalignment='top', backgroundcolor='w', ha='center', rotation=90, fontsize=8)
-
-
-
-
-
-
 
             host.legend()
 
@@ -413,23 +441,14 @@ class plot_measures(tk.Frame):
                 w.canvas.set_window_title(self.selection + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[3]) + ')')
             w.set_facecolor("#E08E45")
 
-            #
-            # p1, = host.plot([0, 1, 2], [0, 1, 2], label="Density")
-            # p2, = par1.plot([0, 1, 2], [0, 3, 2], label="Temperature")
-            # p3, = par2.plot([0, 1, 2], [50, 30, 15], label="Velocity")
-            # p4, = par3.plot([0, 1, 2], [40, 20, 15], label="Test")
-            #
+            # The way to go to color the axis labels the same as the lines (not nneeded I think)
+            # p1, = host.plot([0, 1, 2], [0, 1, 2], label="XX")
+            # p2, = par1.plot([0, 1, 2], [0, 3, 2], label="YY")
+            # ...
             # par1.set_ylim(0, 4)
-            # par2.set_ylim(1, 65)
-            # par3.set_ylim(1, 165)
-            #
-            # host.legend()
-            #
             # host.axis["left"].label.set_color(p1.get_color())
             # par1.axis["right"].label.set_color(p2.get_color())
-            # par2.axis["right"].label.set_color(p3.get_color())
-            # par3.axis["right"].label.set_color(p4.get_color())
-
+            # ...
 
 
         # Display plot
