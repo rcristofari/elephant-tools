@@ -685,7 +685,7 @@ class mysqlconnect:
 ## 'get_measure_list' function                                                ##
 ################################################################################
 
-    def get_measure_list(self, id=id, num=None, calf_num = None):
+    def get_measure_list(self, id=None, num=None, calf_num=None):
         if id is not None:
             sql = "SELECT measure_code.class, measure_code.type, measure_code.unit, measure_code.descript FROM measure_code INNER JOIN measures ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.id = %s;" % (id)
         elif num is not None:
@@ -709,9 +709,13 @@ class mysqlconnect:
 ## 'get_measure_values' function                                              ##
 ################################################################################
 
-    def get_measure_values(self, num, measurelist):
+    def get_measure_values(self, id=None, num=None, measurelist=None):
         result = None
-        sql = "SELECT measures.measure_id, measure_code.type, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.type IN %s ORDER BY measures.date DESC;" % (num, measurelist)
+        if id is not None:
+            sql = "SELECT measures.measure_id, measure_code.type, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.id=%s AND measure_code.type IN %s ORDER BY measures.date DESC;" % (id, measurelist)
+        else:
+            sql = "SELECT measures.measure_id, measure_code.type, measures.date, measures.value, measure_code.unit FROM measures INNER JOIN measure_code ON measures.code = measure_code.id INNER JOIN elephants ON measures.elephant_id = elephants.id WHERE elephants.num=%s AND measure_code.type IN %s ORDER BY measures.date DESC;" % (num, measurelist)
+
         try:
             self.__cursor.execute(sql)
             result = self.__cursor.fetchall()

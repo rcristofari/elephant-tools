@@ -611,7 +611,6 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         # Load survival curves:
         Sx = []
         categories = ['SxFC','SxMC','SxFW','SxMW']
-        descript = ['captive female','captive male','wild female','wild male']
         with open('./__resources/Sx_curves') as sxfile:
             sx = csv.reader(sxfile, delimiter = ',')
             for s in sx:
@@ -626,15 +625,38 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         SxFW = Sx[2]
         SxMW = Sx[3]
 
+        ########################################################################
+        # Select the right survival model for that elephant
+        if elephant is not None:
+            id = elephant[0]
+            sex = elephant[4]
+            cw = elephant[6]
+
+        if sex == 'F' and (cw == 'captive'):
+            survival = SxFC
+        elif sex == 'F' and (cw == 'wild'):
+            survival = SxFW
+        elif sex == 'F' and (cw == 'UKN'):
+            survival = SxFC # Need a special curve here
+        elif sex == 'M' and (cw == 'captive'):
+            survival = SxMC
+        elif sex == 'M' and (cw == 'wild'):
+            survival = SxMW
+        elif sex == 'M' and (cw == 'UKN'):
+            survival = SxFC # Need a special curve here
+        else:
+            survival = SxMC # Need a "common" Sx model here instead
 
         birth = elephant[5]
-        censor_list = censor_elephant(db, id, survival=SxFC, cutoff=0.05)
+        censor_list = censor_elephant(db, id, survival=survival, cutoff=0.05)
         if censor_list[0] == 0: # elephant not known dead yet
             last_seen = censor_list[2]
             likely_death = censor_list[3]
         else: # elephant known dead
             death = censor_list[2]
 
+        ########################################################################
+        # Determine the type of plot:
         plttype = None
         # Probably dead
         if censor_list[0] == 0 and (datetime.now().date() - likely_death).days >= 0:
@@ -665,6 +687,8 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         # Adding censoring landmarks:
         if censoring is True:
             plt.annotate(datetime.strftime(birth, '%Y-%m-%d'), xy=(birth, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
+            plt.annotate(('aged ' + str(round((datetime.now().date() - birth).days / 365.25))), xy=(datetime.now().date(), 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
+
             if plttype == 1:
                 pass # Placeholder for later
             elif plttype == 2:
@@ -726,7 +750,10 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
                         plt.plot_date(np.array([m[1], m[1]]), np.array([0,0.85]), marker=None, linestyle = '-', color = "#E08E45", linewidth=.5)
                         plt.annotate('G', xy = (m[1], 0.86), verticalalignment='bottom', ha='center', fontsize=8)
 
-
+        ########################################################################
+        # Adding the taming period and the events (TO DO)
+        #
+        # ...
 
 
 
@@ -740,8 +767,7 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
             plt.plot_date(np.array([last_seen, likely_death]), np.array([0,0]), marker = 'x', linestyle = ':', color = 'k')
 
         ########################################################################
-        # Final details
-
+        # Final details:
         w = pylab.gcf()
         if elephant[1] is not None:
             w.canvas.set_window_title('Lifeline of ' + str(elephant[2]) + ' (' + str(elephant[1]) + ')')

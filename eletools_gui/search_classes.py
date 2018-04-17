@@ -21,9 +21,6 @@ class findeleph(tk.Frame):
         self.back = back
         self.master = master
         tk.Frame.__init__(self, self.master)
-        # Following lines were used for manual calf/adult toggle.
-        # self.age = tk.IntVar()
-        # self.age.set(1)
         self.lifeline_control = None
         self.configure_gui()
         self.clear_frame()
@@ -46,20 +43,21 @@ class findeleph(tk.Frame):
         self.e1 = tk.Entry(self.master)
         self.e1.grid(row=1, column=3, columnspan=1, sticky = tk.EW, padx=0, pady=5)
 
-        # Following lines were used for manual calf/adult toggle.
-        # self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        # self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
-        # self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        # self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
-
         self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_get_elephant, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.findbutton.grid(row=3, column=1, sticky=tk.EW, padx=0, pady=5)
+        self.findbutton.grid(row=2, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=2)
+
+        self.plotbutton = tk.Button(self.master, text='Measures', width=15, command=self.call_plot_measures, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.plotbutton.grid(row=3, column=1, sticky=tk.EW, padx=0, pady=2)
         self.treebutton = tk.Button(self.master, text='Pedigree', width=15, command=self.call_show_matriline, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.treebutton.grid(row=3, column=3, sticky=tk.EW, padx=0, pady=5)
+        self.treebutton.grid(row=3, column=3, sticky=tk.EW, padx=0, pady=2)
         self.linebutton = tk.Button(self.master, text='Lifeline', width=15, command=self.call_lifeline, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.linebutton.grid(row=4, column=1, sticky=tk.EW, padx=0, pady=5)
+        self.linebutton.grid(row=4, column=1, sticky=tk.EW, padx=0, pady=2)
         self.censorbutton = tk.Button(self.master, text='Censoring', width=15, command=self.call_censoring, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.censorbutton.grid(row=4, column=3, sticky=tk.EW, padx=0, pady=5)
+        self.censorbutton.grid(row=4, column=3, sticky=tk.EW, padx=0, pady=2)
+        self.plotbutton.config(state=tk.DISABLED)
+        self.treebutton.config(state=tk.DISABLED)
+        self.linebutton.config(state=tk.DISABLED)
+        self.censorbutton.config(state=tk.DISABLED)
 
         self.result = tk.Text(self.master, height=15, width=45)
         self.result.grid(row=5, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
@@ -78,13 +76,6 @@ class findeleph(tk.Frame):
             else:
                 self.eleph = self.master.db.get_elephant(num = self.e1.get())
                 self.master.eleph_now = self.eleph
-            # Following lines were used for manual calf/adult toggle.
-            # if self.age.get() == 1:
-            #     self.eleph = self.master.db.get_elephant(num = self.e1.get())
-            #     self.master.eleph_now = self.eleph
-            # elif self.age.get() == 2:
-            #     self.eleph = self.master.db.get_elephant(calf_num = self.e1.get())
-            #     self.master.eleph_now = self.eleph
 
         elif self.back == 1:
             self.back = 0
@@ -96,6 +87,12 @@ class findeleph(tk.Frame):
             self.result.insert(tk.END, self.result_text)
             self.result.config(state=tk.DISABLED)
         else:
+            # Activate the other options:
+            self.plotbutton.config(state=tk.NORMAL)
+            self.treebutton.config(state=tk.NORMAL)
+            self.linebutton.config(state=tk.NORMAL)
+            self.censorbutton.config(state=tk.NORMAL)
+
             born = self.eleph[5]
             now = datetime.now().date()
             age = round(((now - born).days / 365.25))
@@ -187,6 +184,10 @@ class findeleph(tk.Frame):
         self.censor_window.darkcolour = self.master.darkcolour
         self.censor_window.db = self.master.db
         censor_date(self.censor_window, call_censoring_from_eleph=self.e1.get())
+
+    def call_plot_measures(self):
+        self.master.plot_measures = plot_measures(self.master, id=self.eleph[0])
+
 
 ################################################################################
 ## Display matriline                                                          ##
@@ -333,8 +334,8 @@ class find_measure(tk.Frame):
         tk.Frame.__init__(self, self.master)
         self.configure_gui()
         self.clear_frame()
-        self.age=tk.IntVar()
-        self.age.set(1)
+        # self.age=tk.IntVar()
+        # self.age.set(1)
         self.stringvar = tk.StringVar()
         self.stringvar.trace("w", self.enable_search)
         self.create_widgets()
@@ -355,13 +356,16 @@ class find_measure(tk.Frame):
         self.numlabel = tk.Label(self.master, text="Number:\t", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master, width=10, textvariable=self.stringvar)
-        self.e1.grid(row=1, column=2, sticky = tk.W, padx=0, pady=5)
-        self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.radio1.grid(row=1, column=3, sticky=tk.E, padx=5, pady=5)
-        self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.radio2.grid(row=1, column=4, sticky=tk.E, padx=5, pady=5)
+        self.e1.grid(row=1, column=3, columnspan=2, sticky = tk.EW, padx=0, pady=5)
+        # self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        # self.radio1.grid(row=1, column=3, sticky=tk.E, padx=5, pady=5)
+        # self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        # self.radio2.grid(row=1, column=4, sticky=tk.E, padx=5, pady=5)
+        self.plotbutton = tk.Button(self.master, text='Graph', width=20, command=self.call_plot_measures, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.plotbutton.grid(row=3, column=1, columnspan=2, sticky = tk.EW, padx=5, pady=5)
+        self.plotbutton.config(state='disabled')
         self.choosebutton = tk.Button(self.master, text='Select measures', width=25, command=self.choose_measures, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)        # Select measures button opens a window that allows to select any number of measures
-        self.choosebutton.grid(row=3, column=1, columnspan=4, sticky = tk.EW, padx=5, pady=5)
+        self.choosebutton.grid(row=3, column=3, columnspan=2, sticky = tk.EW, padx=5, pady=5)
         self.choosebutton.config(state='disabled')
 
         self.tv = ttk.Treeview(self.master, height=10)
@@ -381,10 +385,8 @@ class find_measure(tk.Frame):
         self.tv.grid(row=4, column=1, columnspan=4, padx=5, pady=5, sticky=tk.EW)
 
         self.exportbutton = tk.Button(self.master, text='Export as file', width=20, command=self.write_csv, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.exportbutton.grid(row=5, column=3, columnspan=2, sticky = tk.W, padx=5, pady=5)
+        self.exportbutton.grid(row=5, column=1, columnspan=4, sticky = tk.EW, padx=5, pady=5)
 
-        self.plotbutton = tk.Button(self.master, text='Graph', width=20, command=self.call_plot_measures, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.plotbutton.grid(row=5, column=1, columnspan=2, sticky = tk.W, padx=5, pady=5)
 
         self.master.focus_set()
         self.master.bind('<Return>', self.choose_measures)
@@ -393,8 +395,10 @@ class find_measure(tk.Frame):
         x = self.stringvar.get()
         if x:
             self.choosebutton.config(state='normal')
+            self.plotbutton.config(state='normal')
         else:
             self.choosebutton.config(state='disabled')
+            self.plotbutton.config(state='disabled')
 
     def choose_measures(self, *args):
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
@@ -437,12 +441,17 @@ class find_measure(tk.Frame):
         self.donebutton.grid(row=3, column=2, sticky=tk.E, padx=5, pady=5)
 
         # Retrieve the classes ('disease','accident',...) and types (detailed events)
-        if self.age.get() == 1:
-            self.__classes_types = self.master.db.get_measure_list(num=self.e1.get())
-        elif self.age.get() == 2:
+        if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.e1.get()):
             self.__classes_types = self.master.db.get_measure_list(calf_num=self.e1.get())
         else:
-            self.__classes_types = []
+            self.__classes_types = self.master.db.get_measure_list(num=self.e1.get())
+
+        # if self.age.get() == 1:
+        #     self.__classes_types = self.master.db.get_measure_list(num=self.e1.get())
+        # elif self.age.get() == 2:
+        #     self.__classes_types = self.master.db.get_measure_list(calf_num=self.e1.get())
+        # else:
+        #     self.__classes_types = []
 
         classes_all = []
         for c in self.__classes_types:
@@ -641,7 +650,7 @@ class find_measure(tk.Frame):
         for m in self.__selected_types:
             measure_str = measure_str+"'"+m[1]+"',"
         measure_str = measure_str.rstrip(',')+')'
-        self.measures = self.master.db.get_measure_values(self.e1.get(), measure_str)
+        self.measures = self.master.db.get_measure_values(num=self.e1.get(), measurelist=measure_str)
 
         # We also get details on the elephant (num, name, sex, and birth date)
         self.details = self.master.db.get_elephant(num=self.e1.get())
@@ -668,17 +677,22 @@ class find_measure(tk.Frame):
                 f.write('\n')
 
     def call_plot_measures(self):
-        self.plot_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
-        self.plot_window.title("Measure graph")
-        # self.plot_window.geometry("400x400")
-        self.plot_window.db = self.master.db
-        self.plot_window.lightcolour = self.master.lightcolour
-        self.plot_window.darkcolour = self.master.darkcolour
-        self.plot_window.grid_rowconfigure(0, weight=1)
-        self.plot_window.grid_columnconfigure(0, weight=1)
-        self.plot_window.grid_rowconfigure(7, weight=1)
-        self.plot_window.grid_columnconfigure(5, weight=1)
-        self.master.plot_measures = plot_measures(self.plot_window, self.measures, self.details)
+        # self.plot_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        # self.plot_window.title("Measure graph")
+        # # self.plot_window.geometry("400x400")
+        # self.plot_window.db = self.master.db
+        # self.plot_window.lightcolour = self.master.lightcolour
+        # self.plot_window.darkcolour = self.master.darkcolour
+        # self.plot_window.grid_rowconfigure(0, weight=1)
+        # self.plot_window.grid_columnconfigure(0, weight=1)
+        # self.plot_window.grid_rowconfigure(7, weight=1)
+        # self.plot_window.grid_columnconfigure(5, weight=1)
+        # self.master.plot_measures = plot_measures(self.plot_window, self.measures, self.details)
+        if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.e1.get()):
+            self.__id=self.master.db.get_elephant(calf_num=self.e1.get())[0]
+        else:
+            self.__id=self.master.db.get_elephant(num=self.e1.get())[0]
+        self.master.plot_measures = plot_measures(self.master, id=self.__id)
 
 ################################################################################
 ## Search for events on an elephant                                           ##

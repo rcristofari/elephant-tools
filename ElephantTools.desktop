@@ -6,5 +6,5 @@ Terminal=false
 Name=ElephantTools
 Exec=/home/robin/Elephants/elephant-tools/ElephantGUI.py
 Path=/home/robin/Elephants/elephant-tools/
-Icon=/home/robin/Elephants/elephant-tools/__resources/icon.png
+Icon=/Elephants/elephant-tools/__resources/icon.png
 StartupWMClass=eletools
