@@ -4,7 +4,7 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 import tkinter.ttk as ttk
 from eletools.Utilities import *
 import numpy as np
-import pandas
+import csv
 from datetime import datetime
 from PIL import Image
 import matplotlib
@@ -17,13 +17,14 @@ from mpl_toolkits.axes_grid1 import host_subplot
 import mpl_toolkits.axisartist as AA
 import pylab
 import seaborn
+import pandas
 
 ##################################################################################################
 ## plot_measure class, first version (static plot embedded in tkInter)                          ##
 ##################################################################################################
-# Rename to plot_measures if re-activated
+# Deprecated. Rename to plot_measures if re-activated
 
-class plot_measures_first(tk.Frame):
+class plot_measures_deprecated(tk.Frame):
 
     def __init__(self, master, measures, details):
         self.master = master
@@ -204,12 +205,12 @@ class plot_measures(tk.Frame):
         self.multiple_data = []
         tk.Frame.__init__(self, self.master)
         self.configure_gui()
-        # self.clear_frame()
         self.create_widgets()
-        # self.call_draw()
+        self.load_standards()
 
     def configure_gui(self):
-        self.master.title("Data plot")
+        pass
+        # self.master.title("Data plot")
         # self.master.resizable(False, False)
 
     def clear_frame(self):
@@ -264,13 +265,15 @@ class plot_measures(tk.Frame):
             else:
                 self.__types.append(t)
 
-        # This is to break the reference binding
-        self.__available_classes = self.__classes[:]
-        self.__available_types = self.__types[:]
+        self.__types_only = []
+        for t in self.__types:
+            self.__types_only.append(t[1])
+        if all(x in self.__types_only for x in ['twbc', 'lympho', 'eosino', 'hetero', 'mono', 'baso']):
+            self.__types.append(['immunology', 'Differential', 'count', 'Full differential WBC count'])
 
-        for c in self.__available_classes:
+        for c in self.__classes:
             globals()[c] = self.tv.insert("", "end", text=c, open = True, tags = ('class',))
-        for t in self.__available_types:
+        for t in self.__types:
             name = t[0]
             self.tv.insert(globals()[name], "end", text=t[1], values=t[2:4], tags = ('type',))
 
@@ -280,12 +283,29 @@ class plot_measures(tk.Frame):
     def OnDoubleClick1(self, event):
         item = self.tv.selection()[0]
         self.selection = self.tv.item(item, "text")
-        self.multiple_select = [self.selection]
-        # We get the values for the selected measures:
-        self.measures = self.master.db.get_measure_values(id=self.__id, measurelist='("'+str(self.selection)+'")')
-        self.multiple_data = [self.measures]
-        # Call the plot window:
-        self.call_draw()
+        if self.selection in ('sist', 'diast'):
+            self.multiple_select = ['sist', 'diast']
+            # We get the values for the selected measures:
+            self.sist = self.master.db.get_measure_values(id=self.__id, measurelist='("sist")')
+            self.diast = self.master.db.get_measure_values(id=self.__id, measurelist='("diast")')
+            self.multiple_data = [self.sist, self.diast]
+            self.call_draw(multiplot=True)
+
+        # Special case of the Differential WBC count plot
+        elif self.selection == 'Differential':
+            self.multiple_select = ['twbc', 'lympho', 'eosino', 'hetero', 'mono', 'baso']
+            self.multiple_data = []
+            for s in self.multiple_select:
+                self.multiple_data.append(self.master.db.get_measure_values(id=self.__id, measurelist='("' + s + '")'))
+            self.call_draw()
+
+        else:
+            self.multiple_select = [self.selection]
+            # We get the values for the selected measures:
+            self.measures = self.master.db.get_measure_values(id=self.__id, measurelist='("'+str(self.selection)+'")')
+            self.multiple_data = [self.measures]
+            # Call the plot window:
+            self.call_draw()
 
     def OnDoubleClick2(self, event):
         item = self.tv.selection()[0]
@@ -296,18 +316,27 @@ class plot_measures(tk.Frame):
         # Call the plot window:
         self.call_draw(multiplot=True)
 
-
     def close_plot(self):
         if self.plot_control:
             plt.close()
             self.plot_control.destroy()
+
+    def load_standards(self):
+        self.__stds = []
+        with open('__resources/Standards') as stdfile:
+            std = csv.reader(stdfile, delimiter = ',')
+            for s in std:
+                self.__stds.append(list(s))
+        self.__std_avail = []
+        for s in self.__stds:
+            self.__std_avail.append(s[0])
 
     def call_draw(self, multiplot=False):
         # Close any previously open plot:
         plt.close()
 
         # If we are plotting a single series of values:
-        if multiplot is False:
+        if multiplot is False and self.selection != 'Differential':
             # Isolate the values:
             dates = []
             values = []
@@ -318,7 +347,108 @@ class plot_measures(tk.Frame):
             # Plot the values
             plt.plot_date(np.array(dates), values, marker = 'o', linestyle = ':', color = 'r')
 
+            # Fix the scale specifically for some measures
+            if self.multiple_data[0][0][4] == 'percent':
+                plt.gca().set_ylabel('percent')
+                plt.gca().set_ylim(0,100)
+            elif self.multiple_data[0][0][4] == 'mmHg':
+                plt.gca().set_ylabel('mmHg')
+                plt.gca().set_ylim(0,200)
+
+            # Add the standard area if available
+            if self.selection in self.__std_avail:
+                index = np.where(np.array(self.__std_avail) == self.selection)[0][0]
+                lower = float(self.__stds[index][2])
+                upper = float(self.__stds[index][3])
+                # plt.axhline(y=lower, linestyle = '--', color = 'k', linewidth=.75)
+                # plt.axhline(y=upper, linestyle = '--', color = 'k', linewidth=.75)
+                plt.gca().axhspan(lower, upper, alpha=0.2, color='k')
+
             # Calculate the birthdays and corresponding add vertical lines to the plot
+            max_date_in_data = max(dates)
+            min_date_in_data = min(dates)
+            birthdays, ages = [], []
+            birthday = self.elephant[5]
+            while birthday < max_date_in_data:
+                birthday = add_years(birthday, 1)
+                if birthday > min_date_in_data:
+                    birthdays.append(matplotlib.dates.date2num(birthday))
+                    ages.append(round((birthday - self.elephant[5]).days / 365.25))
+            if birthdays.__len__() > 1:
+                    birthdays.pop() # remove the last values to avoid empty space on the plot
+                    ages.pop()
+
+            # get the Y coordinate for annotations:
+            y_coord = plt.gca().get_ylim()[1] - (plt.gca().get_ylim()[1] - plt.gca().get_ylim()[0]) / 40
+            for i, xc in enumerate(birthdays):
+                plt.axvline(x=xc, linestyle = '--', color = 'k', linewidth=.75)
+                plt.annotate(str(ages[i]) + 'y.o.', xy = (xc, y_coord), verticalalignment='top', backgroundcolor='w', ha='center', rotation=90, fontsize=8)
+
+            plt.grid(ls='dotted')
+            w = pylab.gcf()
+            if self.elephant[1] is not None:
+                w.canvas.set_window_title(self.selection + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[1]) + ')')
+            else:
+                w.canvas.set_window_title(self.selection + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[3]) + ')')
+
+            w.set_facecolor("#E08E45")
+            # Set axis labels
+            plt.gca().set_ylabel(str(self.selection))
+
+        # Special case: the Differential WBC count plot
+        elif multiplot is False and self.selection == 'Differential':
+
+            # Restructure the data to change the percentages into counts:
+            dates = []
+            twbc = []
+            lympho, l_lympho = [], []
+            eosino, l_eosino = [], []
+            hetero, l_hetero = [], []
+            mono, l_mono = [], []
+            baso, l_baso = [], []
+
+            # We need to check that the dates of TWBC match those of the differential.
+            _twbc = self.multiple_data[0][:]
+            _lympho = self.multiple_data[1][:]
+            _twbc_dates, _lympho_dates = [], []
+            for t in _twbc:
+                _twbc_dates.append(t[2])
+            for l in _lympho:
+                _lympho_dates.append(l[2])
+
+            for i, d in enumerate(_twbc_dates):
+                if d not in _lympho_dates:
+                    self.multiple_data[0].pop(i)
+
+
+            for i, t in enumerate(self.multiple_data[0]):
+                dates.append(t[2])
+                twbc.append(t[3])
+                hetero.append(t[3] * (self.multiple_data[3][i][3]/100))
+                mono.append(t[3] * (self.multiple_data[4][i][3]/100))
+                baso.append(t[3] * (self.multiple_data[5][i][3]/100))
+                lympho.append(t[3] * (self.multiple_data[1][i][3]/100))
+                eosino.append(t[3] * (self.multiple_data[2][i][3]/100))
+
+                l_hetero.append(t[3]*(self.multiple_data[3][i][3]/100))
+                l_mono.append(t[3]*(self.multiple_data[4][i][3]/100 + self.multiple_data[3][i][3]/100))
+                l_baso.append(t[3]*(self.multiple_data[5][i][3]/100 + self.multiple_data[4][i][3]/100 + self.multiple_data[3][i][3]/100))
+                l_lympho.append(t[3]*(self.multiple_data[1][i][3]/100 + self.multiple_data[5][i][3]/100 + self.multiple_data[4][i][3]/100 + self.multiple_data[3][i][3]/100))
+                l_eosino.append(t[3]*(self.multiple_data[2][i][3]/100 + self.multiple_data[1][i][3]/100 + self.multiple_data[5][i][3]/100 + self.multiple_data[4][i][3]/100 + self.multiple_data[3][i][3]/100))
+
+
+            y = np.vstack([hetero, mono, baso, lympho, eosino])
+            labels = ["Heterophiles ", "Monocytes", "Basophiles", "Lymphocytes", "Eosinophiles"]
+
+            plt.stackplot(dates, y, alpha=0.5, labels=labels)
+            plt.legend()
+            plt.plot_date(dates, twbc, marker='', linestyle='-', color='k', linewidth=1.5, label='Total')
+            plt.plot_date(dates, l_lympho, marker='', linestyle='--', color='k', linewidth=0.75, label='lymphocytes')
+            plt.plot_date(dates, l_eosino, marker='', linestyle='--', color='k', linewidth=0.75, label='eosinophiles')
+            plt.plot_date(dates, l_hetero, marker='', linestyle='--', color='k', linewidth=0.75, label='heterophiles')
+            plt.plot_date(dates, l_mono, marker='', linestyle='--', color='k', linewidth=0.75, label='monocytes')
+            plt.plot_date(dates, l_baso, marker='', linestyle='--', color='k', linewidth=0.75, label='basophiles')
+
             max_date_in_data = max(dates)
             min_date_in_data = min(dates)
             birthdays, ages = [], []
@@ -340,6 +470,8 @@ class plot_measures(tk.Frame):
                 plt.annotate(str(ages[i]) + 'y.o.', xy = (xc, y_coord), verticalalignment='top', backgroundcolor='w', ha='center', rotation=90, fontsize=8)
 
             plt.grid(ls='dotted')
+            plt.gca().set_ylabel("million/L")
+            plt.gca().autoscale(axis='x', tight=True)
             w = pylab.gcf()
             if self.elephant[1] is not None:
                 w.canvas.set_window_title(self.selection + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[1]) + ')')
@@ -347,8 +479,8 @@ class plot_measures(tk.Frame):
                 w.canvas.set_window_title(self.selection + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[3]) + ')')
 
             w.set_facecolor("#E08E45")
-            # Set axis labels
-            plt.gca().set_ylabel(str(self.selection))
+
+
 
         # If we are plotting several series:
         else:
@@ -366,34 +498,39 @@ class plot_measures(tk.Frame):
 
             print(self.multiple_data[0])
 
-            # If the unit is percents, we set the limit to the full range.
+            # If the Host unit is percents of mmHg, we set the limit to the full range.
+            which_layer_is_percent = None
+            which_layer_is_mmHg = None
+
             if self.multiple_data[0][0][4] == 'percent':
                 host.set_ylabel('percent')
                 host.set_ylim(0,100)
+                which_layer_is_percent = host
             elif self.multiple_data[0][0][4] == 'mmHg':
                 host.set_ylabel('mmHg')
                 host.set_ylim(0,200)
+                which_layer_is_mmHg = None
 
             par = []
             offset = 50
             k = 0
+
             for i, m in enumerate(self.multiple_select[1:]):
-                if self.multiple_data[(i+1)][0][4]=='percent' and self.multiple_data[0][0][4] == 'percent':
+                if self.multiple_data[(i+1)][0][4]=='percent' and which_layer_is_percent is not None:
                     dates = []
                     values = []
                     for d in self.multiple_data[(i+1)]:
                         dates.append(d[2])
                         values.append(d[3])
-                    host.plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
-                elif self.multiple_data[(i+1)][0][4]=='mmHg' and self.multiple_data[0][0][4] == 'mmHg':
+                    which_layer_is_percent.plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
+
+                elif self.multiple_data[(i+1)][0][4]=='mmHg' and which_layer_is_mmHg is not None:
                     dates = []
                     values = []
                     for d in self.multiple_data[(i+1)]:
                         dates.append(d[2])
                         values.append(d[3])
-                    host.plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
-
-
+                    which_layer_is_mmHg.plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
 
                 else:
                     par.append(host.twinx())
@@ -406,6 +543,16 @@ class plot_measures(tk.Frame):
                         dates.append(d[2])
                         values.append(d[3])
                     par[k].plot_date(np.array(dates), values, marker = 'o', linestyle = ':', label=m)
+
+                    if self.multiple_data[(i+1)][0][4]=='percent':
+                        which_layer_is_percent = par[k]
+                        which_layer_is_percent.set_ylabel('percent')
+                        which_layer_is_percent.set_ylim(0,100)
+                    elif self.multiple_data[(i+1)][0][4]=='mmHg':
+                        which_layer_is_mmHg = par[k]
+                        which_layer_is_mmHg.set_ylabel('mmHg')
+                        which_layer_is_mmHg.set_ylim(0,200)
+
                     k += 1
                     offset += 50
 
@@ -435,10 +582,22 @@ class plot_measures(tk.Frame):
             host.legend()
 
             w = pylab.gcf()
-            if self.elephant[1] is not None:
-                w.canvas.set_window_title(self.selection + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[1]) + ')')
+
+            if self.multiple_select == ['sist', 'diast']:
+                label = 'Blood pressure'
+            elif all(x in ('lympho','hetero','eosino','baso','mono') for x in self.multiple_select):
+                label = 'Differential WBC count'
+            elif all(x in ('sed','fec') for x in self.multiple_select):
+                label = 'Parasite load'
+            elif all(x in ('belly','body_length','body_mass','body_mass_wm','chest', 'neck', 'foot', 'height', 'hind_limb') for x in self.multiple_select):
+                label = 'Morphometry'
             else:
-                w.canvas.set_window_title(self.selection + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[3]) + ')')
+                label = 'Multiple data'
+
+            if self.elephant[1] is not None:
+                w.canvas.set_window_title(label + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[1]) + ')')
+            else:
+                w.canvas.set_window_title(label + ' for ' + str(self.elephant[2]) + ' (' + str(self.elephant[3]) + ')')
             w.set_facecolor("#E08E45")
 
             # The way to go to color the axis labels the same as the lines (not nneeded I think)
@@ -449,7 +608,6 @@ class plot_measures(tk.Frame):
             # host.axis["left"].label.set_color(p1.get_color())
             # par1.axis["right"].label.set_color(p2.get_color())
             # ...
-
 
         # Display plot
         plt.show()

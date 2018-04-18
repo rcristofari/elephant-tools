@@ -298,13 +298,62 @@ def relatedness_matrix(numlist, db, bifurcating=True):  # Need to extend it to i
 
 def censor_elephant(db, id, survival=None, cutoff=0.05):
     key = 0 # this means that we have no positive info so far about this elephant being dead
+    eleph = None
+    sex = None
+    cw = None
+    birth = None
     death = None
 
-    # Get the birth date
     try:
-        birth = db.get_elephant(id=id)[5]
+        eleph = db.get_elephant(id=id)
     except:
-        print("Impossible to find that elephant in the database")
+        print("Impossible to connect to the database.")
+
+    if eleph is not None:
+        id = eleph[0]
+        sex = eleph[4]
+        birth = eleph[5]
+        cw = eleph[6]
+
+    # Loading the survival curves and choosing the right model:
+    Sx = []
+    categories = ['SxFC','SxMC','SxFW','SxMW']
+    descript = ['captive female','captive male','wild female','wild male']
+    with open(survival) as sxfile:
+        sx = csv.reader(sxfile, delimiter = ',')
+        for s in sx:
+            Sx.append(list(s))
+    for i,s in enumerate(Sx):
+        if s[0] == categories[i]:
+            s.pop(0)
+            for j,x in enumerate(s):
+                s[j] = float(x)
+    SxFC = Sx[0]
+    SxMC = Sx[1]
+    SxFW = Sx[2]
+    SxMW = Sx[3]
+
+    if sex == 'F' and (cw == 'captive'):
+        survival = SxFC
+        descript = descript[0]
+    elif sex == 'F' and (cw == 'wild'):
+        survival = SxFW
+        descript = descript[2]
+    elif sex == 'F' and (cw == 'UKN'):
+        survival = SxFC # Need a special curve here
+        descript = descript[0]
+    elif sex == 'M' and (cw == 'captive'):
+        survival = SxMC
+        descript = descript[1]
+    elif sex == 'M' and (cw == 'wild'):
+        survival = SxMW
+        descript = descript[3]
+    elif sex == 'M' and (cw == 'UKN'):
+        survival = SxFC # Need a special curve here
+        descript = descript[1]
+    else:
+        survival = SxMC # Need a "common" Sx model here instead
+        descript = descript[1]
 
     # Do we know a death date for this elephant ?
     death_type = db.get_date_of_death(id=id, with_type=True)
@@ -312,7 +361,6 @@ def censor_elephant(db, id, survival=None, cutoff=0.05):
         key = 1
         death = death_type[0]
         dtype = death_type[1]
-
 
     else:
         # Start by getting the last date we have data about that elephant
@@ -365,9 +413,9 @@ def censor_elephant(db, id, survival=None, cutoff=0.05):
         #     "\nProbability that it is alive today:", round(p_alive_now,3))
 
     if key == 0:
-        out = (key, birth, last_seen, add_years(birth, i), i, p_alive_now, etype)
+        out = (key, birth, last_seen, add_years(birth, i), i, p_alive_now, etype, descript)
     elif key == 1:
-        out = (key, birth, death, dtype)
+        out = (key, birth, death, dtype, descript)
 
     return(out)
 
@@ -608,47 +656,8 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         print("This id does not correspond to any elephant in the database")
     else:
 
-        # Load survival curves:
-        Sx = []
-        categories = ['SxFC','SxMC','SxFW','SxMW']
-        with open('./__resources/Sx_curves') as sxfile:
-            sx = csv.reader(sxfile, delimiter = ',')
-            for s in sx:
-                Sx.append(list(s))
-        for i,s in enumerate(Sx):
-            if s[0] == categories[i]:
-                s.pop(0)
-                for j,x in enumerate(s):
-                    s[j] = float(x)
-        SxFC = Sx[0]
-        SxMC = Sx[1]
-        SxFW = Sx[2]
-        SxMW = Sx[3]
-
-        ########################################################################
-        # Select the right survival model for that elephant
-        if elephant is not None:
-            id = elephant[0]
-            sex = elephant[4]
-            cw = elephant[6]
-
-        if sex == 'F' and (cw == 'captive'):
-            survival = SxFC
-        elif sex == 'F' and (cw == 'wild'):
-            survival = SxFW
-        elif sex == 'F' and (cw == 'UKN'):
-            survival = SxFC # Need a special curve here
-        elif sex == 'M' and (cw == 'captive'):
-            survival = SxMC
-        elif sex == 'M' and (cw == 'wild'):
-            survival = SxMW
-        elif sex == 'M' and (cw == 'UKN'):
-            survival = SxFC # Need a special curve here
-        else:
-            survival = SxMC # Need a "common" Sx model here instead
-
         birth = elephant[5]
-        censor_list = censor_elephant(db, id, survival=survival, cutoff=0.05)
+        censor_list = censor_elephant(db, id, survival='./__resources/Sx_curves', cutoff=0.05)
         if censor_list[0] == 0: # elephant not known dead yet
             last_seen = censor_list[2]
             likely_death = censor_list[3]
@@ -687,10 +696,8 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         # Adding censoring landmarks:
         if censoring is True:
             plt.annotate(datetime.strftime(birth, '%Y-%m-%d'), xy=(birth, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
-            plt.annotate(('aged ' + str(round((datetime.now().date() - birth).days / 365.25))), xy=(datetime.now().date(), 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
-
             if plttype == 1:
-                pass # Placeholder for later
+                plt.annotate(('aged ' + str(round((datetime.now().date() - birth).days / 365.25))), xy=(datetime.now().date(), 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
             elif plttype == 2:
                 plt.annotate(datetime.strftime(death, '%Y-%m-%d') + ' (aged ' + str(round((death - birth).days / 365.25)) + ', ' + dtype.replace('_', ' ') + ')', xy=(death, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
             elif plttype == 0:

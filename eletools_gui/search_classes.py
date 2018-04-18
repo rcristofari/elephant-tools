@@ -59,7 +59,7 @@ class findeleph(tk.Frame):
         self.linebutton.config(state=tk.DISABLED)
         self.censorbutton.config(state=tk.DISABLED)
 
-        self.result = tk.Text(self.master, height=15, width=45)
+        self.result = tk.Text(self.master, height=16, width=45)
         self.result.grid(row=5, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
         self.master.focus_set()
@@ -97,6 +97,22 @@ class findeleph(tk.Frame):
             now = datetime.now().date()
             age = round(((now - born).days / 365.25))
             self.result.delete(1.0,tk.END)
+
+            # Get censoring information and display summary:
+            censor = censor_elephant(db=self.master.db, id=self.eleph[0], survival='./__resources/Sx_curves', cutoff=0.05)
+            if censor[0] == 1: # Elephant is dead
+                censorstr = 'No - died on ' + datetime.strftime(censor[2], '%Y-%m-%d') + '\n\t\tat age ' + str(round((censor[2] - censor[1]).days/365.25)) + ' (' + censor[3] + ')'
+            else:
+                if censor[5] >= 0.9:
+                    censorstr = 'Yes\n'
+                elif censor[5] < 0.9 and censor[5] >= 0.75:
+                    censorstr = 'Probably\n'
+                elif censor[5] < 0.75 and censor[5] >= 0.05:
+                    censorstr = 'Possibly\n'
+                else:
+                    censorstr = 'Probably not - exp. death in ' + str(censor[3].year) + '\n'
+
+
             self.result_text = ("\n Index:\t\t"+str(self.eleph[0])
                 +"\n--------------------------------------------------"
                 +"\n Number:\t\t"+str(self.eleph[1])
@@ -107,7 +123,7 @@ class findeleph(tk.Frame):
                 +"\n Origin:\t\t"+str(self.eleph[6])
                 +"\n Age at capture:\t\t"+str(self.eleph[7])
                 +"\n Camp:\t\t"+str(self.eleph[8])
-                +"\n Alive:\t\t"+str(self.eleph[9])
+                +"\n Alive:\t\t"+censorstr
                 +"\n--------------------------------------------------"
                 +"\n Research:\t\t"+str(self.eleph[10]))
             self.result.insert(tk.END, self.result_text)
@@ -187,7 +203,6 @@ class findeleph(tk.Frame):
 
     def call_plot_measures(self):
         self.master.plot_measures = plot_measures(self.master, id=self.eleph[0])
-
 
 ################################################################################
 ## Display matriline                                                          ##
@@ -1039,8 +1054,6 @@ class censor_date(tk.Frame):
     def __init__(self, master, call_censoring_from_eleph=None):
         self.master = master
         tk.Frame.__init__(self, self.master)
-        # self.age = tk.IntVar()
-        # self.age.set(1)
         self.call_censoring_from_eleph = call_censoring_from_eleph
         self.configure_gui()
         self.clear_frame()
@@ -1055,15 +1068,10 @@ class censor_date(tk.Frame):
             widget.grid_forget()
 
     def create_widgets(self):
-        self.load_survival()
         self.numlabel = tk.Label(self.master, text="Number:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
         self.e1 = tk.Entry(self.master)
         self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=5, pady=5)
-        # self.radio1 = tk.Radiobutton(self.master, text="Adult", variable=self.age, value=1, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        # self.radio1.grid(row=2, column=2, sticky=tk.W, padx=5, pady=5)
-        # self.radio2 = tk.Radiobutton(self.master, text="Calf", variable=self.age, value=2, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        # self.radio2.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
         self.cutofflabel = tk.Label(self.master, text="P cut-off:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.cutofflabel.grid(row=2, column=1, sticky = tk.W, padx=0, pady=5)
         self.e2 = tk.Entry(self.master, width=8)
@@ -1071,7 +1079,7 @@ class censor_date(tk.Frame):
         self.e2.grid(row=2, column=2, columnspan=1, sticky = tk.EW, padx=5, pady=5)
         self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_censor_date, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.findbutton.grid(row=2, column=3, sticky=tk.EW, padx=5, pady=5)
-        self.result = tk.Text(self.master, height=9, width=47)
+        self.result = tk.Text(self.master, height=10, width=47)
         self.result.grid(row=3, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
         self.master.focus_set()
         self.master.bind("<Return>", self.call_censor_date)
@@ -1081,84 +1089,27 @@ class censor_date(tk.Frame):
             self.call_censor_date()
             self.e1.config(state=tk.DISABLED)
 
-    def load_survival(self):
-        self.__Sx = []
-        categories = ['SxFC','SxMC','SxFW','SxMW']
-        self.__descript = ['captive female','captive male','wild female','wild male']
-        with open('./__resources/Sx_curves') as sxfile:
-            sx = csv.reader(sxfile, delimiter = ',')
-            for s in sx:
-                self.__Sx.append(list(s))
-        for i,s in enumerate(self.__Sx):
-            if s[0] == categories[i]:
-                s.pop(0)
-                for j,x in enumerate(s):
-                    s[j] = float(x)
-        self.__SxFC = self.__Sx[0]
-        self.__SxMC = self.__Sx[1]
-        self.__SxFW = self.__Sx[2]
-        self.__SxMW = self.__Sx[3]
-
-
     def call_censor_date(self, *args):
         self.result.config(state=tk.NORMAL)
-        self.__id = None
-        self.__sex = None
-        self.__cw = None
-        self.__eleph = None
         self.__cutoff = float(self.e2.get())
         try:
             if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.e1.get()):
                 self.__eleph = self.master.db.get_elephant(calf_num = self.e1.get())
             else:
                 self.__eleph = self.master.db.get_elephant(num = self.e1.get())
-            # if self.age.get() == 1:
-            #     self.__eleph = self.master.db.get_elephant(num = self.e1.get())
-            # elif self.age.get() == 2:
-            #     self.__eleph = self.master.db.get_elephant(calf_num = self.e1.get())
-            # else:
-            #     self.result.delete(1.0,tk.END)
-            #     self.result_text = ("This elephant does not exist in the database")
-            #     self.result.insert(tk.END, self.result_text)
-            #     self.result.config(state=tk.DISABLED)
+            self.__id = self.__eleph[0]
         except:
             print("Impossible to connect to the database.")
 
-        if self.__eleph is not None:
-            self.__id = self.__eleph[0]
-            self.__sex = self.__eleph[4]
-            self.__cw = self.__eleph[6]
-
-        if self.__sex == 'F' and (self.__cw == 'captive'):
-            self.__survival = self.__SxFC
-            descript = self.__descript[0]
-        elif self.__sex == 'F' and (self.__cw == 'wild'):
-            self.__survival = self.__SxFW
-            descript = self.__descript[2]
-        elif self.__sex == 'F' and (self.__cw == 'UKN'):
-            self.__survival = self.__SxFC # Need a special curve here
-            descript = self.__descript[0]
-        elif self.__sex == 'M' and (self.__cw == 'captive'):
-            self.__survival = self.__SxMC
-            descript = self.__descript[1]
-        elif self.__sex == 'M' and (self.__cw == 'wild'):
-            self.__survival = self.__SxMW
-            descript = self.__descript[3]
-        elif self.__sex == 'M' and (self.__cw == 'UKN'):
-            self.__survival = self.__SxFC # Need a special curve here
-            descript = self.__descript[1]
-        else:
-            self.__survival = self.__SxMC # Need a "common" Sx model here instead
-            descript = self.__descript[1]
-
-        censor = censor_elephant(db=self.master.db, id=self.__id, survival=self.__survival, cutoff=self.__cutoff)
+        censor = censor_elephant(db=self.master.db, id=self.__id, survival='./__resources/Sx_curves', cutoff=self.__cutoff)
 
         if censor is not None:
             if censor[0] == 0: # The elephant has no known death date
-                out = ( "-----------------------------------------------"+
-                    "\n Birth date: "+censor[1].strftime('%Y-%m-%d')+
-                    "\n Last seen on: "+censor[2].strftime('%Y-%m-%d')+
-                    "\n Expected final bow: "+censor[3].strftime('%Y')+" (at "+str(censor[4])+" years)"+
+                out = ( "-----------------------------------------------" +
+                    "\n Birth date: " + censor[1].strftime('%Y-%m-%d') +
+                    "\n Last seen on: " + censor[2].strftime('%Y-%m-%d') +
+                    "\n (Event type: " + censor[6] + ")" +
+                    "\n Expected final bow: " + censor[3].strftime('%Y') + " (at age " + str(censor[4]) + ")" +
                     "\n-----------------------------------------------")
 
                 if censor[5] > self.__cutoff:
@@ -1166,16 +1117,17 @@ class censor_date(tk.Frame):
                 else:
                     verdict = ("\n This elephant is certainly quite dead by now.")
                 self.result.delete(1.0,tk.END)
-                self.result.insert(tk.END, "\n Selected model: "+descript+'\n')
+                self.result.insert(tk.END, "\n Selected model: "+censor[-1]+'\n')
                 self.result.insert(tk.END, out)
                 self.result.insert(tk.END, verdict)
                 self.result.config(state=tk.DISABLED)
 
             elif censor[0] == 1: # The elephant has a known death date
                 out = ("\n This elephant is quite dead."+
-                    "\n-----------------------------------------------"+
-                    "\n Birth date: "+censor[1].strftime('%Y-%m-%d')+
-                    "\n Final bow: "+censor[2].strftime('%Y-%m-%d')+" (at "+str(int((censor[2]-censor[1]).days//362.25))+" years)"+
+                    "\n-----------------------------------------------" +
+                    "\n Birth date: " + censor[1].strftime('%Y-%m-%d') +
+                    "\n Final bow: " + censor[2].strftime('%Y-%m-%d') + " (at age " + str(int((censor[2]-censor[1]).days//362.25)) + ")" +
+                    "\n Cause of death: " + censor[3] +
                     "\n-----------------------------------------------")
                 self.result.delete(1.0,tk.END)
                 self.result.insert(tk.END, out)
