@@ -900,3 +900,22 @@ class mysqlconnect:
             result.append(l[0:3] + end[i])
 
         return(result)
+
+################################################################################
+## 'get_all_ids' returns a list of all IDs in the database                    ##
+################################################################################
+
+    def get_all_ids(self):
+        ids = None
+        sql = "select id from elephants order by id asc;"
+        try:
+            self.__cursor.execute(sql)
+            ids = self.__cursor.fetchall()
+        except:
+            print("Impossible to connect to the database")
+
+        result = []
+        if ids:
+            for i in ids:
+                result.append(i[0])
+            return(result)

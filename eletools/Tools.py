@@ -593,16 +593,21 @@ def regularise_calf_names(db, true_twin_list=None):
     # true_twin_list is a list with three columns: mother number and twin birth
     # dates, and gender, which will be 'MM', 'FF', or 'FM'/'MF'
 
+    # List to be populated with the sql update queries
+    operations = []
+
     # Extract the list and data for the elephants which do not have a calf number
     anonymous_calves = db.get_anonymous_calves(anonymous=True)
     named_calves = db.get_anonymous_calves(anonymous=False)
 
+    # Get the ID of unnumbered calves, and make up their new calf_num
     new_calf_names = []
     new_ids = []
     for a in anonymous_calves:
         new_calf_names.append(str(a[1].year)+'B'+str(a[2]))
         new_ids.append(a[0])
 
+    # Get the ID and calf_num of already numbered calves
     known_calf_names = []
     known_ids = []
     for a in named_calves:
@@ -615,10 +620,16 @@ def regularise_calf_names(db, true_twin_list=None):
     duplicate_calves = [item for item, count in collections.Counter(all_calf_names).items() if count > 1]
     duplicate_calves.sort()
 
+    # We can already generate sql updates for all non-duplicate calves.
+    for i, n in enumerate(new_calf_names):
+        if n not in duplicate_calves:
+            operations.append(db.update_elephant(calf_num=n, id=new_ids[i]))
+
     print("The following calves are either twins or duplicates:")
     for d in duplicate_calves:
         print(d)
 
+    # If we have a validated list, we can check if these calves are authentic twins
     if true_twin_list is not None:
         twin_mothers = []
         twin_births = []
@@ -634,10 +645,15 @@ def regularise_calf_names(db, true_twin_list=None):
         print(twin_births)
 
 
-
+    return(operations)
     return([all_calf_names, all_ids])
 
-    ## IN PROGRESS
+    ## IN PROGRESS #######
+
+
+
+
+
 
 ####################################################################################
 ## create_lifeline() generates the core plot for the lifeline plot class          ##
@@ -784,3 +800,29 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         w.set_facecolor("#E08E45")
         plt.axes().get_yaxis().set_visible(False)
         plt.show()
+
+
+
+
+
+####################################################################################
+## name_patterns() tries to match names using fuzzy search and known misspellings ##
+####################################################################################
+# This function only creates the name dictionary and will be called only the first the
+# pipeline is used in the session, and then kept in memory as a self.master object to
+# avoid excessive db back-and-forth
+
+def name_patterns(db):
+    all_ids = None
+    all_ids = db.get_all_ids()
+
+    if all_ids:
+        all_elephants = []
+        all_names = []
+        for i in all_ids:
+            e = db.get_elephant(id=i)
+            all_elephants.append(e)
+            all_names.append(e[2])
+
+        # create a distance matrix where Ag = Aung = Aug, Mg = Ming, Mye = Mey, Dg = Daung
+        # SequenceMatcher may actually do a good enough job by itself...

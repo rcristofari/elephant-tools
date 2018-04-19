@@ -1132,3 +1132,47 @@ class censor_date(tk.Frame):
                 self.result.delete(1.0,tk.END)
                 self.result.insert(tk.END, out)
                 self.result.config(state=tk.DISABLED)
+
+################################################################################
+## Try to find an elephant based on its name                                  ##
+################################################################################
+
+class fuzzy_name_search(tk.Frame):
+
+    def __init__(self, master, call_censoring_from_eleph=None):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.call_censoring_from_eleph = call_censoring_from_eleph
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+            widget.grid_forget()
+
+    def create_widgets(self):
+        self.numlabel = tk.Label(self.master, text="Number:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
+        self.e1 = tk.Entry(self.master)
+        self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=5, pady=5)
+        self.cutofflabel = tk.Label(self.master, text="P cut-off:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.cutofflabel.grid(row=2, column=1, sticky = tk.W, padx=0, pady=5)
+        self.e2 = tk.Entry(self.master, width=8)
+        self.e2.insert(10, 0.05)
+        self.e2.grid(row=2, column=2, columnspan=1, sticky = tk.EW, padx=5, pady=5)
+        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_censor_date, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.findbutton.grid(row=2, column=3, sticky=tk.EW, padx=5, pady=5)
+        self.result = tk.Text(self.master, height=10, width=47)
+        self.result.grid(row=3, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
+        self.master.focus_set()
+        self.master.bind("<Return>", self.call_censor_date)
+
+        if self.call_censoring_from_eleph is not None:
+            self.e1.insert(10, self.call_censoring_from_eleph)
+            self.call_censor_date()
+            self.e1.config(state=tk.DISABLED)
