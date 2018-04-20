@@ -471,6 +471,7 @@ class analyse_event_file(tk.Frame):
                     sC += 1
 
                 self.master.common_out.append(w[6][0]) # Here, there appeared a weird issue that forced me to add the [0]. Investigate further.
+                self.master.common_out.append(w[6][1])
                 # print(self.master.common_out)
                 self.result.insert(tk.END, ("\tAnalysing event number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
