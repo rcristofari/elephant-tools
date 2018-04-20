@@ -813,16 +813,4 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
 # avoid excessive db back-and-forth
 
 def name_patterns(db):
-    all_ids = None
-    all_ids = db.get_all_ids()
-
-    if all_ids:
-        all_elephants = []
-        all_names = []
-        for i in all_ids:
-            e = db.get_elephant(id=i)
-            all_elephants.append(e)
-            all_names.append(e[2])
-
-        # create a distance matrix where Ag = Aung = Aug, Mg = Ming, Mye = Mey, Dg = Daung
-        # SequenceMatcher may actually do a good enough job by itself...
+    pass

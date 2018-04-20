@@ -901,21 +901,24 @@ class mysqlconnect:
 
         return(result)
 
-################################################################################
-## 'get_all_ids' returns a list of all IDs in the database                    ##
-################################################################################
+    ################################################################################
+    ## 'levenshtein_match_name' returns elephants with a reasonable name match    ##
+    ################################################################################
 
-    def get_all_ids(self):
-        ids = None
-        sql = "select id from elephants order by id asc;"
+    def levenshtein_match_name(self, name, accelerated=True):
+
+        matches = None
+        if accelerated is True:
+            # In the fast version, we assume the first letter is correct (which should hold in Burmese in most cases)
+            sql = "SELECT *, LEVENSHTEIN(name, %s) AS L FROM elephants WHERE name IS NOT null AND LOWER(name) LIKE %s HAVING(L < 6) ORDER BY L ASC;" % (quote(name), quote(name[0].casefold()+'%'))
+        else:
+            sql = "SELECT *, LEVENSHTEIN(name, %s) AS L FROM elephants WHERE name IS NOT null HAVING(L < 6) ORDER BY L ASC;" % quote(name)
+
         try:
             self.__cursor.execute(sql)
-            ids = self.__cursor.fetchall()
+            matches = self.__cursor.fetchall()
         except:
             print("Impossible to connect to the database")
 
-        result = []
-        if ids:
-            for i in ids:
-                result.append(i[0])
-            return(result)
+        if matches:
+            return(matches)

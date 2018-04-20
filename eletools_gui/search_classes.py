@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 ## Search for an elephant                                                     ##
 ################################################################################
 
-class findeleph(tk.Frame):
+class search_elephant(tk.Frame):
 
     def __init__(self, master, back):
         self.back = back
@@ -64,18 +64,23 @@ class findeleph(tk.Frame):
 
         self.master.focus_set()
         self.master.bind("<Return>", self.call_get_elephant)
-        self.master.bind("<space>", self.call_show_matriline)
+        # self.master.bind("<space>", self.call_show_matriline)
 
     def call_get_elephant(self, *args):
         self.close_plot()
         self.result.config(state=tk.NORMAL)
         if self.back == 0:
             if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.e1.get()):
-                self.eleph = self.master.db.get_elephant(calf_num = self.e1.get())
-                self.master.eleph_now = self.eleph
+                self.eleph = self.master.db.get_elephant(calf_num=self.e1.get())
+            elif re.search(r'id=[\d]+', self.e1.get()):
+                self.eleph = self.master.db.get_elephant(id=int(self.e1.get()[3:]))
+
+            elif re.search(r'#*', self.e1.get()):
+                self.eleph = self.call_levenshtein_match(self.e1.get()[1:])
+
             else:
-                self.eleph = self.master.db.get_elephant(num = self.e1.get())
-                self.master.eleph_now = self.eleph
+                self.eleph = self.master.db.get_elephant(num=self.e1.get())
+            self.master.eleph_now = self.eleph
 
         elif self.back == 1:
             self.back = 0
@@ -199,10 +204,31 @@ class findeleph(tk.Frame):
         self.censor_window.lightcolour = self.master.lightcolour
         self.censor_window.darkcolour = self.master.darkcolour
         self.censor_window.db = self.master.db
+#        censor_date(self.censor_window, call_censoring_from_eleph=self.e1.get())
         censor_date(self.censor_window, call_censoring_from_eleph=self.e1.get())
+
 
     def call_plot_measures(self):
         self.master.plot_measures = plot_measures(self.master, id=self.eleph[0])
+
+    def call_levenshtein_match(self, namestring):
+        self.levenshtein_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.levenshtein_window.title("Name matches")
+        self.levenshtein_window.grid_columnconfigure(0, weight=1)
+        self.levenshtein_window.grid_columnconfigure(4, weight=1)
+        self.levenshtein_window.grid_rowconfigure(0, weight=1)
+        self.levenshtein_window.grid_rowconfigure(4, weight=1)
+        #self.levenshtein_window.geometry("350x300")
+        #self.levenshtein_window.resizable(False, False)
+        self.levenshtein_window.lightcolour = self.master.lightcolour
+        self.levenshtein_window.darkcolour = self.master.darkcolour
+        self.levenshtein_window.db = self.master.db
+        name_search(self.levenshtein_window, namestring)
+        self.master.wait_window(self.levenshtein_window)
+        self.eleph = levenshtein_eleph
+
+        return(self.eleph)
+
 
 ################################################################################
 ## Display matriline                                                          ##
@@ -1094,9 +1120,11 @@ class censor_date(tk.Frame):
         self.__cutoff = float(self.e2.get())
         try:
             if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', self.e1.get()):
-                self.__eleph = self.master.db.get_elephant(calf_num = self.e1.get())
+                self.__eleph = self.master.db.get_elephant(calf_num=self.e1.get())
+            elif re.search(r'id=[\d]+', self.e1.get()):
+                self.__eleph = self.master.db.get_elephant(id=self.e1.get()[3:])
             else:
-                self.__eleph = self.master.db.get_elephant(num = self.e1.get())
+                self.__eleph = self.master.db.get_elephant(num=self.e1.get())
             self.__id = self.__eleph[0]
         except:
             print("Impossible to connect to the database.")
@@ -1137,18 +1165,19 @@ class censor_date(tk.Frame):
 ## Try to find an elephant based on its name                                  ##
 ################################################################################
 
-class fuzzy_name_search(tk.Frame):
+class name_search(tk.Frame):
 
-    def __init__(self, master, call_censoring_from_eleph=None):
+    def __init__(self, master, namestring):
         self.master = master
         tk.Frame.__init__(self, self.master)
-        self.call_censoring_from_eleph = call_censoring_from_eleph
+        self.namestring = namestring
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
+        self.call_levenshtein()
 
     def configure_gui(self):
-        self.master.title("Myanmar Elephant Tools")
+        self.master.title("Name matches")
         # self.master.resizable(False, False)
 
     def clear_frame(self):
@@ -1156,23 +1185,37 @@ class fuzzy_name_search(tk.Frame):
             widget.grid_forget()
 
     def create_widgets(self):
-        self.numlabel = tk.Label(self.master, text="Number:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.numlabel.grid(row=1, column=1, sticky = tk.W, padx=0, pady=5)
-        self.e1 = tk.Entry(self.master)
-        self.e1.grid(row=1, column=2, columnspan=2, sticky = tk.EW, padx=5, pady=5)
-        self.cutofflabel = tk.Label(self.master, text="P cut-off:", bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.cutofflabel.grid(row=2, column=1, sticky = tk.W, padx=0, pady=5)
-        self.e2 = tk.Entry(self.master, width=8)
-        self.e2.insert(10, 0.05)
-        self.e2.grid(row=2, column=2, columnspan=1, sticky = tk.EW, padx=5, pady=5)
-        self.findbutton = tk.Button(self.master, text='Find', width=15, command=self.call_censor_date, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.findbutton.grid(row=2, column=3, sticky=tk.EW, padx=5, pady=5)
-        self.result = tk.Text(self.master, height=10, width=47)
-        self.result.grid(row=3, column = 1, columnspan=3, sticky=tk.EW, padx=5, pady=5)
-        self.master.focus_set()
-        self.master.bind("<Return>", self.call_censor_date)
+        self.tv = ttk.Treeview(self.master, height=10)
+        self.tv['columns'] = ('Name', 'Number', 'Sex', 'Birth', 'Location')
+        self.tv.heading("#0", text='#')
+        self.tv.column("#0", anchor='w', width=40)
+        self.tv.heading('Name', text="Name")
+        self.tv.column('Name', anchor='w', width=120)
+        self.tv.heading('Number', text="Number")
+        self.tv.column('Number', anchor='w', width=60)
+        self.tv.heading('Sex', text="Sex")
+        self.tv.column('Sex', anchor='w', width=30)
+        self.tv.heading('Birth', text="Birth")
+        self.tv.column('Birth', anchor='w', width=80)
+        self.tv.heading('Location', text="Location")
+        self.tv.column('Location', anchor='w', width=80)
+        self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.EW)
 
-        if self.call_censoring_from_eleph is not None:
-            self.e1.insert(10, self.call_censoring_from_eleph)
-            self.call_censor_date()
-            self.e1.config(state=tk.DISABLED)
+        # Add a scrollbar
+        vsb = ttk.Scrollbar(self.master, orient="vertical", command=self.tv.yview)
+        vsb.grid(row=1, column=2, sticky=tk.NS)
+        self.tv.configure(yscrollcommand=vsb.set)
+
+        self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+    def OnDoubleClick(self, event):
+        item = self.tv.selection()[0]
+        __selection = self.tv.item(item, "text")
+        global levenshtein_eleph
+        levenshtein_eleph = self.namematches[(int(__selection) - 1)]
+        self.master.destroy()
+
+    def call_levenshtein(self):
+        self.namematches = self.master.db.levenshtein_match_name(self.namestring)
+        for i, m in enumerate(self.namematches):
+            self.tv.insert('', 'end', text=str(i + 1), values=(m[2], m[1], m[4], m[5], m[8]))

@@ -123,7 +123,7 @@ class dbconnect(tk.Frame):
             self.master.db_state = 1
             self.set_states()
 
-            findeleph(self.master, back = 0)
+            search_elephant(self.master, back = 0)
 
         except: #still an error here.
             print("Impossible to connect to database.")

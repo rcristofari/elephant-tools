@@ -108,3 +108,5 @@ ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_2_id`) REFERENCES `elephants` 
 ALTER TABLE `measures` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`code`) REFERENCES `measure_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `elephants` ADD FOREIGN KEY (`camp`) REFERENCES `location` (`name`) ON DELETE CASCADE ON UPDATE CASCADE ;
+
+ALTER TABLE `elephants` ADD FULLTEXT(`name`);

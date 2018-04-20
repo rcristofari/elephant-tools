@@ -160,7 +160,7 @@ class MainApplication(tk.Frame):
 ###################################################
 
     def call_find_elephant(self, *args):
-        findeleph(self.master, back = 0)
+        search_elephant(self.master, back = 0)
 
     def call_find_measure(self, *args):
         find_measure(self.master)
