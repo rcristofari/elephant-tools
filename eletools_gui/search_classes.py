@@ -75,8 +75,8 @@ class search_elephant(tk.Frame):
             elif re.search(r'id=[\d]+', self.e1.get()):
                 self.eleph = self.master.db.get_elephant(id=int(self.e1.get()[3:]))
 
-            elif re.search(r'#*', self.e1.get()):
-                self.eleph = self.call_levenshtein_match(self.e1.get()[1:])
+            elif re.search(r'n=*', self.e1.get()):
+                self.eleph = self.call_levenshtein_match(self.e1.get()[2:])
 
             else:
                 self.eleph = self.master.db.get_elephant(num=self.e1.get())

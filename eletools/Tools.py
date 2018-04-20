@@ -595,6 +595,7 @@ def regularise_calf_names(db, true_twin_list=None):
 
     # List to be populated with the sql update queries
     operations = []
+    operations.append(db.stamp())
 
     # Extract the list and data for the elephants which do not have a calf number
     anonymous_calves = db.get_anonymous_calves(anonymous=True)
@@ -620,40 +621,101 @@ def regularise_calf_names(db, true_twin_list=None):
     duplicate_calves = [item for item, count in collections.Counter(all_calf_names).items() if count > 1]
     duplicate_calves.sort()
 
+    # We make a list of the indices of the duplicate calves in the full list (each element is a pair of indices):
+    duplicate_index = []
+    calves_array = np.array(all_calf_names)
+    for d in duplicate_calves:
+        duplicate_index.append(list(np.where(calves_array == d)[0]))
+
+
     # We can already generate sql updates for all non-duplicate calves.
     for i, n in enumerate(new_calf_names):
         if n not in duplicate_calves:
-            operations.append(db.update_elephant(calf_num=n, id=new_ids[i]))
+            commits = db.get_elephant(id=new_ids[i])[11]
+            operations.append(db.update_elephant(calf_num=n, id=new_ids[i], commits=commits))
 
+    # Some talking:
     print("The following calves are either twins or duplicates:")
     for d in duplicate_calves:
         print(d)
 
+
+    # Now we proceed to verifying the authenticity of these double calves.
+    twin_mothers, twin_births, twin_sex, twin_names = [], [], [], []
+
     # If we have a validated list, we can check if these calves are authentic twins
     if true_twin_list is not None:
-        twin_mothers = []
-        twin_births = []
-        twin_sex = []
         with open(true_twin_list) as twinfile:
-            twinread = csv.reader(twinfile, delimiter=sep, quotechar="'")
+            twinread = csv.reader(twinfile, delimiter=',', quotechar="'")
             next(twinread)
             for t in twinread:
-                print(t)
                 twin_mothers.append(t[0])
                 twin_births.append(datetime.strptime(format_date(t[1]), '%Y-%m-%d'))
                 twin_sex.append(t[2])
-        print(twin_births)
+                twin_names.append(format_date(t[1])[0:4] + 'B' + t[0])
+
+    # This should never happen, but it would be a bad thing indeed if it did.
+    if duplicate_calves.__len__() != duplicate_index.__len__():
+        print("There is some unexplained error in the list lengths - get back to work.")
+        return(None)
+
+    # We make one pass to identify the duplicate calves that are in our trusted list:
+    untrusted_twins = []
+    twin_names_array = np.array(twin_names)
+    for i, d in enumerate(duplicate_calves):
+        if d in twin_names:
+            d_index = int(np.where(twin_names_array == d)[0])
+            twin_indices = duplicate_index[i]
+            twin_1_newname = str(twin_births[d_index].year) + 'A' + str(twin_mothers[d_index])
+            twin_2_newname = str(twin_births[d_index].year) + 'B' + str(twin_mothers[d_index])
+            twin_1_commits = db.get_elephant(id=all_ids[twin_indices[0]])[11]
+            twin_2_commits = db.get_elephant(id=all_ids[twin_indices[1]])[11]
+            operations.append(db.update_elephant(calf_num=twin_1_newname, id=all_ids[twin_indices[0]], commits=twin_1_commits))
+            operations.append(db.update_elephant(calf_num=twin_2_newname, id=all_ids[twin_indices[1]], commits=twin_2_commits))
+
+        else:
+            untrusted_twins.append([d, duplicate_index[i]])
+
+    # We make a second pass to identify the authentic twins we did not know about already:
+    # the fact that they are not in the dup list doesn't mean we don't know them: they can also already have regularly
+    # differentiated names
+    missing_twins = []
+    for i, d in enumerate(twin_names):
+        reject = False
+        if d not in duplicate_calves:
+            missing_twins.append(d)
+            # Do we already know about one (or two) of the twins?
+            twin_1, twin_2 = None, None
+            twin_1 = db.get_elephant(calf_num=str(twin_births[i].year) + 'A' + str(twin_mothers[i]))
+            twin_2 = db.get_elephant(calf_num=str(twin_births[i].year) + 'B' + str(twin_mothers[i]))
+            if twin_1 and twin_2:
+                print("Already reguarised in the DB")
+            elif twin_2 and not twin_1:
+                # Determine the correct sex:
+                pair_sex = twin_sex[i]
+                twin_2_sex = twin_2[4]
+                if pair_sex == 'MM' and twin_2_sex in ('M', 'UKN'):
+                    twin_1_sex = 'M'
+                elif pair_sex == 'FF' and twin_2_sex in ('F', 'UKN'):
+                    twin_1_sex = 'F'
+                elif pair_sex in ('MF', 'FM') and twin_2_sex == 'M':
+                    twin_1_sex = 'F'
+                elif pair_sex in ('MF', 'FM') and twin_2_sex == 'F':
+                    twin_1_sex = 'M'
+                elif pair_sex in ('MF', 'FM') and twin_2_sex == 'UKN':
+                    twin_1_sex = 'UKN'
+                else:
+                    print("There seems to be incompatibilities in sex determination between list and database")
+                    untrusted_twins.append([d, [None, None]])
+                    reject = True
+
+                if not reject:
+                    operations.append(db.insert_elephant(num=None, name=None, calf_num=(str(twin_births[i].year) + 'A' + str(twin_mothers[i])),
+                                                     sex=twin_1_sex, birth=twin_2[5], cw=twin_2[6], caught=twin_2[7],
+                                                     camp=twin_2[8], alive=None, research=None))
 
 
-    return(operations)
-    return([all_calf_names, all_ids])
-
-    ## IN PROGRESS #######
-
-
-
-
-
+    return(operations, untrusted_twins)
 
 ####################################################################################
 ## create_lifeline() generates the core plot for the lifeline plot class          ##
@@ -801,16 +863,3 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
         plt.axes().get_yaxis().set_visible(False)
         plt.show()
 
-
-
-
-
-####################################################################################
-## name_patterns() tries to match names using fuzzy search and known misspellings ##
-####################################################################################
-# This function only creates the name dictionary and will be called only the first the
-# pipeline is used in the session, and then kept in memory as a self.master object to
-# avoid excessive db back-and-forth
-
-def name_patterns(db):
-    pass
