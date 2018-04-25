@@ -7,7 +7,7 @@ sex ENUM('F','M','UKN') NOT NULL DEFAULT 'UKN',
 birth DATE NOT NULL,
 cw ENUM('captive','wild','UKN') NOT NULL DEFAULT 'UKN',
 age_capture INT(2),
-camp VARCHAR(64),
+camp INT(4),
 alive ENUM('Y','N','UKN') NOT NULL DEFAULT 'UKN',
 research ENUM('Y','N') NOT NULL DEFAULT 'N',
 commits TEXT
@@ -69,10 +69,9 @@ commits TEXT
 
 CREATE TABLE location (
 id INT(4) NOT NULL primary key auto_increment,
-name VARCHAR(32) UNIQUE,
-lat FLOAT NOT NULL,
-lon FLOAT NOT NULL,
-details TEXT
+code VARCHAR(32) UNIQUE,
+name VARCHAR(32),
+level ENUM('division','district','township')
 );
 
 CREATE TABLE commits (
@@ -107,6 +106,4 @@ ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_1_id`) REFERENCES `elephants` 
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_2_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`code`) REFERENCES `measure_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
-ALTER TABLE `elephants` ADD FOREIGN KEY (`camp`) REFERENCES `location` (`name`) ON DELETE CASCADE ON UPDATE CASCADE ;
-
-ALTER TABLE `elephants` ADD FULLTEXT(`name`);
+ALTER TABLE `elephants` ADD FOREIGN KEY (`camp`) REFERENCES `location` (`id`) ON UPDATE CASCADE ;

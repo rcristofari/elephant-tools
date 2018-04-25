@@ -4,4 +4,4 @@ password=
 host=
 database=
 port=3306
-wdir=
+wdir=~
