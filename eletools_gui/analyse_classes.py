@@ -470,8 +470,14 @@ class analyse_event_file(tk.Frame):
                     say = 'conflicting'
                     sC += 1
 
-                self.master.common_out.append(w[6][0]) # Here, there appeared a weird issue that forced me to add the [0]. Investigate further.
-                self.master.common_out.append(w[6][1])
+                if type(w[6]) is list and w[6].__len__() > 1:
+                    # This is for when we add death and simultaneously update the 'alive' status.
+                    self.master.common_out.append(w[6][0])
+                    self.master.common_out.append(w[6][1])
+                elif type(w[6]) is list and w[6].__len__() == 1:
+                    self.master.common_out.append(w[6][0])
+                else:
+                    self.master.common_out.append(w[6])
                 # print(self.master.common_out)
                 self.result.insert(tk.END, ("\tAnalysing event number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
@@ -524,6 +530,10 @@ class analyse_event_file(tk.Frame):
         self.tv.tag_configure('missing', background='#B3B3F1')
         self.tv.tag_configure('event', background='#CE6A85')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+        vsb = ttk.Scrollbar(self.view_window, orient="vertical", command=self.tv.yview)
+        vsb.grid(row=1, column=2, sticky=tk.NS)
+        self.tv.configure(yscrollcommand=vsb.set)
 
         self.view_window.focus_set()
         self.view_window.bind('<space>', self.close_view)

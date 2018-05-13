@@ -367,6 +367,10 @@ class read_event_file(tk.Frame):
         self.tv.tag_configure(1, background='#E08E45')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
+        vsb = ttk.Scrollbar(self.view_window, orient="vertical", command=self.tv.yview)
+        vsb.grid(row=1, column=2, sticky=tk.NS)
+        self.tv.configure(yscrollcommand=vsb.set)
+
         self.view_window.focus_set()
         self.view_window.bind('<space>', self.close_view)
 

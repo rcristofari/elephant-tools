@@ -3,5 +3,5 @@ username=
 password=
 host=
 database=
-port=3306
-wdir=~
+port=
+wdir=

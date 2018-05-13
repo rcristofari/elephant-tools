@@ -32,7 +32,7 @@ commits TEXT
 
 CREATE TABLE event_code (
 id INT(4) NOT NULL primary key auto_increment,
-class ENUM('capture','accident','health','death','alive','metadata') NOT NULL,
+class ENUM('capture','taming','accident','health','death','alive','metadata') NOT NULL,
 type VARCHAR(24) NOT NULL UNIQUE,
 descript TEXT,
 commits TEXT

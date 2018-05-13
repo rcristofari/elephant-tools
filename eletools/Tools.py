@@ -733,7 +733,6 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
     if not elephant:
         print("This id does not correspond to any elephant in the database")
     else:
-
         birth = elephant[5]
         censor_list = censor_elephant(db, id, survival='./__resources/Sx_curves', cutoff=0.05)
         if censor_list[0] == 0: # elephant not known dead yet
@@ -744,7 +743,6 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
 
         ########################################################################
         # Determine the type of plot:
-        plttype = None
         # Probably dead
         if censor_list[0] == 0 and (datetime.now().date() - likely_death).days >= 0:
             linelim = [birth, likely_death]
@@ -781,6 +779,21 @@ def create_lifeline(db, id=None, num=None, logs=True, taming=True, breeding=True
             elif plttype == 0:
                 plt.annotate(datetime.strftime(likely_death, '%Y-%m-%d') + ' (aged ' + str(round((likely_death - birth).days / 365.25)) + ')', xy=(likely_death, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
                 plt.annotate(datetime.strftime(last_seen, '%Y-%m-%d') + ' (' + etype + ')', xy=(last_seen, 0.15), verticalalignment='bottom', rotation=90, ha='center', fontsize=8)
+
+            # We add the wild period preceding capture (during which almost nothing shoud be known):
+            if elephant[6] == 'wild':
+                plt.axvspan(xmin=elephant[5], xmax=add_years(elephant[5], elephant[7]), color = 'k', alpha=0.25)
+                plt.axvline(x=add_years(elephant[5], elephant[7]), color = 'k', linestyle = '--', linewidth=0.75)
+                plt.annotate('Captured on ' + datetime.strftime(add_years(elephant[5], elephant[7]), '%Y-%m-%d') + ' (aged ' + str(elephant[7]) + ')', xy=(add_years(elephant[5], elephant[7]), 0.15), verticalalignment='bottom', rotation=90, ha='right', fontsize=8)
+
+                capt_method = None
+                #db.get_capture_method(id = elephant[0])
+                
+
+
+
+
+
 
         ########################################################################
         # Adding calves:
