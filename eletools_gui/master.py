@@ -63,6 +63,7 @@ class MainApplication(tk.Frame):
         self.filemenu.add_command(label="Import pedigrees", command=self.call_read_pedigree, underline=7, accelerator="Ctrl+p")
         self.filemenu.add_command(label="Import events", command=self.call_read_events, underline=8, accelerator="Ctrl+v")
         self.filemenu.add_command(label="Import measures", command=self.call_read_measures, underline=7, accelerator="Ctrl+m")
+        self.filemenu.add_command(label="Import a logbook", command=self.call_read_logbooks, underline=9, accelerator="Ctrl+l")
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Set project folder", command=self.set_wdir, underline=12, accelerator="Ctrl+f")
         self.filemenu.add_separator()
@@ -149,6 +150,9 @@ class MainApplication(tk.Frame):
 
     def call_read_measures(self, *args):
         read_measure_file(self.master)
+
+    def call_read_logbooks(self, *args):
+        read_logbook_file(self.master)
 
 ###################################################
 

@@ -53,67 +53,71 @@ def read_elephants(elefile, sep=';', is_file=True):
     for n in name:
         lcname.append(string.capwords(n))
     for c in camp:
-        lccamp.append(string.capwords(c))
+        lccamp.append(c.upper())
     name, camp = lcname, lccamp
     del lcname, lccamp
 
     ########## Try to guess sex, origin, alive and research
     sx, cwx, ax, rx = [], [], [], []
     for x in sex:
-        if x.casefold().strip() in ('male','m','males'):
+        if x.casefold().strip() in ('male', 'm', 'males'):
             sx.append('M')
-        elif x.casefold().strip() in ('female','f','females'):
+        elif x.casefold().strip() in ('female', 'f', 'females'):
             sx.append('F')
-        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('', 'none', 'na', 'null', 'unknown', 'ukn', 'n/a'):
             sx.append('UKN')
         else:
             sx.append(x)
+
     for x in cw:
-        if x.casefold().strip() in ('c','captive'):
+        if x.casefold().strip() in ('c', 'captive'):
             cwx.append('captive')
-        elif x.casefold().strip() in ('w','wild'):
+        elif x.casefold().strip() in ('w', 'wild'):
             cwx.append('wild')
-        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('', 'none', 'na', 'null', 'unknown', 'ukn', 'n/a'):
             cwx.append('UKN')
         else:
             cwx.append(x)
+
     for x in alive:
-        if x.casefold().strip() in ('1', 'y','yes','alive'):
+        if x.casefold().strip() in ('1', 'y', 'yes', 'alive'):
             ax.append('Y')
-        elif x.casefold().strip() in ('0', 'n','no','dead'):
+        elif x.casefold().strip() in ('0', 'n', 'no', 'dead'):
             ax.append('N')
-        elif x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('', 'none', 'na', 'null', 'unknown', 'ukn', 'n/a'):
             ax.append('UKN')
         else:
             ax.append(x)
+
     for x in research:
-        if x.casefold().strip() in ('1','y','yes'):
+        if x.casefold().strip() in ('1', 'y', 'yes'):
             rx.append('Y')
-        elif x.casefold().strip() in ('0','n','no','','none','na','null','unknown','ukn','n/a'):
+        elif x.casefold().strip() in ('0', 'n', 'no'):
             rx.append('N')
+        elif x.casefold().strip() in ('', 'none', 'na', 'null', 'unknown', 'ukn', 'n/a'):
+            rx.append('')
         else:
             rx.append(x)
+
     sex, cw, alive, research = sx, cwx, ax, rx
     del sx, cwx, ax, rx
 
     ########## Reformat as rows
-    rows=[]
-    for i,r in enumerate(num):
-        row=[num[i],name[i],calf_num[i],sex[i],birth[i],cw[i],caught[i],camp[i],alive[i],research[i]]
-        # print(row)
+    rows = []
+    for i, r in enumerate(num):
+        row = [num[i], name[i], calf_num[i], sex[i], birth[i], cw[i], caught[i], camp[i], alive[i], research[i]]
         rows.append(row)
-    # print("The last row is", rows[rows.__len__()-1])
 
     ########## Check data types row by row
     valid, remarks, rejected, issues = [], [], [], []
 
-    for i,row in enumerate(rows):
+    for i, row in enumerate(rows):
         reject = 0
         warnings = []
 
         ########## Sort out missing values
-        for j,x in enumerate(row):
-            if x.casefold().strip() in ('','none','na','null','unknown','ukn','n/a'):
+        for j, x in enumerate(row):
+            if x.casefold().strip() in ('', 'none', 'na', 'null', 'unknown', 'ukn', 'n/a'):
                 row[j] = None
             else:
                 pass
@@ -154,29 +158,32 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## sex
-        if row[3] in ('M','F','UKN'):
+        if row[3] in ('M', 'F', 'UKN'):
             pass
         elif row[3] == None:
             warnings.append("Missing sex at line " + str(i+1))
         else:
-            warnings.append("Sex must be M, F or UKN at line " + str(i+1) +" (here: " + str(row[3]) + ")")
+            warnings.append("Sex must be M, F or UKN at line " + str(i+1) + " (here: " + str(row[3]) + ")")
             reject = 1
 
     ########## birth
-        date = format_date(str(row[4]))
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
-            try:
-                row[4] = date
-            except ValueError:
+        if row[4]:
+            date = format_date(str(row[4]))
+            if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
+                try:
+                    row[4] = date
+                except ValueError:
+                    reject = 1
+                    warnings.append("Invalid date " + str(date) + " at line " + str(i+1))
+            elif date is None:
+                warnings.append("Missing birth date at line " + str(i+1))
+            else:
+                warnings.append("Format problem with birth date: " + str(date) + " at line " + str(i+1))
                 reject = 1
-                warnings.append("Invalid date " + str(date) + " at line " + str(i+1))
-        elif date is None:
-            warnings.append("Missing birth date at line " + str(i+1))
         else:
-            warnings.append("Format problem with birth date: " + str(date) + " at line " + str(i+1))
-            reject = 1
+            date = None
 
-    ########## CW
+            ########## CW
         if row[5] in ('captive','wild','UKN'):
             pass
         elif row[5] is None:
@@ -198,7 +205,7 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## camp
-        if re.search(r"^[a-zA-Z ]+$", str(row[7])):
+        if re.search(r"^[a-zA-Z0-9 ]+$", str(row[7])):
             pass
         elif row[7] is None:
             warnings.append("Missing camp at line " + str(i+1))
@@ -207,7 +214,7 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## alive
-        if row[8] in ('Y','N','UKN'):
+        if row[8] in ('Y', 'N', 'UKN'):
             pass
         elif row[8] is None:
             warnings.append("Missing information whether alive or not at line " + str(i+1))
@@ -216,10 +223,10 @@ def read_elephants(elefile, sep=';', is_file=True):
             reject = 1
 
     ########## research
-        if row[9] in ('Y','N'):
+        if row[9] in ('Y','N', None):
             pass
         else:
-            warnings.append("Format problem with living status: " + str(row[9]) + " at line " + str(i+1))
+            warnings.append("Format problem with research status: " + str(row[9]) + " at line " + str(i+1))
             reject = 1
 
     ######### Send out to the correct lists for writing to file
@@ -249,7 +256,7 @@ def read_elephants(elefile, sep=';', is_file=True):
 # calf_name, sex, birth, cw, caught, camp, alive, research, mother_num, mother_name
 # field names irrelevant, but order necessary
 
-def read_calves(elefile, sep=';', is_file=True, limit_age=28):
+def read_calves(elefile, sep=';', is_file=True, limit_age=28, solved=0):
     # Prepare empty list for column-wise parsing
     calf_name, calf_num, sex, birth, cw, caught, camp, alive, research, mother_num, mother_name = [], [], [], [], [], [], [], [], [], [], []
     fields = ['calf_name', 'calf_num', 'sex', 'birth', 'cw', 'caught', 'camp', 'alive', 'research', 'mother_num', 'mother_name']
@@ -483,64 +490,64 @@ def read_calves(elefile, sep=';', is_file=True, limit_age=28):
         row.append(warnings)
 
     # Verify that no two calves from the same mother have too close birth dates within the file
-
-    # Get the unique mothers:
-    mothers = []
-    all_mothers = []
-    for i, row in enumerate(rows):
-        all_mothers.append(row[9])
-        if row[9] not in mothers and row[9] is not None:
-            mothers.append(row[9])
-
-    # Keep only mothers that have more than one calf in the dataset:
-    non_unique_mothers = []
-    for m in mothers:
-        if all_mothers.count(m) > 1:
-            non_unique_mothers.append(m)
-    print(str(non_unique_mothers.__len__()) + " mothers have more than one calf in the input file: ", non_unique_mothers)
-
-    # For each non-unique mother, scan through calf birth dates:
-    for m in non_unique_mothers:
-
-        half_sibs_birth = []
-        half_sibs_index = []
+    if solved == 0:
+        # Get the unique mothers:
+        mothers = []
+        all_mothers = []
         for i, row in enumerate(rows):
-            if row[3] is not None and date_problem is False and row[9] == m:
-                half_sibs_birth.append(row[3])
-                half_sibs_index.append(i)
-                # print(half_sibs_index)
-                # print(half_sibs_birth)
+            all_mothers.append(row[9])
+            if row[9] not in mothers and row[9] is not None:
+                mothers.append(row[9])
 
-        if half_sibs_birth.__len__() > 1:
-            duplicate_birth_index = []
-            for i in range(half_sibs_birth.__len__()-1):
-                delta = abs((datetime.strptime(half_sibs_birth[(i+1)], '%Y-%m-%d')
-                            - datetime.strptime(half_sibs_birth[i], '%Y-%m-%d')).days / 30.44)
+        # Keep only mothers that have more than one calf in the dataset:
+        non_unique_mothers = []
+        for m in mothers:
+            if all_mothers.count(m) > 1:
+                non_unique_mothers.append(m)
+        print(str(non_unique_mothers.__len__()) + " mothers have more than one calf in the input file: ", non_unique_mothers)
 
-                if delta < limit_age:
-                    duplicate_birth_index.append(half_sibs_index[i])
-                    duplicate_birth_index.append(half_sibs_index[(i+1)])
+        # For each non-unique mother, scan through calf birth dates:
+        for m in non_unique_mothers:
+
+            half_sibs_birth = []
+            half_sibs_index = []
+            for i, row in enumerate(rows):
+                if row[3] is not None and date_problem is False and row[9] == m:
+                    half_sibs_birth.append(row[3])
+                    half_sibs_index.append(i)
+                    # print(half_sibs_index)
+                    # print(half_sibs_birth)
+
+            if half_sibs_birth.__len__() > 1:
+                duplicate_birth_index = []
+                for i in range(half_sibs_birth.__len__()-1):
+                    delta = abs((datetime.strptime(half_sibs_birth[(i+1)], '%Y-%m-%d')
+                                - datetime.strptime(half_sibs_birth[i], '%Y-%m-%d')).days / 30.44)
+
+                    if delta < limit_age:
+                        duplicate_birth_index.append(half_sibs_index[i])
+                        duplicate_birth_index.append(half_sibs_index[(i+1)])
 
 
-            duplicate_birth_index = list(set(duplicate_birth_index))
-            duplicate_birth_index.sort()
+                duplicate_birth_index = list(set(duplicate_birth_index))
+                duplicate_birth_index.sort()
 
-            if duplicate_birth_index is not None and duplicate_birth_index.__len__() > 1:
+                if duplicate_birth_index is not None and duplicate_birth_index.__len__() > 1:
 
-                for i, d in enumerate(duplicate_birth_index):
-                    rows[d][11] = 1
-                    others = []
-                    for z in duplicate_birth_index:
-                        others.append(z)
-                    others.pop(i)
-                    other_nums = [rows[x][0:2] for x in others]
-                    twin_message = '[Conflict] Calf number ' + str(rows[d][0]) + ' (' + str(rows[d][1]) + ') may be a duplicate of: '
-                    for o in other_nums:
-                        twin_message = twin_message + str(o[0]) + ' (' + str(o[1]) + ') '
-                    if rows[d][12]:
-                        rows[d][12].append(twin_message)
-                    else:
-                        rows[d][12] = [twin_message]
+                    for i, d in enumerate(duplicate_birth_index):
+                        rows[d][11] = 1
+                        others = []
+                        for z in duplicate_birth_index:
+                            others.append(z)
+                        others.pop(i)
+                        other_nums = [rows[x][0:2] for x in others]
+                        twin_message = '[Conflict] Calf number ' + str(rows[d][0]) + ' (' + str(rows[d][1]) + ') may be a duplicate of: '
+                        for o in other_nums:
+                            twin_message = twin_message + str(o[0]) + ' (' + str(o[1]) + ') '
+                        if rows[d][12]:
+                            rows[d][12].append(twin_message)
+                        else:
+                            rows[d][12] = [twin_message]
 
     # Sort rows in accepted or rejected:
     for row in rows:
@@ -800,115 +807,146 @@ def read_measures(elefile, sep=';', solved='N'):
     return[fields, valid, remarks, rejected, issues, units]
 
 ####################################################################################
-##  read_events() READ EVENT LIST FILE                                            ##
+##  read_logbook() READ RAW LOGBOOK FILE                                          ##
 ####################################################################################
+# The first line of the file contains the elephant's MTE number as "MTE NUMBER = xxxx"
+# The second line indicates whether the logboo is complete or not as "COMPLETE LOGBOOK = 0|1"
+# The third line is the header.
+# Then comes data.
 
-# an event datafile is composed of elephant num|calf_num, date, loc, code
-# here, code is entered as a alphanumeric shorthand. It will be checked later on against database.
+def read_logbook(elefile, sep=',', solved='N'):
+    # Input lists
+    date, health, teeth, chain, breeding, wounds, disease, seriousness, work, food, treatment, details \
+        = [], [], [], [], [], [], [], [], [], [], [], []
 
-def read_events(elefile, sep=',', solved='N'):
-    num, calf_num, date, loc, code = [], [], [], [], []
-    valid, remarks, rejected, issues =[], [], [], []
+    # Output lists
+    valid, remarks, rejected, issues = [], [], [], []
+
+    def append_gap(list, item):
+        if item is not None:
+            list.append(item)
+        else:
+            (list.append(''))
 
     with open(elefile) as elefile:
-        eleread = csv.reader(elefile, delimiter=sep, quotechar="'")
-        fields = next(eleread)
-        for row in eleread:
-            if row != []:
-                num.append(row[0])
+        eleread = csv.reader(elefile, delimiter=sep, quotechar='"')
 
-                if row[1] is not None:
-                    calf_num.append(row[1])
+        # Extract the elephant's number:
+        num = next(eleread)[0].replace(' ','').split('=')[1]
+
+        # Handling the binary flag indicating whether the logbook is complete:
+        complete_flag_raw = next(eleread)[0].replace(' ', '').split('=')[1]
+        try:
+            complete_flag = int(complete_flag_raw)
+        except ValueError:
+            warnings.append("Format problem with completeness indicator: " + str(complete_flag_raw) + " at line "
+                            + str(i + 1) + ", assuming that logbook is complete.")
+            complete = True
+
+        if complete_flag == 1:
+            complete = True
+        else:
+            complete = False
+
+        # Check num format and abort in case of error:
+        if not re.search(r"^[0-9a-zA-Z]+$", num):
+            warnings.append("Format problem with number: " + num + " at line " + str(i + 1) + " of the input file")
+
+        # If the number is OK, proceed:
+        else:
+            fields = next(eleread)
+            for row in eleread:
+                if row != []:
+                    append_gap(date, row[0])
+                    append_gap(health, row[1].upper())
+                    append_gap(teeth, row[2].lower())
+                    append_gap(chain, row[3].lower())
+                    append_gap(breeding, row[4].lower())
+                    append_gap(wounds, row[5])
+                    append_gap(disease, row[6])
+                    append_gap(seriousness, row[7].lower())
+                    append_gap(work, row[8])
+                    append_gap(food, row[9])
+                    append_gap(treatment, row[10])
+                    append_gap(details, row[11])
+
+            # reformat as rows
+            rows=[]
+            for i in range(len(date)):
+
+                warnings, reject = [], 0
+                row=[date[i], health[i], teeth[i], chain[i], breeding[i], wounds[i], disease[i], seriousness[i],
+                     work[i], food[i], treatment[i], details[i]]
+                rows.append(row)
+
+                ########## date [compulsory]
+                if row[0] == '' or row[0] is None:
+                    warnings.append("Missing date at line " + str(i + 4))
+                    reject = 1
                 else:
-                    calf_num.append('')
+                    this_date = format_date(str(row[0]))
+                    if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", this_date):
+                        row[0] = this_date
 
-                if row[2] is not None:
-                    date.append(row[2])
-                else:
-                    date.append('')
+                        # Check validity of the order:
+                        if i > 0:
+                            if this_date < format_date(date[i-1]):
+                                warnings.append("Order of the dates seems inconsistent at line " + str(i + 4) + " of the input file")
+                                reject = 1
+                    else:
+                        warnings.append("Format problem with date: " + str(this_date) + " at line " + str(i + 4) + " of the input file")
+                        reject = 1
 
-                if row[3] is not None:
-                    loc.append(row[3])
-                else:
-                    loc.append('')
+                ########## health
+                if row[1] not in ('FFF', 'FF', 'N', ''):
+                    warnings.append("Invalid health status " + row[1] + "at line " + str(i + 4) + " of the input file")
+                    reject = 1
 
-                code.append(row[4])
+                ########## teeth
+                if row[2] not in ('normal', 'medium', 'worn', ''):
+                    warnings.append("Invalid tooth status " + row[2] + "at line " + str(i + 4) + " of the input file")
+                    reject = 1
 
-    #reformat as rows
-    rows=[]
-    for i, n in enumerate(num):
-        warnings, reject = [], 0
-        row=[str(num[i]), calf_num[i], str(date[i]), loc[i], str(code[i])]
-        rows.append(row)
+                ########## chain
+                if row[3] not in ('fair', 'medium', 'bad', ''):
+                    warnings.append("Invalid chain status " + row[3] + "at line " + str(i + 4) + " of the input file")
+                    reject = 1
 
-    ########## num [COMPLUSORY or calf_num]
-        if re.search(r"^[0-9a-zA-Z]+$", row[0]):
-            pass
-        elif row[0] == '' and row[1] != '':
-            warnings.append("Missing number at line " + str(i+1))
-        elif row[0] == '' and row[1] == '':
-            warnings.append("Missing number at line " + str(i+1) + ", and no calf number. You need at least one.")
-            reject = 1
-        else:
-            warnings.append("Format problem with number: " + str(row[0]) + " at line " + str(i+1))
-            reject = 1
+                ########## breeding
+                if row[4] not in ('suspected_pregnant', 'pregnant', 'not_pregnant', 'calving', 'miscarriage', 'lactating', 'full_mammary', 'musth', ''):
+                    warnings.append("Invalid breeding status " + row[4] + "at line " + str(i + 4) + " of the input file")
+                    reject = 1
 
-    ########## calf_num
-        if re.search(r"^[0-9a-zA-Z]+$", row[1]):
-            pass
-        elif row[1] == '' and row[0] == '':
-            warnings.append("Missing calf number at line " + str(i+1) + ". You need at least one number.")
-            reject = 1
-        elif row[1] == '' and row[0] != '':
-            pass
-        else:
-            warnings.append("Format problem with calf number: " + str(row[1]) + " at line " + str(i+1))
-            reject = 1
+                ########## seriousness
+                if row[7] not in ('high','medium','low', ''):
+                    warnings.append("Invalid seriousness level " + row[7] + "at line " + str(i + 4) + " of the input file")
+                    reject = 1
 
-    ########## date
-        this_date = format_date(str(row[2]))
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", this_date):
-            try:
-                row[2] = this_date
-            except ValueError:
-                reject = 1
-                warnings.append("Invalid date " + str(this_date) + " at line " + str(i+1))
-        elif date is None:
-            warnings.append("Missing birth date at line " + str(i+1))
-        else:
-            warnings.append("Format problem with birth date: " + str(this_date) + " at line " + str(i+1))
-            reject = 1
+                ########## wounds, disease, work, food, treatment, details are all free-form, so there is basically
+                # nothing to check apart from the absence of single quotes that would screw up the SQL inserts.
+                if any("'" in x for x in row):
+                    warnings.append("Single quotes are forbiden, check line " + str(i + 4) + " of the input file")
+                    reject = 1
 
-    ########## loc
-        if re.search(r"^[a-zA-Z ]+$", row[3]):
-            row[3] = string.capwords(row[3])
-        elif row[3] == '':
-            warnings.append("Missing location at line " + str(i+1))
-        else:
-            warnings.append("Format problem with location: " + str(row[3]) + " at line " + str(i+1))
-            reject = 1
+            ######### send out to the correct list
+                if reject == 0:
+                    row.append(0)
+                    if warnings != []:
+                        remarks.append(warnings)
+                    valid.append(row)
+                elif reject == 1:
+                    row.append(1)
+                    issues.append(warnings)
+                    rejected.append(row)
+                row.append(warnings)
 
-    ########## code
-        if re.search(r"^[0-9a-zA-Z _]+$", row[4]):
-            row[4] = row[4].casefold().strip()
-        elif row[4] == '':
-            warnings.append("Missing event code at line " + str(i+1))
-        else:
-            warnings.append("Format problem with event code: " + str(row[4]) + " at line " + str(i+1))
-            reject = 1
+            if any(x in ('suspected_pregnant', 'pregnant', 'not_pregnant', 'calving', 'miscarriage',
+                         'lactating', 'full_mammary') for x in breeding):
+                sex = 'F'
+            else:
+                sex = None
 
-    ######### send out to the correct list
-        if reject == 0:
-            row.append(0)
-            if warnings != []:
-                remarks.append(warnings)
-            valid.append(row)
-        elif reject == 1:
-            row.append(1)
-            issues.append(warnings)
-            rejected.append(row)
-        row.append(warnings)
-    return[fields, valid, remarks, rejected, issues, rows]
+            return[fields, valid, remarks, rejected, issues, rows, [num, complete, sex]]
 
 ####################################################################################
 ##  parse_output() parses the total output into mysql and warings                 ##
@@ -1015,3 +1053,105 @@ def parse_reads(read_output, prefix='reads_'):
     with open(issue_name, "w") as issue:
         for i,x in enumerate(read_output[4]):
             issue.write(str(i)+': '+str(x)[2:-2]+'\n')
+
+
+####################################################################################
+##  read_events()                                                                 ##
+####################################################################################
+
+# an event datafile is composed of elephant num|calf_num, date, loc, code
+# here, code is entered as a alphanumeric shorthand. It will be checked later on against database.
+
+def read_events(elefile, sep=',', solved='N'):
+    num, date, loc, code, details = [], [], [], [], []
+    valid, remarks, rejected, issues =[], [], [], []
+
+    with open(elefile) as elefile:
+        eleread = csv.reader(elefile, delimiter=sep, quotechar="'")
+        fields = next(eleread)
+        for row in eleread:
+            if row != []:
+                num.append(row[0])
+
+                if row[1] is not None:
+                    date.append(row[1])
+                else:
+                    date.append('')
+
+                if row[2] not in (None, 'NA', 'Na', 'na'):
+                    loc.append(row[2])
+                else:
+                    loc.append('')
+
+                code.append(row[3])
+
+                details.append(row[4])
+
+    #reformat as rows
+    rows=[]
+    for i, n in enumerate(num):
+        warnings, reject = [], 0
+        row=[str(num[i]), str(date[i]), loc[i], str(code[i]), str(details[i])]
+        rows.append(row)
+
+    ########## num
+        if re.search(r"^[0-9a-zA-Z]+$", row[0]):
+            pass
+        elif row[0] == '' and row[1] != '':
+            warnings.append("Missing number at line " + str(i+1))
+        elif row[0] == '' and row[1] == '':
+            warnings.append("Missing number at line " + str(i+1) + ", and no calf number. You need at least one.")
+            reject = 1
+        else:
+            warnings.append("Format problem with number: " + str(row[0]) + " at line " + str(i+1))
+            reject = 1
+
+    ########## date
+        this_date = format_date(str(row[1]))
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", this_date):
+            try:
+                row[1] = this_date
+            except ValueError:
+                reject = 1
+                warnings.append("Invalid date " + str(this_date) + " at line " + str(i+1))
+        elif date is None:
+            warnings.append("Missing birth date at line " + str(i+1))
+        else:
+            warnings.append("Format problem with birth date: " + str(this_date) + " at line " + str(i+1))
+            reject = 1
+
+    ########## loc
+        if re.search(r"^[0-9a-zA-Z ]+$", row[2]):
+            row[2] = row[2]
+        elif row[2] == '':
+            warnings.append("Missing location at line " + str(i+1))
+        else:
+            warnings.append("Format problem with location: " + str(row[2]) + " at line " + str(i+1))
+            reject = 1
+
+    ########## code
+        if re.search(r"^[0-9a-zA-Z _]+$", row[3]):
+            row[3] = row[3].casefold().strip()
+        elif row[3] == '':
+            warnings.append("Missing event code at line " + str(i+1))
+        else:
+            warnings.append("Format problem with event code: " + str(row[3]) + " at line " + str(i+1))
+            reject = 1
+
+    ########## details
+        if any("'" in x for x in row[4]):
+            warnings.append("Single quotes are forbiden, check line " + str(i+1) + " of the input file")
+            reject = 1
+
+    ######### send out to the correct list
+        if reject == 0:
+            row.append(0)
+            if warnings != []:
+                remarks.append(warnings)
+            valid.append(row)
+        elif reject == 1:
+            row.append(1)
+            issues.append(warnings)
+            rejected.append(row)
+        row.append(warnings)
+    return[fields, valid, remarks, rejected, issues, rows]

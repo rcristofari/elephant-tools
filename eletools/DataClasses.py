@@ -35,6 +35,7 @@ from eletools.Utilities import *
     # 32 : captive/wild
     # 64 : missing elephant
     # 128 : missing event type
+    # 256 : missing location
 
 
 # For the measure class:
@@ -87,15 +88,15 @@ class elephant:
         else:
             self.caught = caught
         if camp is not None:
-            self.camp=string.capwords(camp)
+            self.camp = camp.upper()
         else:
-            self.camp=camp
-        self.alive=alive
-        self.research=research
+            self.camp = camp
+        self.alive = alive
+        self.research = research
         self.flag = flag
 
 
-        # Prefixed parameters describe database content. They are private and are not modified (declared here for reference only)
+        # Prefixed parameters describe database content.
         self.__db_id = None
         self.__db_num = None
         self.__db_calf_num = None
@@ -110,23 +111,23 @@ class elephant:
         self.__db_commits = None
 
         # These variables pass the state of each operation to the next
-        self.__sourced=0
-        self.__checked=0
-        self.status=None #Result of the check() function
-        self.statement=None #SQL statement issued by the write() function
-        self.__toggle_write_flag=0
+        self.__sourced = 0
+        self.__checked = 0
+        self.status = None # Result of the check() function
+        self.statement = None # SQL statement issued by the write() function
+        self.__toggle_write_flag = 0
 
         # __x variables describe state of the comparison db/input
-        self.__xnum=0
-        self.__xcalf_num=0
-        self.__xname=0
-        self.__xsex=0
-        self.__xbirth=0
-        self.__xcw=0
-        self.__xcaught=0
-        self.__xcamp=0
-        self.__xalive=0
-        self.__xresearch=0
+        self.__xnum = 0
+        self.__xcalf_num = 0
+        self.__xname = 0
+        self.__xsex = 0
+        self.__xbirth = 0
+        self.__xcw = 0
+        self.__xcaught = 0
+        self.__xcamp = 0
+        self.__xalive = 0
+        self.__xresearch = 0
 
         # A list to gather warnings for each line:
         self.warnings = []
@@ -213,7 +214,8 @@ class elephant:
             self.__db_caught = results[7]
 
             if results[8] is not None:
-                self.__db_camp = string.capwords(results[8])
+                self.__db_camp = results[8]
+
             self.__db_alive = results[9]
             self.__db_research = results[10]
             self.__db_commits = results[11]
@@ -246,6 +248,7 @@ class elephant:
         if self.__sourced == 0:
             os.system('clear')
             print("\nCheck: You must source this elephant first using elephant.source().")
+
         elif self.__sourced == 2:
             print("This elephant is not in the database, you can proceed to write() directly.")
             self.in_input = ("\n-----------------------------------------"
@@ -281,32 +284,39 @@ class elephant:
             numwarning = None
             if self.__num is not None and self.__num == self.__db_num:
                 self.__xnum = 1
-                numwarning = ("Numbers match")
+                numwarning = "Numbers match"
                 if self.__db_calf_num == self.calf_num and self.calf_num is not None:
                     self.__xcalf_num = 1
-                    numwarning = ("Calf numbers match")
-                elif self.calf_num is not None and self.__db_calf_num is None:
-                    self.__xcalf_num = 2
-                    numwarning = ("Calf number was still unknown, updating database.")
+                    numwarning = "Calf numbers match"
+                # I don't really want to believe a calf number, rather biold it consistently.
+                # elif self.calf_num is not None and self.__db_calf_num is None:
+                #     self.__xcalf_num = 2
+                #     numwarning = "Calf number was still unknown, updating database."
                 elif self.__db_calf_num is None and self.calf_num is None:
                     self.__xcalf_num = 3
-                    numwarning = ("Calf number is still missing.")
+                    numwarning = "Calf number is still missing."
                 elif self.__db_calf_num is not None and self.calf_num is None:
                     self.__xcalf_num = 4
-                    numwarning = ("Calf number entered as"+str(self.__db_calf_num)+"in the database, no change.")
+                    numwarning = ("Calf number entered as" + str(self.__db_calf_num) + "in the database, no change.")
                 elif self.__db_calf_num is not None and self.calf_num is not None and self.calf_num != self.__db_calf_num:
                     self.__xcalf_num = 0
-                    numwarning = ("> Calf numbers are conflicting. You need to solve that manually.")
-            elif self.__num is None and self.__db_num is None:
+                    numwarning = "> Calf numbers are conflicting. You need to solve that manually."
+                else:
+                    numwarning = "Number: Non explicitely defined case. Be brave and look into it."
+
+
+            elif self.__num is None:
                 if self.calf_num is not None and self.calf_num == self.__db_calf_num:
                     self.__xnum = 3
                     self.__xcalf_num = 1
-                    numwarning = ("No adult number, but calf numbers match.")
-                elif self.calf_num is not None and self.__db_calf_num is None: #this should not be possible in the present version.
+                    numwarning = "No adult number, but calf numbers match."
+                # this should not be possible in the present version (no recorded number at all, impossible to match):
+                elif self.calf_num is not None and self.__db_calf_num is None:
                     self.__xnum = 3
                     self.__xcalf_num = 2
-                    numwarning = ("Calf number unknown so far, updating database.")
-                elif self.calf_num is None and self.__db_calf_num is not None: #this should not be possible in the present version.
+                    numwarning = "Calf number unknown so far, updating database."
+                # this should not be possible in the present version (no input number at all, impossible to match):
+                elif self.calf_num is None and self.__db_calf_num is not None:
                     self.__xnum = 3
                     self.__xcalf_num = 4
                     numwarning = ("Calf number entered as"+str(self.__db_calf_num)+"in the database, no change.")
@@ -317,17 +327,26 @@ class elephant:
                 elif self.calf_num is None and self.__db_calf_num is None: #this should not be possible in the present version.
                     self.__xnum = 0
                     self.__xcalf_num = 0
-                    numwarning = ("> You need at least an adult or a calf number.")
+                    numwarning = "> You need at least an adult or a calf number."
+                else:
+                    numwarning = "Number: Non explicitely defined case. Be brave and look into it."
+
             elif self.__num is not None and str(self.__num) != str(self.__db_num): #Impossible in the current version (match priority to num) but if later on: this means the match has been made on calf_num, so the case is clear on that side.
                 if self.calf_num == self.__db_calf_num: #just a check so far, but later on there may be research by birth date.
                     self.__xnum = 0
                     self.__xcalf_num = 1
-                    numwarning = ("> Adult numbers do not match. Please check the input.")
+                    numwarning = "> Adult numbers do not match. Please check the input."
+                else:
+                    numwarning = "Number: Non explicitely defined case. Be brave and look into it."
+
             #This is a slightly complicated case: we provided a num and a calf num, but fell back on calf num because num was absent. Not possible with the current version yet.
             elif self.calf_num is not None and self.__db_calf_num is None: #this means the match has been made on calf_num, so the case is clear on that side.
                 if self.calf_num == self.__db_calf_num: #just a check so far, but later on there may be research by birth date.
                     self.__xnum = 2
-                    numwarning = ("Adult number was still unknown, updating database.")
+                    numwarning = "Adult number was still unknown, updating database."
+                else:
+                    numwarning = "Number: Non explicitely defined case. Be brave and look into it."
+
             if numwarning is not None:
                 self.warnings.append(numwarning)
 
@@ -336,24 +355,24 @@ class elephant:
             if self.name is not None  and self.__db_name is not None and self.name in self.__db_name: #Partial match since there could be multiple names in the database
                 self.__xname = 1
                 self.name = self.__db_name #This is in case that name is a subset of database name
-                namewarning = ("Names match.")
+                namewarning = "Names match."
             elif self.__db_name is None and self.name is not None:
                 self.__xname = 2
-                namewarning = ("No known name yet, updating database.")
+                namewarning = "No known name yet, updating database."
             elif self.__db_name is None and self.name is None:
                 self.__xname = 3
-                namewarning = ("Name is still missing")
+                namewarning = "Name is still missing"
             elif self.__db_name is not None and self.name is None:
                 self.__xname = 4
                 namewarning = ("This elephant is known in database as "+str(self.__db_name)+" - no change.")
             else :
                 self.__xname = 0
                 if self.__solved == 'N':
-                    namewarning = ("> Different name in database. You need to solve the conflict manually.")
+                    namewarning = "> Different name in database. You need to solve the conflict manually."
                 if self.__solved =='Y':
                     self.name = self.__db_name + ", " + self.name
                     self.__xname = 2
-                    namewarning = ("> Alias name appended to database")
+                    namewarning = "> Alias name appended to database"
             if namewarning is not None:
                 self.warnings.append(namewarning)
 
@@ -361,14 +380,14 @@ class elephant:
             sexwarning = None
             if self.sex == self.__db_sex:
                 self.__xsex = 1
-                sexwarning = ("Sexes match.")
+                sexwarning = "Sexes match."
             elif self.__db_sex == 'UKN' and self.sex is not None:
                 self.__xsex = 2
-                sexwarning = ("No known sex yet, updating database.")
+                sexwarning = "No known sex yet, updating database."
             elif self.__db_sex == 'UKN' and self.sex is None:
-                self._xsex = 3
+                self.__xsex = 3
                 self.sex = self.__db_sex
-                sexwarning = ("Sex is still missing")
+                sexwarning = "Sex is still missing"
             elif self.__db_sex != 'UKN' and self.sex is None:
                 self.__xsex = 4
                 if self.__db_sex == 'M':
@@ -379,7 +398,7 @@ class elephant:
             else :
                 self.__xsex = 0
                 if self.__interactive == 1:
-                    sexwarning = ("> Different sex in database. You need to solve the conflict manually.")
+                    sexwarning = "> Different sex in database. You need to solve the conflict manually."
             if sexwarning is not None:
                 self.warnings.append(sexwarning)
 
@@ -387,13 +406,13 @@ class elephant:
             birthwarning = None
             if self.birth == self.__db_birth and self.birth is not None:
                 self.__xbirth = 1
-                birthwarning = ("Birth dates match.")
+                birthwarning = "Birth dates match."
             elif self.__db_birth is None and self.birth is not None:
                 self.__xbirth = 2
-                birthwarning = ("No known birth date yet, updating database.")
+                birthwarning = "No known birth date yet, updating database."
             elif self.__db_birth is None and self.birth is None:
                 self.__xbirth = 3
-                birthwarning = ("Birth date is still missing")
+                birthwarning = "Birth date is still missing"
             elif self.__db_birth is not None and self.birth is None:
                 self.__xbirth = 4
                 born = self.__db_birth
@@ -406,7 +425,7 @@ class elephant:
             else :
                 self.__xbirth = 0
                 if self.__interactive == 1:
-                    birthwarning = ("> Different birth date in database. You need to solve the conflict manually.")
+                    birthwarning = "> Different birth date in database. You need to solve the conflict manually."
             if birthwarning is not None:
                 self.warnings.append(birthwarning)
 
@@ -414,21 +433,21 @@ class elephant:
             wildwarning = None
             if self.cw == self.__db_cw:
                 self.__xcw = 1
-                wildwarning = ("Captive/wild matches.")
+                wildwarning = "Captive/wild matches."
             elif self.__db_cw == 'UKN' and self.cw is not None:
                 self.__xcw = 2
-                wildwarning = ("Unknown whether captive or wild so far, updating database.")
+                wildwarning = "Unknown whether captive or wild so far, updating database."
             elif self.__db_cw == 'UKN' and self.cw is None:
                 self.__xcw = 3
                 self.cw = self.__db_cw
-                wildwarning = ("Origin is still missing")
+                wildwarning = "Origin is still missing"
             elif self.__db_cw != 'UKN' and self.cw is None:
                 self.__xcw = 4
                 wildwarning = ("In the database, it is born "+str(self.__db_cw)+" - no change.")
             else:
                 self.__xcw = 0
                 if self.__interactive == 1:
-                    wildwarning = ("> Different origin in database. You need to solve the conflict manually.")
+                    wildwarning = "> Different origin in database. You need to solve the conflict manually."
             if wildwarning  is not None:
                 self.warnings.append(wildwarning)
 
@@ -437,13 +456,13 @@ class elephant:
             if self.cw == 'captive' or self.cw == 'UKN' or self.__db_cw == 'captive' or self.__db_cw =='UKN':
                 if self.caught == self.__db_caught and self.caught is not None:
                     self.__xcaught = 0
-                    caughtwarning = ("> Ages at capture match, but this elephant is registered as captive born. Check database and input data.")
+                    caughtwarning = "> Ages at capture match, but this elephant is registered as captive born. Check database and input data."
                 elif self.__db_caught is None and self.caught is not None:
                     self.__xcaught = 0
-                    caughtwarning = ("> No known age at capture yet, but this elephant is registered as captive born. Check your data.")
+                    caughtwarning = "> No known age at capture yet, but this elephant is registered as captive born. Check your data."
                 elif self.__db_caught is None and self.caught is None:
                     self.__xcaught = 1
-                    caughtwarning = ("Age at capture is still missing, and this elephant is registered as captive born. All good.")
+                    caughtwarning = "Age at capture is still missing, and this elephant is registered as captive born. All good."
                 elif self.__db_caught is not None and self.caught is None:
                     self.__xcaught = 0
                     self.caught = self.__db_caught
@@ -451,51 +470,63 @@ class elephant:
                 else :
                     self.__xcaught = 0
                     if self.__interactive == 1:
-                        caughtwarning = ("> Different age at capture in database. You need to solve the conflict manually.")
+                        caughtwarning = "> Different age at capture in database. You need to solve the conflict manually."
 
             elif self.cw == 'wild' or self.__db_cw == 'wild':
                 if self.caught == self.__db_caught and self.caught is not None:
                     self.__xcaught = 1
-                    caughtwarning = ("Ages at capture match.")
+                    caughtwarning = "Ages at capture match."
                 elif self.__db_caught is None and self.caught is not None:
                     self.__xcaught = 2
-                    caughtwarning = ("No known age at capture yet, updating database.")
+                    caughtwarning = "No known age at capture yet, updating database."
                 elif self.__db_caught is None and self.caught is None:
                     self.__xcaught = 3
-                    caughtwarning = ("Age at capture is still missing")
+                    caughtwarning = "Age at capture is still missing"
                 elif self.__db_caught is not None and self.caught is None:
                     self.__xcaught = 4
                     caughtwarning = ("In the database, it was captured at age "+str(self.__db_cw)+" - no change.")
                 else :
                     self.__xcaught = 0
                     if self.__interactive == 1:
-                        caughtwarning = ("> Different age at capture in database. You need to solve the conflict manually.")
+                        caughtwarning = "> Different age at capture in database. You need to solve the conflict manually."
                 if caughtwarning is not None:
                     self.warnings.append(caughtwarning)
 
             ############ Camp
             campwarning = None
-            if self.camp is not None and self.__db_camp is not None and self.camp in self.__db_camp:
+
+            # Check that this location is registered:
+            if self.camp is not None:
+                try:
+                    self.camp_id = self.__db.get_location(self.camp)[0]
+                except TypeError:
+                    campwarning = ("Camp " + self.camp + " is not registered yet.")
+                    self.__xcamp = 0
+            else:
+                self.camp_id = None
+
+
+            if self.camp is not None and self.__db_camp is not None and self.camp == self.__db_camp:
                 self.__xcamp = 1
                 self.camp = self.__db_camp
-                campwarning = ("Camps match.")
+                campwarning = "Camps match."
             elif self.__db_camp is None and self.camp is not None:
                 self.__xcamp = 2
-                campwarning = ("No known camp yet, updating database.")
+                campwarning = "No known camp yet, updating database."
             elif self.__db_camp is None and self.camp is None:
                 self.__xcamp = 3
-                campwarning = ("Camp is still missing")
+                campwarning = "Camp is still missing"
             elif self.__db_camp is not None and self.camp is None:
                 self.__xcamp = 4
-                campwarning = ("In the database, it comes from "+str(self.__db_camp)+" - no change.")
+                campwarning = ("In the database, it comes from " + str(self.__db_camp) + " - no change.")
             else :
                 self.__xcamp = 0
                 if self.__solved == 'N':
-                    campwarning = ("> Different camp in database. You need to solve the conflict manually.")
-                if self.__solved =='Y':
+                    campwarning = "> Different camp in database. You need to solve the conflict manually."
+                if self.__solved == 'Y':
                     self.camp = self.__db_camp + ", " + self.camp
                     self.__xcamp = 1
-                    campwarning = ("> New camp appended to database")
+                    campwarning = "> New camp appended to database"
             if campwarning is not None:
                 self.warnings.append(campwarning)
 
@@ -503,26 +534,26 @@ class elephant:
             alivewarning = None
             if self.alive == self.__db_alive:
                 self.__xalive = 1
-                alivewarning = ("Living status matches.")
+                alivewarning = "Living status matches."
             elif self.__db_alive == 'UKN' and self.alive is not None:
                 self.__xalive = 2
                 if self.alive == 'Y':
-                    alivewarning = ("We were not sure if was alive, updating database.")
+                    alivewarning = "We were not sure if was alive, updating database."
                 elif self.alive == 'N':
-                    alivewarning = ("We didn't know it was dead, updating database & requiescat in pace.")
+                    alivewarning = "We didn't know it was dead, updating database & requiescat in pace."
             elif self.__db_alive == 'UKN' and self.alive is None:
                 self.__xalive = 3
-                alivewarning = ("Still unknown whether alive or not.")
+                alivewarning = "Still unknown whether alive or not."
             elif self.__db_alive != 'UKN' and self.alive is None:
                 self.__xalive = 4
                 if self.__db_alive == 'Y':
-                    alivewarning = ("In the database, it is alive - no change")
+                    alivewarning = "In the database, it is alive - no change"
                 elif self.__db_alive == 'N':
-                    alivewarning = ("In the database, it is dead - no change, & requiescat in pace.")
+                    alivewarning = "In the database, it is dead - no change, & requiescat in pace."
             else :
                 self.__xalive = 0
                 if self.__interactive == 1:
-                    alivewarning = ("> Different living status in database. You need to solve the conflict manually.")
+                    alivewarning = "> Different living status in database. You need to solve the conflict manually."
             if alivewarning is not None:
                 self.warnings.append(alivewarning)
 
@@ -530,27 +561,27 @@ class elephant:
             researchwarning = None
             if self.research == self.__db_research and self.research is not None:
                 self.__xresearch = 1
-                researchwarning = ("Research status matches")
+                researchwarning = "Research status matches"
             elif self.research is not None and (self.__db_research is None or self.__db_research == 'N'):
                 self.__xresearch = 2
-                researchwarning = ("We didn't know that it was a research elephant, updating database.")
+                researchwarning = "We didn't know that it was a research elephant, updating database."
             elif self.research is None and self.__db_research is None:
                 sef.__xresearch = 2
                 self.research = 'N'
-                researchwarning = ("No information, setting database to Not a research elephant.")
+                researchwarning = "No information, setting database to Not a research elephant."
             elif self.research == 'N' and self.__db_research == 'Y':
                 self.__xresearch = 4
                 self.research = None
-                researchwarning = ("> If you wish to remove this elephant's research status, do it manually.")
+                researchwarning = "> If you wish to remove this elephant's research status, do it manually."
             elif self.research == 'Y' and (self.__db_research == 'N' or self.__db_research is None):
                 self.__xresearch = 2
-                researchwarning = ("Not yet a research elephant in the database, updating database.")
+                researchwarning = "Not yet a research elephant in the database, updating database."
             elif self.research is None and self.__db_research is not None:
                 self.__xresearch = 4
                 if self.__db_research == 'N':
-                    researchwarning = ("In the database, it is not a research elephant - no change")
+                    researchwarning = "In the database, it is not a research elephant - no change"
                 elif self.__db_research == 'Y':
-                    researchwarning = ("In the database, it is a research elephant - no change")
+                    researchwarning = "In the database, it is a research elephant - no change"
             if researchwarning is not None:
                 self.warnings.append(researchwarning)
 
@@ -560,10 +591,10 @@ class elephant:
                 now = datetime.now().date()
                 age = ((now - self.birth).days) / 365.25
                 if self.alive == 'Y' and age > 90:
-                    agewarning = ("> This elephant is now over 90 years old. Are you sure it is still alive?")
+                    agewarning = "> This elephant is now over 90 years old. Are you sure it is still alive?"
                     self.__xalive = 0
                 elif age < 0:
-                    agewarning = ("> This elephant is born in the future. We're doing science on the edge here.")
+                    agewarning = "> This elephant is born in the future. We're doing science on the edge here."
                     self.__xalive = 0
             if agewarning is not None:
                 self.warnings.append(agewarning)
@@ -571,6 +602,7 @@ class elephant:
         #Here, do the final fusion of data, and give an outcome (write to database or write out for manual conflict resolution)
 
         self.status = (self.__xnum, self.__xname, self.__xcalf_num, self.__xsex, self.__xbirth, self.__xcw, self.__xcaught, self.__xcamp, self.__xalive, self.__xresearch)
+
         self.__checked = 1
 
         return(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research, self.__db_commits)
@@ -612,7 +644,7 @@ class elephant:
         else:
             wcaught = None
         if self.__xcamp == 2:
-            wcamp = self.camp
+            wcamp = self.camp_id
         else:
             wcamp = None
         if self.__xalive == 2:
@@ -629,41 +661,42 @@ class elephant:
             print("\nWrite: You must check that the elephant is absent from the database first.")
 
         ########## If this elephant is not in the database yet,
-        # write an insert statement (consistency of data assumed).
+        # write an insert statement (consistency of data assumed). ## not necesarily a good idea...
 
         elif self.__sourced == 2:
 
             if self.__num is not None and self.birth is not None:
-
                 # this is outsourced to mysqlconnect
-                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp_id, self.alive, self.research)
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 2
 
             elif self.calf_num is not None and self.birth is not None:
-
                 # this is outsourced to mysqlconnect
-                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp, self.alive, self.research)
+                self.out = self.__db.insert_elephant(self.__num, self.name, self.calf_num, self.sex, self.birth, self.cw, self.caught, self.camp_id, self.alive, self.research)
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 2
 
-            elif self.birth is None:
+            elif self.__num is not None and self.birth is None:
                 self.out = "[Conflict] Elephant number " + str(self.__num) + " is not in the database yet, but you must provide at least number and birth date"
+
+            elif self.calf_num is not None and self.birth is None:
+                self.out = "[Conflict] Calf number " + str(self.calf_num) + " is not in the database yet, but you must provide at least number and birth date"
+
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 1
 
         ########## If the elephant has been checked and there is no conflict, write an update statement.
 
-        elif self.__checked == 1 and any(x == 0 for x in self.status) == False:
+        elif self.__checked == 1 and any(x == 0 for x in self.status) is False:
 
         ########## All fields are matching, no update (special case as "data already known")
-            if all(x in (1,3,4) for x in self.status):
+            if all(x in (1, 3, 4) for x in self.status):
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 8
                 self.out = "This elephant is already in the database, nothing to change."
                 pass
             else:
-                #this is outsourced to mysqlconnect
                 self.out = self.__db.update_elephant(wnum, wname, wcalf_num, wsex, wbirth, wcw, wcaught, wcamp, walive, wresearch, self.__db_commits, self.__db_id)
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag + 4
@@ -682,7 +715,7 @@ class elephant:
                     self.flag = self.flag + 2**(n+4)
 
             # Make a string of conflict field names for the warning field
-            f = ('num','name','calf_num','sex','birth','cw','age of capture','camp','alive','research')
+            f = ('num', 'name', 'calf_num', 'sex', 'birth', 'cw', 'age of capture', 'camp', 'alive', 'research')
             conflicts = ''
             for x in i:
                 conflicts = conflicts+', '+f[x]
@@ -702,7 +735,7 @@ class elephant:
         return(output_row)
 
 
-            ##Add a light check here to see that a captive elephant has no age at capture.
+            ## Add a light check here to see that a captive elephant has no age at capture.
 
 #  ##########################################################################
  ##############################################################################
@@ -719,7 +752,7 @@ class elephant:
 
 class pedigree:
 
-    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, flag=0, last_id=None):
+    def __init__(self, eleph_1=None, eleph_2=None, rel=None, coef=None, eleph_2_is_calf=False, flag=0, last_id=None, solved=0):
 
 
         # Non-prefixed parameters describe user input
@@ -745,6 +778,8 @@ class pedigree:
         self.__rel_2 = None
         self.__rel_fwd = None
         self.__rel_rev = None
+
+        self.__solved = solved
         self.flag = flag
 
         # Elephant 2 mode:
@@ -840,70 +875,73 @@ class pedigree:
                         #Testing the consistency of the relationship as entered in the database.
                         #Testing that the age difference is at least 7 years (should be tuned better).
                         #In case of problem, self.__sourced reverts to 0.
-                        agewarning = None
-                        if self.__rel_1[4] == 'mother':
-                            if delta > -10:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
-                            elif delta < -70:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
-                            else:
-                                pass
 
-                        if self.__rel_2[4] == 'mother':
-                            if delta < 10:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
-                            elif delta > 10:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
-                            else:
-                                pass
+                        if self.__solved == 'N':
 
-                        elif self.__rel_1[4] == 'father':
-                            if delta > -10:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
-                            elif delta < -70:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
-                            else:
-                                pass
+                            agewarning = None
+                            if self.__rel_1[4] == 'mother':
+                                if delta > -10:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
+                                elif delta < -70:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
+                                else:
+                                    pass
 
-                        elif self.__rel_2[4] == 'father':
-                            if delta < 10:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
-                            elif delta > 70:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
-                            else:
-                                pass
+                            if self.__rel_2[4] == 'mother':
+                                if delta < 10:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Mother too young ("+str(round(abs(delta)))+" years old)")
+                                elif delta > 10:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Mother too old ("+str(round(abs(delta)))+" years old)")
+                                else:
+                                    pass
 
-                        elif self.__rel_1[4] == 'offspring':
-                            if delta < 10:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
-                            elif delta > 70:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
-                            else:
-                                pass
+                            elif self.__rel_1[4] == 'father':
+                                if delta > -10:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
+                                elif delta < -70:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
+                                else:
+                                    pass
 
-                        elif self.__rel_2[4] == 'offspring':
-                            if delta > -10:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
-                            elif delta < -70:
-                                self.__sourced = 0
-                                agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
-                            else:
-                                pass
+                            elif self.__rel_2[4] == 'father':
+                                if delta < 10:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Father too young ("+str(round(abs(delta)))+" years old)")
+                                elif delta > 70:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Father too old ("+str(round(abs(delta)))+" years old)")
+                                else:
+                                    pass
 
-                        if agewarning is not None:
-                            print(agewarning)
-                            self.warnings.append(agewarning)
+                            elif self.__rel_1[4] == 'offspring':
+                                if delta < 10:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
+                                elif delta > 70:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
+                                else:
+                                    pass
+
+                            elif self.__rel_2[4] == 'offspring':
+                                if delta > -10:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Parent too young ("+str(round(abs(delta)))+" years old)")
+                                elif delta < -70:
+                                    self.__sourced = 0
+                                    agewarning = ("Error in database: Parent too old ("+str(round(abs(delta)))+" years old)")
+                                else:
+                                    pass
+
+                            if agewarning is not None:
+                                print(agewarning)
+                                self.warnings.append(agewarning)
 
                 if self.elephant_absent == 1:
                     self.__sourced = 0
@@ -1007,11 +1045,11 @@ class pedigree:
                     self.__xsex = 0
                     self.__checked = 0
                     structurewarning = (self.eleph_1 + " is not a female in the database, you cannot declare it as 'mother' here.")
-                elif delta < 10:
+                elif delta < 10 and self.__solved == 'N':
                     self.__xbirth = 0
                     self.__checked = 0
                     structurewarning = ("Mother too young (" + str(round(abs(delta))) + " years old)")
-                elif delta > 70:
+                elif delta > 70 and self.__solved == 'N':
                     self.__xbirth = 0
                     self.__checked = 0
                     structurewarning = ("Mother too old (" + str(round(abs(delta))) + " years old)")
@@ -1023,11 +1061,11 @@ class pedigree:
                     self.__xsex = 0
                     self.__checked = 0
                     structurewarning = (self.eleph_2+" is not a male in the database, you cannot declare it as 'father' here.")
-                elif delta < 10:
+                elif delta < 10 and self.__solved == 'N':
                     self.__xbirth = 0
                     self.__checked = 0
                     structurewarning = ("Father too young ("+str(round(abs(delta)))+" years old)")
-                elif delta > 70:
+                elif delta > 70 and self.__solved == 'N':
                     self.__xbirth = 0
                     self.__checked = 0
                     structurewarning = ("Father too old ("+str(round(abs(delta)))+" years old)")
@@ -1035,11 +1073,11 @@ class pedigree:
                     pass
 
             elif self.rel == 'offspring':  # eleph_1 must be younger than self.eleph_2 (10 to 70 years age difference)
-                if delta > -10:
+                if delta > -10 and self.__solved == 'N':
                     self.__xbirth = 0
                     self.__checked = 0
                     structurewarning = ("Parent too young ("+str(round(abs(delta)))+" years old)")
-                elif delta < -70:
+                elif delta < -70 and self.__solved == 'N':
                     self.__xbirth = 0
                     self.__checked = 0
                     structurewarning = ("Parent too old ("+str(round(abs(delta)))+" years old)")
@@ -1168,8 +1206,6 @@ class pedigree:
  ##############################################################################
    ##########################################################################
 
-#NEED TO ADD A DETECTION FOR REPLICATES IN THE READ MODULE (DON'T KNOW IF WE DO REPLICATES AT ALL?)
-
 class measure:
 
     def __init__(self, date, measure_id, measure, value, num=None, calf_num=None, replicate='N', solved = 'N', flag=0):
@@ -1235,7 +1271,7 @@ class measure:
 
             missing = None
             if self.__code is None:
-                missing = ("Measure type "+str(self.__measure)+" is not registered yet.\nPlease register it before proceeding (or check for typos)")
+                missing = ("Measure type " + str(self.__measure) + " is not registered yet.\nPlease register it before proceeding (or check for typos)")
                 self.__sourced = 1
                 self.__xmissval = 0
                 print(missing)
@@ -1336,11 +1372,11 @@ class measure:
                 if self.__xeleph == 1 and self.__xmissval == 1:
                     if self.__xval == 0:
                         if self.__xrep == 1:
-                            self.warnings.append("[Conflict] Value out of range for elephant "+str(self.__num)+" (here "+str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")")
+                            self.warnings.append("[Conflict] Value out of range for elephant " + str(self.__num) + " (here " + str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")")
                             if self.__toggle_write_flag == 0:
                                 self.flag = self.flag+16
                         elif self.__xrep == 0:
-                            self.warnings.append("[Conflict] Value "+str(self.__value)+" ("+str(self.__measure)+") for elephant "+str(self.__num)+" appears to be a duplicate")
+                            self.warnings.append("[Conflict] Value " + str(self.__value) + " (" + str(self.__measure)+") for elephant "+str(self.__num)+" appears to be a duplicate")
                             if self.__toggle_write_flag == 0:
                                 self.flag = self.flag+32
 
@@ -1385,21 +1421,31 @@ class measure:
 
 class event:
 
-    def __init__(self, date, code, num=None, calf_num=None, loc=None, solved = 'N', flag=0):
-        self.__num=num
-        self.__calf_num=calf_num
-        self.__date=datetime.strptime(date, '%Y-%m-%d').date()
-        self.__loc=loc
-        self.__code=code
-        if solved in ('Y','y','YES','yes'):
-            self.__solved='Y'
+    def __init__(self, date, code, num=None, loc=None, details=None, solved='N', flag=0):
+        self.__num = num
+        self.__date = datetime.strptime(date, '%Y-%m-%d').date()
+        self.__code = code
+        self.__code_id = None
+        if loc not in (None, ''):
+            self.__loc = loc
         else:
-            self.__solved='N'
+            self.__loc = None
+        self.__loc_id = None
+        self.__details = details
+
+        if solved in ('Y', 'y', 'YES', 'yes'):
+            self.__solved = 'Y'
+        else:
+            self.__solved = 'N'
+
+        self.__db_line = None
         self.__sourced = 0
         self.__checked = 0
         self.__xevent = 1
         self.__xdate = 1
+        self.__xloc = 1
         self.__xcw = 1
+        self.__xrep = 1
         self.warnings = []
         self.flag = flag
         self.__toggle_write_flag = 0
@@ -1410,17 +1456,15 @@ class event:
     # Like a measure, an event is considered redundant if it shares the same individual, date, and type.
 
     def source(self,db):
-        self.__db=db
+        self.__db = db
 
-        #Get the ID of the elephant:
-#        print(self.__num, type(self.__num))
-#        print(self.__calf_num, type(self.__calf_num))
-        if self.__num not in (None, ''):
-            self.__elephant = self.__db.get_elephant(num = self.__num)
-        elif self.__calf_num not in (None, ''):
-            self.__elephant = self.__db.get_elephant(calf_num = self.__calf_num)
+        # Get the ID of the elephant:
+        if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', str(self.__num)):
+            self.__elephant = self.__db.get_elephant(calf_num=self.__num)
+        elif self.__num not in (None, ''):
+            self.__elephant = self.__db.get_elephant(num=self.__num)
         else:
-            print("You need at least one identifying number")
+            print("You need an identifying number")
         if self.__elephant is None:
             print("This elephant is absent from the database. Impossible to add an event.")
             self.__xeleph = 0
@@ -1432,37 +1476,53 @@ class event:
             self.__db_cw = self.__elephant[6]
             self.__xeleph = 1
 
-            #Start by seeing if that measure type is present in the measure_code table:
+            # Start by seeing if that measure type is present in the measure_code table:
             try:
                 self.__code_id = self.__db.get_event_code(self.__code)[0]
                 self.__event_class = self.__db.get_event_code(self.__code)[1]
-            except:
+            except TypeError:
                 print("Event code", self.__code, "is not registered yet.\nPlease register it before proceeding (or check for typos)")
                 self.__xevent = 0
 
-            else:
-                self.__db_line = self.__db.get_event(self.__num, self.__date, self.__event_class)
-                #Cases where the measure is already entered in a similar form in the database:
-                if self.__db_line is not None:
+            # Same for the place:
+            if self.__loc is not None:
+                try:
+                    self.__loc_id = self.__db.get_location(self.__loc)[0]
+                except TypeError:
+                    print("Location " + self.__loc + " is not registered yet.\nPlease register it before proceeding (or check for typos)")
+                    self.__xloc = 0
 
-                    redundancy = None
-                    self.__db_code = self.__db_line[4]
-                    if self.__code_id == self.__db_code:
+            self.__db_line = self.__db.get_event(self.__num, self.__date, self.__event_class)
+
+            # Cases where the measure is already entered in a similar form in the database:
+            if self.__db_line:
+
+                redundancy = None
+                self.__db_code = self.__db_line[4]
+                print("We are here", self.__db_code, self.__code_id)
+
+                if self.__code_id == self.__db_code:
+                    self.__sourced = 1
+                    redundancy = ("[Elephant "+str(self.__num)+"]: An identical event is already entered in the database.")
+                    self.__xrep = 0
+
+                else:
+                    if self.__solved == 'N':
+                        redundancy = ("[Elephant "+str(self.__num)+"]: There is already an event of class '"+self.__event_class+"' for elephant "+str(self.__num)+" at that date in the database.")
                         self.__sourced = 1
-                        redundancy = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: An identical event is already entered in the database.")
                         self.__xrep = 0
-                    else:
-                        if self.__solved == 'N':
-                            redundancy = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: There is already an event of class '"+self.__event_class+"' for elephant "+str(self.__num)+" at that date in the database.")
-                            self.__sourced = 1
-                            self.__xrep = 0
-                    if redundancy is not None:
-                        self.warnings.append(redundancy)
 
-                #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
-                elif self.__db_line is None or (self.__db_line is not None and self.__solved == 'Y'):
-                    print("This event is not in the database yet.")
-                    self.__sourced = 2
+                    else:
+                        self.__sourced = 2
+                        self.__xrep = 1
+
+                if redundancy is not None:
+                    self.warnings.append(redundancy)
+
+            # Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
+            elif self.__db_line is None or (self.__db_line is not None and self.__solved == 'Y'):
+                print("This event is not in the database yet.")
+                self.__sourced = 2
 
     ################################################################################
     ## 'check' function checks consistency between database and new data          ##
@@ -1475,7 +1535,8 @@ class event:
 
     def check(self, db):
         if self.__sourced == 0:
-            print("You must verify the database first using source()")
+            print("You must verify the database first using source(), or correct sourcing errors (missing event type or location)")
+
         elif self.__sourced == 1:
             print("This event already appears to be in the database. Nothing to do.")
 
@@ -1493,22 +1554,23 @@ class event:
 
             deltawarning = None
             if delta < 0:
-                deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This event precedes this elephant's birth.")
+                deltawarning = ("[Elephant "+str(self.__num)+"]: This event precedes this elephant's birth.")
                 self.__xdate = 0
+
             elif delta > 100 and self.__solved == 'N':
-                deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This event occurs when the elephant is over 100 years. Please verify input.")
+                deltawarning = ("[Elephant "+str(self.__num)+"]: This event occurs when the elephant is over 100 years. Please verify input.")
                 self.__xdate = 0
 
             else:
                 if self.__event_class == 'death':
                     if self.__date_of_death is not None:
-                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
+                        deltawarning = ("[Elephant "+str(self.__num)+"]: This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
                         self.__xdate = 0
                     elif (self.__date - self.__last_alive).days < 0:
-                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
+                        deltawarning = ("[Elephant "+str(self.__num)+"]: This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
                         self.__xdate = 0
                     elif (self.__date - self.__last_breeding).days < 0:
-                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant had an offspring on "+datetime.strftime(self.__last_breeding, "%Y-%m-%d")+", check your input.")
+                        deltawarning = ("[Elephant "+str(self.__num)+"]: This elephant had an offspring on "+datetime.strftime(self.__last_breeding, "%Y-%m-%d")+", check your input.")
                         self.__xdate = 0
                     else:
                         print("Chronologies seem to match - updating database")
@@ -1517,7 +1579,7 @@ class event:
 
                 elif self.__event_class in ('capture','accident','health','alive','metadata'):
                     if self.__date_of_death is not None and (self.__date - self.__date_of_death).days > 0 and self.__code != 'logbook_end':
-                        deltawarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant was already six feet under by then. Please check your input.")
+                        deltawarning = ("[Elephant "+str(self.__num)+"]: This elephant was already six feet under by then. Please check your input.")
                         self.__xdate = 0
                     elif self.__date_of_death is None and self.__db_alive == 'UKN':
                             #If the event is less than 5 years ago and the elephant is now less than 90 years old, it switches to 'alive'
@@ -1532,14 +1594,13 @@ class event:
                         print("Chronologies seem to match.")
                         self.__xdate = 1
 
-
             if deltawarning is not None:
                 self.warnings.append(deltawarning)
 
             captwarning = None
             if self.__event_class == 'capture':
                 if self.__db_cw == 'captive':
-                    captwarning = ("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: You can't register a capture event for a captive-born elephant.")
+                    captwarning = ("[Elephant "+str(self.__num)+"]: You can't register a capture event for a captive-born elephant.")
                     self.__xcw = 0
                 elif self.__db_cw == 'UKN':
                     print("We didn't know this was a wild elephant - updating database.")
@@ -1562,23 +1623,28 @@ class event:
         self.__db = db
         self.out = []
 
-        # This is done here to prevent incrementation if source() is repeated by mistake
+        # This is done here to prevent incrementation if source() is repeated by mistake:
         if self.__sourced == 0:
             if self.__xeleph == 0:
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+64
-                    self.warnings.append("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This elephant could not be found in the database.")
+                    self.warnings.append("[Elephant "+str(self.__num)+"]: This elephant could not be found in the database.")
             elif self.__xevent == 0:
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+128
-                    self.warnings.append("[Elephant "+str(self.__num)+"/"+str(self.__calf_num)+"]: This event type is not yet registered the database.")
+                    self.warnings.append("[Elephant "+str(self.__num)+"]: This event type is not yet registered the database.")
+            elif self.__xloc == 0:
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag+256
+                    self.warnings.append("[Elephant "+str(self.__num)+"]: This location is not yet registered the database.")
 
+        # If the event is already known in the database:
         elif self.__sourced == 1:
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag+8
 
         if self.__checked == 1:
-            #If we need to update the "cw" or "alive" flags in the elephants table
+            # If we need to update the "cw" or "alive" flags in the elephants table
             if self.__update_cw == 0:
                 wcw = None
             elif self.__update_cw == 1:
@@ -1597,7 +1663,12 @@ class event:
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+4
 
-            insert = self.__db.insert_event(self.__elephant_id, self.__date, self.__loc, self.__code_id)
+            if self.__loc_id is None:
+                self.__loc_id = 'null'
+            if self.__details in (None, ''):
+                self.__details = 'null'
+
+            insert = self.__db.insert_event(self.__elephant_id, self.__date, self.__loc_id, self.__code_id, self.__details)
             self.out.append(insert)
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag+2
@@ -1615,7 +1686,7 @@ class event:
                 conflicts = 'date and origin'
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+48
-            out = "[Conflict] You need to solve conflicts for "+conflicts+" for elephant "+str(self.__num)+"/"+str(self.__calf_num)+" before proceeding."
+            out = "[Conflict] You need to solve conflicts for "+conflicts+" for elephant "+str(self.__num)+" before proceeding."
             self.warnings.append(out)
 
         for w in self.warnings:
@@ -1624,5 +1695,307 @@ class event:
         self.__toggle_write_flag = 1
 
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
-        output_row = [self.__num, self.__calf_num, self.__date, self.__loc, self.__code, self.flag, self.out]
+        output_row = [self.__num, self.__date, self.__loc_id, self.__code, self.__details, self.flag, self.out]
+        return(output_row)
+
+#  ##########################################################################
+ ##############################################################################
+###                                                                          ###
+##                              CLASS "LOGBOOK"                               ##
+###                                                                          ###
+ ##############################################################################
+   ##########################################################################
+
+# The Logbook object is the full logbook, not the singular entry. This way, identity, gender, start and end date
+# consistency are checked globally. The source() function retrieves all logbook entries for that elephant, with start
+# and end dates. The check() verifies overlaps and contradiction in time and identity. The write() issues INSERTs for
+# both the `logbooks` and the `events` tables (metadata events only of course).
+# A difference with other data classes is that the logbook has to be fully solved at read stage before being blasted. It
+# is not allowed to skip rows in this stage.
+
+
+class logbook:
+
+    def __init__(self, logbook_io, db, solved=False, flag=0):
+        self.__num = logbook_io[6][0]
+        self.__complete = logbook_io[6][1]
+        self.__sex = logbook_io[6][2]
+        self.__data = logbook_io[5]
+        self.__start = datetime.strptime(self.__data[0][0], '%Y-%m-%d').date()
+        self.__end = datetime.strptime(self.__data[-1][0], '%Y-%m-%d').date()
+        self.__db = db
+        self.__solved = solved
+        self.__elephant = None
+        self.__date_of_death = None
+        self.__known_logbooks = []
+
+        self.__sourced = 0
+        self.__checked = 0
+        self.__truncate = False
+        self.__update_sex = False
+        self.__xeleph = 0
+        # False means "there is a problem"
+        self.__xbirth = False
+        self.__xdeath = False
+        self.__xsex = False
+        self.__xread = True
+
+        self.out = []
+        self.warnings = []
+        self.flag = flag
+        self.__toggle_write_flag = 0
+
+    ################################################################################
+    ## 'source' function selects all logbook entries for that elephant            ##
+    ################################################################################
+
+    def source(self):
+
+        # Check that this elephant exists in the DB and extract basic information.
+
+                # This needs to be cascaded through if it is a CALF NUMBER, not an adult
+
+        self.__elephant = self.__db.get_elephant(num=self.__num)
+
+        if not self.__elephant:
+            print("This elephant is absent from the database. Impossible to add an event.")
+            self.__xeleph = 0
+
+        else:
+            self.__id = self.__elephant[0]
+            self.__db_sex = self.__elephant[4]
+            self.__db_birth = self.__elephant[5]
+            self.__db_alive = self.__elephant[9]
+            self.__db_cw = self.__elephant[6]
+            self.__xeleph = 1
+
+            # Get the date of death if it exists:
+            self.__date_of_death = self.__db.get_date_of_death(id=self.__id)
+
+            # Get the boundaries of known logbooks:
+            self.__known_logbooks = [] # Reset in case Source is run several times
+            l = self.__db.get_logbook_coordinates(id=self.__id)
+            for x in l:
+                self.__known_logbooks.append(x[2:4])
+
+            # DATE VERIFICATION:
+            # Verify if this logbook covers an unknown period: By default, a logbook is only allowed to exist outside
+            # known logbooks, or with the same start date as the latest known book but with a later end date (in which
+            # case it will be truncated)
+
+            # A function to check if two dates are within a window, and their order:
+            def fuzzy_eqdate(date_1, date_2, thres=7):
+                try:
+                    sign = round((date_2 - date_1).days / abs((date_2 - date_1).days))
+                except ZeroDivisionError:
+                    sign = 0
+                if abs((date_2 - date_1).days) < thres:
+                    sign = 0
+                return(sign)
+
+            if self.__known_logbooks and not self.__solved:
+
+                # Is the logbook older than all known logbooks?
+                if fuzzy_eqdate(self.__end, self.__known_logbooks[0][0]) >= 0:
+                    self.__sourced = 2
+                    print("This logbook comes before all known logbooks for that elephant.")
+
+                # Is the logbook more recent than all known logbooks?
+                elif fuzzy_eqdate(self.__known_logbooks[-1][1], self.__start) >= 0:
+                    self.__sourced = 2
+                    print("This logbook comes after all known logbooks for that elephant.")
+
+                # Is the logbook the continuation of the latest known logbook?
+                elif fuzzy_eqdate(self.__start, self.__known_logbooks[-1][0]) == 0 and fuzzy_eqdate(self.__end, self.__known_logbooks[-1][1]) == -1:
+                    # Careful: this is a continuation, we need to handle that (exclude the duplicate rows but ask for a check).
+                    self.__sourced = 2
+                    self.__truncate = True
+                    print("This logbooks appears to continuate a known logbook. Overlapping period will be truncated.")
+
+                # Is the logbook in the interval between two known logbooks?
+                else:
+                    for i in range(len(self.__known_logbooks)):
+                        if fuzzy_eqdate(self.__known_logbooks[i][1], self.__start) >= 0 and fuzzy_eqdate(self.__end, self.__known_logbooks[(i+1)][0]) >= 0 :
+                            self.__sourced = 2
+                            print("This logbook fills a gap between two known logbooks.")
+                        else:
+                            self.__sourced = 1
+                            print("This logbook overlaps with an already known logbook. Please verify data manually.")
+
+            else:
+                self.__sourced = 2
+                print("No control will be performed on dates.")
+
+    ################################################################################
+    ## 'check' function checks consistency between database and new data          ##
+    ################################################################################
+
+    def check(self):
+
+        if self.__sourced == 0:
+            if self.__xeleph == 0:
+                print("[Elephant " + str(self.__num) + "/" + str(self.__calf_num)
+                                        + "]: This elephant could not be found in the database.")
+            else:
+                print("You must verify the database first using source()")
+            self.__checked = 1
+
+        elif self.__sourced == 1:
+            print("This logbook appears overlap with known data. You need to check manually.")
+            self.__checked = 1
+
+        elif self.__sourced == 2:
+
+            # Check that no line was rejected at the IO stage:
+            if any(f[12] == 1 for f in self.__data) and not self.__solved:
+                self.warnings.append("Some lines were rejected during reading. Please verify the input file")
+                self.__xread = False
+
+            # Check consistency with date of birth (tolerance of 2 weeks):
+            if (self.__start - self.__db_birth).days < -14:
+                self.__xbirth = False
+                self.warnings.append("This logbooks starts too long before the birth of the elephant.")
+            else:
+                self.__xbirth = True
+
+            # Check consistency with date of death (tolerance of 2 weeks):
+            if self.__date_of_death:
+                if (self.__date_of_death - self.__end).days < -14:
+                    self.__xdeath = False
+                    self.warnings.append("This logbooks ends too long after the death of the elephant.")
+            else:
+                self.__xdeath = True
+
+            # Check consistency with sex
+            if self.__sex is not None and self.__db_sex != 'UKN' and self.__sex != self.__db_sex:
+                self.__xsex = False
+                self.warnings.append("This elephant shows female breeding events in its logbook, but is not registered "
+                                     "as such in the database")
+            elif self.__sex is not None and self.__db_sex == 'UKN':
+                self.__update_sex = True
+                self.__xsex = True
+            else:
+                self.__xsex = True
+
+            # Set the __checked flag according to results:
+            if self.__xbirth and self.__xdeath and self.__xsex and self.__xread:
+                self.__checked = 2
+
+            # This means something is off, whatever it is
+            else:
+                self.__checked = 1
+
+    ################################################################################
+    ## 'write' function writes out the sql instert statement or an error          ##
+    ################################################################################
+
+    def write(self):
+        self.out = []
+
+        # This is done here to prevent incrementation if source() is repeated by mistake
+        if self.__sourced == 0:
+            if self.__xeleph == 0:
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 64
+                    self.warnings.append("[Elephant " + str(self.__num)
+                                         + "]: This elephant could not be found in the database.")
+
+        # (overlapping with) already known data
+        elif self.__sourced == 1:
+            self.warnings.append("[Elephant " + str(self.__num)
+                                 + "]: This logbook overlaps with an existing logbook in the database.")
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 8
+
+        # Elephant is known and data is unknown:
+
+        # If everything is alright:
+        elif self.__checked == 2:
+
+            # If we need to update the sex in the elephants table
+            if self.__update_sex:
+                wsex = self.__sex
+            else:
+                wsex = None
+
+            statements = []
+            if wsex is not None:
+                update = self.__db.update_elephant(id=self.__id, sex=wsex)
+                statements.append(update)
+
+                # Signal that data will be updated
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 4
+
+            # Replace null strings by None and generate per-line insert statements:
+            for line in self.__data:
+                for i, x in enumerate(line):
+                    if x == '':
+                        line[i] = None
+
+                statements.append(self.__db. insert_logbook_line(elephant_id=self.__id, date=line[0], health=line[1],
+                                                                 teeth=line[2], chain=line[3], breeding=line[4],
+                                                                 wounds=line[5], disease=line[6], seriousness=line[7],
+                                                                 work=line[8], food=line[9], treatment=line[10],
+                                                                 details=line[11]))
+            for s in statements:
+                self.out.append(s)
+
+            # Signal that data will be inserted:
+            if self.__toggle_write_flag == 0:
+                self.flag = self.flag + 2
+
+        # If something was off during checking, be explicit about it here:
+        elif self.__checked == 1:
+
+            if self.__xbirth is False and self.__xdeath is True and self.__xsex is True:
+                conflicts = 'birth'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 16
+
+            if self.__xbirth is True and self.__xdeath is False and self.__xsex is True:
+                conflicts = 'death'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 32
+
+            if self.__xbirth is True and self.__xdeath is True and self.__xsex is False:
+                conflicts = 'sex'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 64
+
+            if self.__xbirth is False and self.__xdeath is False and self.__xsex is True:
+                conflicts = 'birth and death'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 48
+
+            if self.__xbirth is True and self.__xdeath is False and self.__xsex is False:
+                conflicts = 'death and sex'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 96
+
+            if self.__xbirth is False and self.__xdeath is True and self.__xsex is False:
+                conflicts = 'sex and birth'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 80
+
+            if self.__xbirth is False and self.__xdeath is False and self.__xsex is False:
+                conflicts = 'birth, death and sex'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 112
+
+            if self.__xread is False:
+                conflicts = 'input file format'
+                if self.__toggle_write_flag == 0:
+                    self.flag = self.flag + 128
+
+            conflicts_line = "[Conflict] You need to solve conflicts for " + conflicts + " for elephant " + str(self.__num) + " before proceeding."
+            self.warnings.append(conflicts_line)
+
+        for w in self.warnings:
+            self.out.append(w)
+
+        self.__toggle_write_flag = 1
+
+        # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
+        output_row = [self.__data, self.flag, self.out]
         return(output_row)

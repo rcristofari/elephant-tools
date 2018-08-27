@@ -98,6 +98,13 @@ class search_elephant(tk.Frame):
             self.linebutton.config(state=tk.NORMAL)
             self.censorbutton.config(state=tk.NORMAL)
 
+            # Extract the location details:
+            try:
+                self.__loc = self.master.db.get_location(code=self.eleph[8])
+                self.__locstring = self.__loc[2] + " " + self.__loc[3] + " (" + self.__loc[1] + ")"
+            except ValueError:
+                self.__locstring = "unknown"
+
             born = self.eleph[5]
             now = datetime.now().date()
             age = round(((now - born).days / 365.25))
@@ -127,7 +134,7 @@ class search_elephant(tk.Frame):
                 +"\n Birth date:\t\t"+str(self.eleph[5])+" ("+str(age)+" y.b.p.)"
                 +"\n Origin:\t\t"+str(self.eleph[6])
                 +"\n Age at capture:\t\t"+str(self.eleph[7])
-                +"\n Camp:\t\t"+str(self.eleph[8])
+                +"\n Camp:\t\t"+self.__locstring
                 +"\n Alive:\t\t"+censorstr
                 +"\n--------------------------------------------------"
                 +"\n Research:\t\t"+str(self.eleph[10]))
@@ -343,25 +350,32 @@ class age_gaps(tk.Frame):
             self.searchbutton=tk.Button(self.master, text='Search', width=15, command=self.call_get_all_offsprings, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
             self.searchbutton.grid(row=3, column=2, sticky=tk.E, pady=5)
             self.tv = ttk.Treeview(self.master, height=8)
-            self.tv['columns'] = ('ID','Number','Birth','Gap')
+            self.tv['columns'] = ('Num', 'Calf_num', 'Sex', 'Birth','Gap')
             self.tv.heading("#0", text='#')
-            self.tv.column("#0", anchor='center', width=20)
+            self.tv.column("#0", anchor='center', width=8)
             # Create fields
             for c in self.tv['columns']:
                 self.tv.heading(c, text=c)
-                self.tv.column(c, anchor='center', width=25)
+                self.tv.column(c, anchor='center', width=35)
             self.tv.grid(row=4, column=1, columnspan=2, sticky=tk.EW)
 
-    def call_get_all_offsprings(self):
+            self.master.focus_set()
+            self.master.bind("<Return>", self.call_get_all_offsprings)
+
+    def call_get_all_offsprings(self, *args):
         for item in self.tv.get_children():
             self.tv.delete(item)
-        self.result = self.master.db.get_all_offsprings(num = self.numentry.get(), age_gap=True, pairs = True, limit_age = 28)
-        print(self.result)
+        self.result = self.master.db.find_babies(num=self.numentry.get(), limit_age=28)
+
+        for r in self.result:
+            print(r)
+
         for i,r in enumerate(self.result):
-            if r[4]==0:
-                self.tv.insert('','end',text=str(i+1), values=r[0:4], tags = ('valid',))
-            elif r[4]==1:
-                self.tv.insert('','end',text=str(i+1), values=r[0:4], tags = ('conflict',))
+            if r[5] == 0:
+                self.tv.insert('', 'end', text=str(i+1), values=r[0:5], tags=('valid',))
+            elif r[5] == 1:
+                self.tv.insert('', 'end', text=str(i+1), values=r[0:5], tags=('conflict',))
+
         self.tv.tag_configure('conflict', background='#A30B37')
 
 ################################################################################

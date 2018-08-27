@@ -29,6 +29,8 @@ class mysqlconnect:
         self.__port=int(port)
         self.__db = pms.connect(host=self.__host, user=self.__usr, passwd=self.__pwd, db=self.__db, port=self.__port)
         self.__cursor = self.__db.cursor()
+        # This is the latest commit key (populated by the stamp() method):
+        self.__i = None
 
     def __del__(self):
         self.__db.close()
@@ -53,15 +55,13 @@ class mysqlconnect:
         try:
             self.__i = f[0][10]
         except:
-            print("Impossible to connect to database")
+            print("Impossible to connect to database to fetch the commits index state.")
 
-        #Get the running ID for measures
+        # Get the running ID for measures
         sql = "SELECT MAX(measure_id) FROM measures;"
-#        sql = "SHOW TABLE STATUS LIKE 'measures';"
         self.__cursor.execute(sql)
         f = self.__cursor.fetchall()
         try:
-#            self.__max_measure_id = f[0][10]-1
             self.__max_measure_id = f[0][0]
         except:
             print("Impossible to connect to database")
@@ -90,11 +90,11 @@ class mysqlconnect:
         self.__calf_num=calf_num
         self.__id=id
         if self.__num is not None and self.__id is None:
-            sql = "SELECT * FROM elephants WHERE num = %s;" % (quote(self.__num))
+            sql = "SELECT e.id, e.num, e.name, e.calf_num, e.sex, e.birth, e.cw, e.age_capture, l.code, e.alive, e.research, e.commits FROM elephants AS e LEFT JOIN location AS l ON e.camp = l.id WHERE num = %s;" % (quote(self.__num))
         elif self.__num is None and self.__calf_num is not None and self.__id is None:
-            sql = "SELECT * FROM elephants WHERE calf_num = %s;" % (quote(self.__calf_num)) ##Will open to a problem when several calves have the same ID and no adult ID...fix by matching on dates
+            sql = "SELECT e.id, e.num, e.name, e.calf_num, e.sex, e.birth, e.cw, e.age_capture, l.code, e.alive, e.research, e.commits FROM elephants AS e LEFT JOIN location AS l ON e.camp = l.id WHERE calf_num = %s;" % (quote(self.__calf_num))
         elif self.__num is None and self.__calf_num is None and self.__id is not None:
-            sql = "SELECT * FROM elephants WHERE id = %s;" % (self.__id)
+            sql = "SELECT e.id, e.num, e.name, e.calf_num, e.sex, e.birth, e.cw, e.age_capture, l.code, e.alive, e.research, e.commits FROM elephants AS e LEFT JOIN location AS l ON e.camp = l.id WHERE e.id = %s;" % (self.__id)
         else:
             print("Error: you one and only one identifier")
         try:
@@ -102,9 +102,9 @@ class mysqlconnect:
             results = self.__cursor.fetchall()
             if results:
                 return(results[0])
-        except Exception as ex: ##MAKE THIS MORE GENERAL (every exception?)
+        except Exception as ex:
             print(ex)
-            print ("Error: unable to fetch data")
+            print("Error: unable to fetch data")
 
 ################################################################################
 ## 'get_pedigree' function                                                        ##
@@ -369,7 +369,7 @@ class mysqlconnect:
 ## 'insert_elephant' function                                                 ##
 ################################################################################
 
-    def insert_elephant(self,num,name,calf_num,sex,birth,cw,caught,camp,alive,research):
+    def insert_elephant(self, num, name, calf_num, sex, birth, cw, caught, camp, alive, research):
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
@@ -566,18 +566,12 @@ class mysqlconnect:
 ## 'insert_event' function                                                    ##
 ################################################################################
 
-    def insert_event(self, id, date, loc, code, commits=None):
+    def insert_event(self, id, date, loc_id, code, details):
 
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
-            if commits is not None:
-                newcommits = (quote(str(commits)+','+str(self.__i)))
-            else:
-                newcommits = (quote(str(self.__i)))
-
-            statement = "INSERT INTO events (elephant_id, date, loc, code, commits) VALUES (%s, %s, %s, %s, %s);" % (id, quote(date), quote(loc), code, newcommits)
-
+            statement = "INSERT INTO events (elephant_id, date, loc, code, details, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (id, quote(date), loc_id, code, details, quote(str(self.__i)))
             return(statement)
 
 ################################################################################
@@ -680,6 +674,67 @@ class mysqlconnect:
                             duplicates.append(r)
 
                 print(duplicates)
+
+################################################################################
+## 'find_babies' function                                              ##
+################################################################################
+
+    def find_babies(self, num=None, id=None, limit_age = 28):
+
+        result = None
+
+        if num is None and id is None:
+            print("You must provide one identifier")
+        elif num is not None and id is None:
+            sql = "SELECT a.num AS MotherNum, b.num AS OffspringNum, b.calf_num AS OffspringCalfNum, b.sex AS OffspringSex, b.id AS OffspringId, b.birth AS OffspringBirth FROM pedigree AS p LEFT JOIN elephants AS a ON p.elephant_1_id = a.id LEFT JOIN elephants AS b ON p.elephant_2_id = b.id WHERE p.rel = 'mother' AND a.num=%s ORDER BY b.birth ASC;" % (str(num))
+        elif num is None and id is not None:
+            sql = "SELECT a.id AS MotherId, b.num AS OffspringNum, b.calf_num AS OffspringCalfNum, b.sex AS OffspringSex, b.id AS OffspringId, b.birth AS OffspringBirth FROM pedigree AS p LEFT JOIN elephants AS a ON p.elephant_1_id = a.id LEFT JOIN elephants AS b ON p.elephant_2_id = b.id WHERE p.rel = 'mother' AND a.id=%s ORDER BY b.birth ASC;" % (id)
+
+        try:
+            self.__cursor.execute(sql)
+            result = self.__cursor.fetchall()
+
+        except:
+            print("Impossible to connect to the database")
+
+        ages, ids, nums, calf_nums, sexes = [], [], [], [], []
+
+        for r in result:
+            nums.append(r[1])
+            calf_nums.append(r[2])
+            sexes.append(r[3])
+            ids.append(r[4])
+            ages.append(r[5])
+
+        differences = []
+        for i in range(result.__len__()-1):
+            difference = round((ages[i+1]-ages[i]).days/30.5)
+            differences.append(difference)
+
+
+        diff_array = np.array(differences)
+        suspicious_array = np.where(diff_array < limit_age)
+        out = list(map(list, suspicious_array))[0]
+
+        index = [0]
+        for d in differences:
+            index.append(d)
+
+        elephants = []
+        for i, j in enumerate(index):
+            line = [nums[i], calf_nums[i], sexes[i], ages[i], j, 0]
+            elephants.append(line)
+
+        e_out = []
+        for i, e in enumerate(elephants):
+            if any(x == i for x in out) or any(x == i-1 for x in out):
+                e[5] = 1
+                e_out.append(e)
+            else:
+                e_out.append(e)
+
+        return(e_out)
+
 
 ################################################################################
 ## 'get_measure_list' function                                                ##
@@ -922,3 +977,86 @@ class mysqlconnect:
 
         if matches:
             return(matches)
+
+################################################################################
+## 'insert_logbook_line' function                                             ##
+################################################################################
+
+    def insert_logbook_line(self, elephant_id, date, health=None, teeth=None, chain=None, breeding=None, wounds=None,
+                            disease=None, seriousness=None, work=None, food=None, treatment=None, details=None):
+
+        if self.__i is None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+
+            if not health:
+                health = 'null'
+            else:
+                health = quote(health)
+            if not teeth:
+                teeth = 'null'
+            else:
+                teeth = quote(teeth)
+            if not chain:
+                chain = 'null'
+            else:
+                chain = quote(chain)
+            if not breeding:
+                breeding = 'null'
+            else:
+                breeding = quote(breeding)
+            if not wounds:
+                wounds = 'null'
+            else:
+                wounds = quote(wounds)
+            if not disease:
+                disease = 'null'
+            else:
+                disease = quote(disease)
+            if not seriousness:
+                seriousness = 'null'
+            else:
+                seriousness = quote(seriousness)
+            if not work:
+                work = 'null'
+            else:
+                work = quote(work)
+            if not food:
+                food = 'null'
+            else:
+                food = quote(food)
+            if not treatment:
+                treatment = 'null'
+            else:
+                treatment = quote(treatment)
+            if not details:
+                details = 'null'
+            else:
+                details = quote(details)
+
+
+            statement = "INSERT INTO logbooks (elephant_id, date, health, teeth, chain, breeding, wounds, disease, seriousness, work, food, treatment, details, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);" % (elephant_id, date, health, teeth, chain, breeding, wounds, disease, seriousness, work, food, treatment, details, self.__i)
+            return(statement)
+
+################################################################################
+## 'get_location' function                                                    ##
+################################################################################
+
+    def get_location(self, code=None, locid=None):
+
+        self.__code = code
+        self.__locid = locid
+        if self.__code:
+            sql = "SELECT * FROM location WHERE code = %s;" % quote(self.__code)
+        elif self.__id:
+            sql = "SELECT * FROM location WHERE id = %s;" % int(self.__locid)
+
+        try:
+            self.__cursor.execute(sql)
+            results = self.__cursor.fetchall()
+            if results:
+                return(results[0])
+
+        except Exception as ex:
+            print(ex)
+            print("Error: unable to fetch data")

@@ -160,6 +160,10 @@ class analyse_elephant_file(tk.Frame):
         self.tv.tag_configure('conflicting', background='#A30B37')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
+        vsb = ttk.Scrollbar(self.view_window, orient="vertical", command=self.tv.yview)
+        vsb.grid(row=1, column=2, sticky=tk.NS)
+        self.tv.configure(yscrollcommand=vsb.set)
+
         self.view_window.focus_set()
         self.view_window.bind('<space>', self.close_view)
 
@@ -210,8 +214,7 @@ class analyse_elephant_file(tk.Frame):
         self.warning_window.destroy()
 
     def write_sql(self):
-        folder = askdirectory(title='Choose SQL file directory...')
-        print(self.master.common_out)
+        folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
         parse_output(self.master.common_out, self.master.db, folder)
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()
@@ -439,20 +442,21 @@ class analyse_event_file(tk.Frame):
         counter = 0
 
         for i,row in enumerate(self.events):
-            statenow="Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
+            statenow="Valid: "+str(sV)+"\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=2, highlightbackground=self.master.darkcolour)
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
 
             if self.break_loop != 0:
                 break
 
+            print(row)
             if row[5] == 1:
                 pass
 
             else:
                 counter += 1
-                num, calf_num, date, loc, code  = row[0:5]
-                v = event(num=num, calf_num=calf_num, date=date, code=code, loc=loc, solved = 'N', flag=row[5])
+                num, date, loc, code, details = row[0:5]
+                v = event(num=num, date=date, code=code, loc=loc, details=details, solved='Y', flag=row[5])
                 v.source(self.master.db)
                 v.check(self.master.db)
                 w = v.write(self.master.db)
@@ -478,7 +482,7 @@ class analyse_event_file(tk.Frame):
                     self.master.common_out.append(w[6][0])
                 else:
                     self.master.common_out.append(w[6])
-                # print(self.master.common_out)
+
                 self.result.insert(tk.END, ("\tAnalysing event number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
@@ -502,7 +506,7 @@ class analyse_event_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('num', 'calf_num', 'date', 'loc', 'code')
+        self.tv['columns'] = ('num', 'date', 'loc', 'code', 'details')
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=80)
         for c in self.tv['columns']:
@@ -547,8 +551,8 @@ class analyse_event_file(tk.Frame):
         self.warning_window.title("")
         self.warningbox = tk.Text(self.warning_window, height=10, width=65)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
-        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
-        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
+        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
         if flag == 8:
             self.warningbox.insert(tk.END, 'This event is already in the database.')
         else:
@@ -577,12 +581,11 @@ class analyse_event_file(tk.Frame):
 
 class analyse_measure_file(tk.Frame):
 
-    def __init__(self, master, calfvar, repvar, solvedvar):
+    def __init__(self, master, repvar, solvedvar):
         self.master = master
         tk.Frame.__init__(self, self.master)
         self.name = None
         self.break_loop = 0
-        self.calfvar = calfvar
         self.repvar = repvar
         self.solvedvar = solvedvar
         self.configure_gui()
@@ -643,10 +646,12 @@ class analyse_measure_file(tk.Frame):
                 counter += 1
 
                 measure_id, num, date, code, value  = row[0:5]
-                if self.calfvar == 'N':
-                    v = measure(num=num, date=date, measure=code, measure_id=measure_id, value=value, replicate=self.repvar, solved=self.solvedvar, flag=row[5])
-                elif self.calfvar == 'Y':
+
+                if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', str(num)):
                     v = measure(calf_num=num, date=date, measure=code, measure_id=measure_id, value=value, replicate=self.repvar, solved=self.solvedvar, flag=row[5])
+                else:
+                    v = measure(num=num, date=date, measure=code, measure_id=measure_id, value=value, replicate=self.repvar, solved=self.solvedvar, flag=row[5])
+
                 v.source(self.master.db)
                 v.check(self.master.db)
                 w = v.write(self.master.db)
@@ -688,10 +693,7 @@ class analyse_measure_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        if self.calfvar == 'N':
-            self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value')
-        else:
-            self.tv['columns'] = ('set', 'calf', 'date', 'code', 'value')
+        self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value')
         self.tv.heading("#0", text='#')
         self.tv.column("#0", anchor='center', width=80)
         for c in self.tv['columns']:

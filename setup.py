@@ -14,5 +14,9 @@ setup(name='eletools',
           'numpy',
           'pymysql',
           'ete3',
-          'PILLOW'
+          'PILLOW',
+          'pyqt5',
+          'matplotlib',
+          'pandas',
+          'seaborn'
       ])
