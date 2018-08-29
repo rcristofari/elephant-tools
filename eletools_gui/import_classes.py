@@ -324,7 +324,6 @@ class read_event_file(tk.Frame):
         self.master.bind('<Return>', self.call_analyse)
         self.master.bind('<space>', self.show_file_content)
 
-
     def call_read_events(self):
         if self.name is None:
             self.name = askopenfilename(initialdir=self.master.wdir, filetypes =(("CSV File", "*.csv"),("All Files","*.*")), title = "Choose an event definition file")
@@ -696,6 +695,8 @@ class read_logbook_file(tk.Frame):
         self.name = None
         self.master = master
         tk.Frame.__init__(self, self.master)
+        self.solvedvar = tk.BooleanVar()
+        self.solvedvar.set(False)
         self.configure_gui()
         self.clear_frame()
         self.create_widgets()
@@ -718,6 +719,8 @@ class read_logbook_file(tk.Frame):
         self.showfilebutton.grid(row=2, column=2, columnspan=1, sticky=tk.EW, padx=5, pady=5)
         self.analysebutton = tk.Button(self.master, text='Analyse', width=15, command=self.call_analyse, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
         self.analysebutton.grid(row=2, column=3, sticky=tk.E, padx=5, pady=5)
+        self.solvedbutton = tk.Checkbutton(self.master, text="This data has been verified manually", variable=self.solvedvar, onvalue=True, offvalue=False, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.solvedbutton.grid(row=5, column=1, sticky=tk.W)
         self.master.focus_set()
         self.master.bind('<Return>', self.call_analyse)
         self.master.bind('<space>', self.show_file_content)
@@ -805,8 +808,7 @@ class read_logbook_file(tk.Frame):
             text = "You haven't loaded any file yet."
             text.insert(tk.END, self.result_text)
         else:
-            self.call_read_events()
+            self.call_read_logbook()
 
     def call_analyse(self, *args):
-        pass
-        # analyse_event_file(self.master)
+        analyse_logbook_file(self.master, solved=self.solvedvar)

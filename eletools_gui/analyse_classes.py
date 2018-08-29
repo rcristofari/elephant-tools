@@ -1013,3 +1013,63 @@ class analyse_calf_file(tk.Frame):
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()
         self.result.see(tk.END)
+
+
+################################################################################
+## Batch analyse a logbook file                                                ##
+################################################################################
+
+class analyse_logbook_file(tk.Frame):
+
+    def __init__(self, master, solved=False):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.name = None
+        self.__solved = solved
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+        self.call_analyse_logbook()
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+        self.result = tk.Text(self.master, height=25, width=65)
+        self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+        self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+        self.writebutton.config(state="disabled")
+        self.master.focus_set()
+
+    def call_analyse_logbook(self):
+
+        lb = logbook(self.master.file_content, self.master.db)
+        lb.source()
+        lb.check()
+        lw = lb.write()
+
+        if any(x in [2, 4] for x in break_flag(lw[1])):
+            self.result.insert(tk.END, "\nThe logbook is valid and can be input in the database")
+        else:
+            for line in lw[2]:
+                self.result.insert(tk.END, "\n" + line + "\n")
+
+        for line in lw[2]:
+            self.master.common_out.append(line)
+
+        self.writebutton.config(state="normal")
+        self.result.update()
+        self.result.see(tk.END)
+
+    def write_sql(self):
+        folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
+        parse_output(self.master.common_out, self.master.db, folder, is_elephant=False)
+        self.result.insert(tk.END, ("\n\n------------------------------------------------------------------\n\n\tFiles written in "+folder))
+        self.result.update()
+        self.result.see(tk.END)

@@ -571,6 +571,10 @@ class mysqlconnect:
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
         else:
+            if not loc_id:
+                loc_id = 'null'
+            if not details:
+                details = 'null'
             statement = "INSERT INTO events (elephant_id, date, loc, code, details, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (id, quote(date), loc_id, code, details, quote(str(self.__i)))
             return(statement)
 
@@ -1035,7 +1039,7 @@ class mysqlconnect:
                 details = quote(details)
 
 
-            statement = "INSERT INTO logbooks (elephant_id, date, health, teeth, chain, breeding, wounds, disease, seriousness, work, food, treatment, details, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);" % (elephant_id, date, health, teeth, chain, breeding, wounds, disease, seriousness, work, food, treatment, details, self.__i)
+            statement = "INSERT INTO logbooks (elephant_id, date, health, teeth, chain, breeding, wounds, disease, seriousness, work, food, treatment, details, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);" % (elephant_id, quote(date), health, teeth, chain, breeding, wounds, disease, seriousness, work, food, treatment, details, self.__i)
             return(statement)
 
 ################################################################################

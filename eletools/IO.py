@@ -908,7 +908,7 @@ def read_logbook(elefile, sep=',', solved='N'):
                     reject = 1
 
                 ########## chain
-                if row[3] not in ('fair', 'medium', 'bad', ''):
+                if row[3] not in ('fair', 'medium', 'bad', 'no chain', ''):
                     warnings.append("Invalid chain status " + row[3] + "at line " + str(i + 4) + " of the input file")
                     reject = 1
 
@@ -957,6 +957,8 @@ def parse_output(stream, db, folder=None, is_elephant=True, conflicts_only=False
     stamp = db.get_stamp()
     statements = []
     warnings = []
+
+    stream.sort()
 
     if folder is None:
         statement_name = str(stamp)+"_operations.sql"

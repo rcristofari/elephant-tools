@@ -1938,6 +1938,15 @@ class logbook:
                                                                  wounds=line[5], disease=line[6], seriousness=line[7],
                                                                  work=line[8], food=line[9], treatment=line[10],
                                                                  details=line[11]))
+
+
+            start_code = self.master.db.get_event_code('logbook_start')[0]
+            end_code = self.master.db.get_event_code('logbook_end')[0]
+            startline = self.master.db.insert_event(self.__id, self.__start, None, start_code, None)
+            endline = self.master.db.insert_event(self.__id, self.__end, None, end_code, None)
+            self.out.append(startline)
+            self.out.append(endline)
+
             for s in statements:
                 self.out.append(s)
 
