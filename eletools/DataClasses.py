@@ -193,11 +193,33 @@ class elephant:
             print("You need either an elephant number or a calf number to proceed")
 
         if results is None:
-            self.__sourced = 2
-            if self.__num is not None:
-                print("Elephant number", self.__num, "is absent from the database.")
-            elif self.__num is None and self.calf_num is not None:
-                print("Calf number", self.calf_num, "is absent from the database.")
+
+            # Check that this location is registered:
+            if self.camp is not None:
+                try:
+                    self.camp_id = self.__db.get_location(self.camp)[0]
+                    self.__sourced = 2
+                    if self.__num is not None:
+                        print("Elephant number", self.__num, "is absent from the database.")
+                    elif self.__num is None and self.calf_num is not None:
+                        print("Calf number", self.calf_num, "is absent from the database.")
+
+                except TypeError:
+                    campwarning = ("camp " + self.camp + " is not registered yet.")
+                    self.camp_id = None
+                    self.__sourced = 1
+                    if self.__num is not None:
+                        print("Elephant number", self.__num, "is absent from the database, but " + campwarning)
+                    elif self.__num is None and self.calf_num is not None:
+                        print("Calf number", self.calf_num, "is absent from the database, but " + campwarning)
+            else:
+                self.camp_id = None
+                self.__sourced = 2
+                if self.__num is not None:
+                    print("Elephant number", self.__num, "is absent from the database.")
+                elif self.__num is None and self.calf_num is not None:
+                    print("Calf number", self.calf_num, "is absent from the database.")
+
 
         else:
             self.__sourced = 1
@@ -224,14 +246,14 @@ class elephant:
                     + "\n-----------------------------------------"
                     + "\nNumber:\t\t"+str(self.__db_num)
                     + "\nName:\t\t"+str(self.__db_name)
-                    + "\nCalf number:\t\t"+str(self.__db_calf_num)
+                    + "\nCalf number:\t"+str(self.__db_calf_num)
                     + "\nSex:\t\t"+str(self.__db_sex)
-                    + "\nBirth date:\t\t"+str(self.__db_birth)+", "+str(self.__db_cw)
+                    + "\nBirth date:\t"+str(self.__db_birth)+", "+str(self.__db_cw)
                     + "\nAge at capture:\t"+str(self.__db_caught)
                     + "\nCamp:\t\t"+str(self.__db_camp)
                     + "\nAlive:\t\t"+str(self.__db_alive)
                     + "\n-----------------------------------------"
-                    + "\nResearch:\t\t"+str(self.__db_research))
+                    + "\nResearch:\t"+str(self.__db_research))
 
             print("\nThis elephant is present in the database as:\n", self.in_db, sep='')
 
@@ -250,6 +272,7 @@ class elephant:
             print("\nCheck: You must source this elephant first using elephant.source().")
 
         elif self.__sourced == 2:
+
             print("This elephant is not in the database, you can proceed to write() directly.")
             self.in_input = ("\n-----------------------------------------"
             +"\nNumber:\t\t"+str(self.__num)
@@ -268,9 +291,9 @@ class elephant:
             self.in_input = ("\n-----------------------------------------"
             +"\nNumber:\t\t"+str(self.__num)
             +"\nName:\t\t"+str(self.name)
-            +"\nCalf number:\t\t"+str(self.calf_num)
+            +"\nCalf number:\t"+str(self.calf_num)
             +"\nSex:\t\t"+str(self.sex)
-            +"\nBirth date:\t\t"+str(self.birth)+", "+str(self.cw)
+            +"\nBirth date:\t"+str(self.birth)+", "+str(self.cw)
             +"\nAge at capture:\t"+str(self.caught)
             +"\nCamp:\t\t"+str(self.camp)
             +"\nAlive:\t\t"+str(self.alive)
@@ -502,31 +525,28 @@ class elephant:
                 except TypeError:
                     campwarning = ("Camp " + self.camp + " is not registered yet.")
                     self.__xcamp = 0
+                    self.camp_id = None
+                    print(campwarning)
             else:
                 self.camp_id = None
 
-
-            if self.camp is not None and self.__db_camp is not None and self.camp == self.__db_camp:
+            if self.camp_id is not None and self.__db_camp is not None and self.camp_id == self.__db_camp:
                 self.__xcamp = 1
-                self.camp = self.__db_camp
+                self.camp_id = self.__db_camp
                 campwarning = "Camps match."
-            elif self.__db_camp is None and self.camp is not None:
+            elif self.__db_camp is None and self.camp_id is not None:
                 self.__xcamp = 2
                 campwarning = "No known camp yet, updating database."
-            elif self.__db_camp is None and self.camp is None:
+            elif self.__db_camp is None and self.camp_id is None:
                 self.__xcamp = 3
                 campwarning = "Camp is still missing"
-            elif self.__db_camp is not None and self.camp is None:
+            elif self.__db_camp is not None and self.camp_id is None:
                 self.__xcamp = 4
                 campwarning = ("In the database, it comes from " + str(self.__db_camp) + " - no change.")
             else :
                 self.__xcamp = 0
-                if self.__solved == 'N':
-                    campwarning = "> Different camp in database. You need to solve the conflict manually."
-                if self.__solved == 'Y':
-                    self.camp = self.__db_camp + ", " + self.camp
-                    self.__xcamp = 1
-                    campwarning = "> New camp appended to database"
+                campwarning = "> Different camp in database. You need to solve the conflict manually."
+
             if campwarning is not None:
                 self.warnings.append(campwarning)
 
@@ -1564,7 +1584,7 @@ class event:
             else:
                 if self.__event_class == 'death':
                     if self.__date_of_death is not None:
-                        deltawarning = ("[Elephant "+str(self.__num)+"]: This elephant is already died on "+datetime.strftime(date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
+                        deltawarning = ("[Elephant "+str(self.__num)+"]: This elephant is already died on "+datetime.strftime(self.__date_of_death, "%Y-%m-%d")+". You can't kill what's already dead.")
                         self.__xdate = 0
                     elif (self.__date - self.__last_alive).days < 0:
                         deltawarning = ("[Elephant "+str(self.__num)+"]: This elephant was seen alive later, on "+datetime.strftime(self.__last_alive, "%Y-%m-%d")+", check your input.")
@@ -1574,7 +1594,8 @@ class event:
                         self.__xdate = 0
                     else:
                         print("Chronologies seem to match - updating database")
-                        self.__update_alive = 1
+                        if self.__db_alive != 'N':
+                            self.__update_alive = 1
                         self.__xdate = 1
 
                 elif self.__event_class in ('capture','accident','health','alive','metadata'):
@@ -1658,7 +1679,7 @@ class event:
 
             out = []
             if wcw is not None or walive is not None:
-                update = self.__db.update_elephant(id=self.__elephant_id, cw=wcw, alive=walive)
+                update = self.__db.update_elephant(id=self.__elephant_id, cw=wcw, alive=walive, commits=self.__elephant[11])
                 self.out.append(update)
                 if self.__toggle_write_flag == 0:
                     self.flag = self.flag+4
@@ -1933,17 +1954,17 @@ class logbook:
                     if x == '':
                         line[i] = None
 
-                statements.append(self.__db. insert_logbook_line(elephant_id=self.__id, date=line[0], health=line[1],
+                statements.append(self.__db.insert_logbook_line(elephant_id=self.__id, date=line[0], health=line[1],
                                                                  teeth=line[2], chain=line[3], breeding=line[4],
                                                                  wounds=line[5], disease=line[6], seriousness=line[7],
                                                                  work=line[8], food=line[9], treatment=line[10],
                                                                  details=line[11]))
 
 
-            start_code = self.master.db.get_event_code('logbook_start')[0]
-            end_code = self.master.db.get_event_code('logbook_end')[0]
-            startline = self.master.db.insert_event(self.__id, self.__start, None, start_code, None)
-            endline = self.master.db.insert_event(self.__id, self.__end, None, end_code, None)
+            start_code = self.__db.get_event_code('logbook_start')[0]
+            end_code = self.__db.get_event_code('logbook_end')[0]
+            startline = self.__db.insert_event(self.__id, self.__start, None, start_code, None)
+            endline = self.__db.insert_event(self.__id, self.__end, None, end_code, None)
             self.out.append(startline)
             self.out.append(endline)
 

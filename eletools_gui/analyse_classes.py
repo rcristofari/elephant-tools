@@ -552,15 +552,16 @@ class analyse_event_file(tk.Frame):
         self.warningbox = tk.Text(self.warning_window, height=10, width=65)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
         flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
-        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
         if flag == 8:
             self.warningbox.insert(tk.END, 'This event is already in the database.')
         else:
-            for w in warning:
-                if w.__len__() ==1:
-                    self.warningbox.insert(tk.END, str(w))
+            if warning:
+                if warning.__len__() == 1:
+                    self.warningbox.insert(tk.END, str(warning))
                 else:
-                    self.warningbox.insert(tk.END, str(w)+'\n')
+                    for w in warning:
+                        self.warningbox.insert(tk.END, str(w)+'\n')
         self.warningbox.config(state=tk.DISABLED)
         self.warning_window.focus_set()
         self.warning_window.bind('<Escape>', self.close_warning)

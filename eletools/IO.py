@@ -958,8 +958,6 @@ def parse_output(stream, db, folder=None, is_elephant=True, conflicts_only=False
     statements = []
     warnings = []
 
-    stream.sort()
-
     if folder is None:
         statement_name = str(stamp)+"_operations.sql"
         warnings_name = str(stamp)+"_conflicts.out"
