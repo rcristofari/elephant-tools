@@ -4,10 +4,10 @@ A set of python tools to explore the Myanmar Elephant Project demographic datase
 **INSTALL**
 
 Everything will be easier if you start by installing Anaconda (or Miniconda) for Python3 (version 3.5 or later) from the Anaconda website: https://www.anaconda.com/download/#linux
-Then install the following dependencies (if not yet matched): scipy, numpy, pymysql, ete3, etetoolkit, PILLOW.
+Then install the following dependencies (if not yet matched): scipy, numpy, pymysql, pyqt5, ete3, etetoolkit, PILLOW, matplotlib and seaborn.
 If using Anaconda, open your terminal (or cmd.exe on Windows) and enter:
 
-**conda install -c scipy numpy pymysql etetoolkit ete3 PILLOW**
+**conda install -c scipy numpy pymysql pyqt5 etetoolkit ete3 PILLOW seaborn matplotlib**
 
 Note that you will need Tcl/tk toolkit version >= 8.6. You can upgrade it on your system, and proceed to upgrade the Python library with:
 
