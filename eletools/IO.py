@@ -419,7 +419,7 @@ def read_calves(elefile, sep=';', is_file=True, limit_age=28, solved=0):
             reject = 1
 
         ########## camp
-        if re.search(r"^[a-zA-Z ]+$", str(row[6])):
+        if re.search(r"^[a-zA-Z0-9 ]+$", str(row[6])):
             pass
         elif row[6] is None:
             warnings.append("Missing camp at line " + str(i+1))
