@@ -1228,13 +1228,19 @@ class pedigree:
 
 class measure:
 
-    def __init__(self, date, measure_id, measure, value, num=None, calf_num=None, replicate='N', solved = 'N', flag=0):
+    def __init__(self, date, measure_id, measure, value, experiment=None, batch=None, details=None, num=None, calf_num=None, replicate='N', solved='N', flag=0):
         self.__num=num
         self.__calf_num=calf_num
         self.__date=date
         self.__measure_id=measure_id
         self.__measure=measure
         self.__value = float(value)
+        if experiment:
+            self.__experiment = experiment
+        else:
+            self.__experiment = "default" # default is the "null" experiment, entered manually once in the experiments table
+        self.__batch = batch
+        self.__details = details
         if replicate in ('Y','y','YES','yes'):
             self.__replicate='Y'
         else:
@@ -1250,6 +1256,7 @@ class measure:
         self.__sourced = 0
         self.__checked = 0
         self.__xmissval = 1
+        self.__xmissexp = 1
 
         self.warnings = []
         self.out = []
@@ -1286,14 +1293,26 @@ class measure:
             self.__elephant_id = self.__elephant[0]
             self.__xeleph = 1
 
-            # Check whetherthat measure type is present in the measure_code table:
+            # Check whether that measure type is present in the measure_code table:
             self.__code = self.__db.get_measure_code(self.__measure)
+            if self.__experiment is not None:
+                self.__experiment_code = self.__db.get_experiment_code(self.__experiment)
+            else:
+                self.__experiment_code = None
 
             missing = None
             if self.__code is None:
-                missing = ("Measure type " + str(self.__measure) + " is not registered yet.\nPlease register it before proceeding (or check for typos)")
+                missing = ("Measure type " + str(self.__measure) + " is not registered yet. Please register it before proceeding (or check for typos)")
                 self.__sourced = 1
                 self.__xmissval = 0
+                print(missing)
+                if missing is not None:
+                    self.warnings.append(missing)
+
+            elif self.__experiment_code is None:
+                missing = ("Experiment type " + str(self.__experiment) + " is not registered yet. Please register it before proceeding (or check for typos)")
+                self.__sourced = 1
+                self.__xmissexp = 0
                 print(missing)
                 if missing is not None:
                     self.warnings.append(missing)
@@ -1323,7 +1342,7 @@ class measure:
 
                 #Cases where no similar measure is already in the database (i.e. not same elephant, date and parameter)
                 elif self.__db_line is None or (self.__db_line is not None and self.__replicate == 'Y'):
-                    print("This measure is not in the database yet.")
+                    print("This measure is not in the database yet / it is an allowed replicate.")
                     self.__sourced = 2
 
     ################################################################################
@@ -1333,7 +1352,7 @@ class measure:
     # Checks whether the value is in the range of the whole series (a power of 10 only to check the unit)
     # No check as to chronology since samples may be processed post-mortem (and date may be analysis, not sampling date)
 
-    def check(self,db):
+    def check(self, db):
         self.__db=db
         self.__checked = 0
         self.__xval = 0
@@ -1342,15 +1361,15 @@ class measure:
             print("You need to source this measure first.")
 
         elif self.__sourced == 1:
-            if self.__xeleph == 1 and self.__xmissval == 1:
+            if self.__xeleph == 1 and self.__xmissval == 1 and self.__xmissexp == 1:
                 self.__checked = 1
                 print("Nothing to do here.")
             else:
                 self.__checked = 0
-                print("Impossible to go further.")
+                print("Impossible to go further, there are sourcing errors.")
 
-        # If the measure is not present yet but the measure type is valid
-        elif self.__sourced == 2 and self.__xmissval == 1:
+        # If the measure is not present yet but the measure type / experiment is valid
+        elif self.__sourced == 2 and self.__xmissval == 1 and self.__xmissexp == 1:
             outrange = None
             self.__mean_value = None
             mv = self.__db.get_average_measure(self.__code)
@@ -1361,7 +1380,7 @@ class measure:
                 self.__xval = 1
 
             if self.__mean_value is not None and (self.__value > 10*self.__mean_value or self.__value < self.__mean_value/10) and self.__solved == 'N':
-                outrange = ("The proposed value is out of the mean order of magnitude in the database. Check the input.")
+                outrange = ("The proposed value is out of the mean 2 orders of magnitude in the database. Check the input.")
                 self.__xval = 0
             else:
                 print("This measure is valid. You can proceed to write()")
@@ -1381,7 +1400,7 @@ class measure:
         if self.__checked == 0:
             if self.__sourced == 0:
                 print("This entry must pass through check() first.")
-                #### HERE IS THE RUB
+                #### HERE IS THE RUB //// MAY 6th 2020: WHY ?????
 
 
             elif self.__sourced == 1:
@@ -1389,7 +1408,7 @@ class measure:
 
                 #######################
                 # Case where the elephant is present in the database
-                if self.__xeleph == 1 and self.__xmissval == 1:
+                if self.__xeleph == 1 and self.__xmissval == 1 and self.__xmissexp == 1:
                     if self.__xval == 0:
                         if self.__xrep == 1:
                             self.warnings.append("[Conflict] Value out of range for elephant " + str(self.__num) + " (here " + str(self.__measure)+"="+str(self.__value)+" vs. mean "+str(self.__mean_value)+")")
@@ -1412,13 +1431,19 @@ class measure:
                     if self.__toggle_write_flag == 0:
                         self.flag = self.flag+128
 
+                # Case where the experiment is specified, but absent from the database:
+                elif self.__xmissexp == 0:
+                    self.warnings.append("[Conflict] The experiment "+str(self.__experiment)+" is not registered yet")
+                    if self.__toggle_write_flag == 0:
+                        self.flag = self.flag+256
+
         elif self.__checked == 1 and self.__sourced == 1:
             print("This measure is already entered, nothing to do.")
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 8
 
         elif self.__checked == 2:
-            self.out = self.__db.insert_measure(self.__measure_id, self.__elephant_id, self.__date, self.__code, self.__value)
+            self.out = self.__db.insert_measure(self.__measure_id, self.__elephant_id, self.__date, self.__code, self.__value, self.__experiment_code, self.__batch, self.__details)
             if self.__toggle_write_flag == 0:
                 self.flag = self.flag + 2
 
@@ -1427,7 +1452,8 @@ class measure:
 
         self.__toggle_write_flag = 1
         # In all cases, the output is the input row, the flag, and the result line (warning or SQL operation)
-        output_row = [self.__measure_id, self.__num, self.__date, self.__code, self.__value, self.flag, self.out]
+        output_row = [self.__measure_id, self.__num, self.__date, self.__code, self.__value, self.__experiment_code,
+                      self.__batch, self.__details, self.flag, self.out]
         return(output_row)
 
 

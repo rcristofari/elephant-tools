@@ -693,7 +693,7 @@ def read_measures(elefile, sep=';', solved='N'):
         for row in eleread:
             if row != []:
                 rows.append(row)
-    nfields = fields.__len__() - 2
+    nfields = fields.__len__() - 5 # we substract the 5 fixed columns: num, date, experiment, batch, details
 
     # Check data types: only numeric values allowed for the measures
     valid, remarks, rejected, issues = [], [], [], []
@@ -702,13 +702,16 @@ def read_measures(elefile, sep=';', solved='N'):
     units = []
     for i,row in enumerate(rows):
         ########## other fields
-        for f in range(2,nfields+2):
+        for f in range(5,nfields+5):
             u = []
             u.append(i+1) # This is the initial row number
-            u.append(row[0]) # We start by pasting num and date
-            u.append(row[1])
-            u.append(fields[f])
-            u.append(row[f])
+            u.append(row[0]) # We start by pasting num
+            u.append(row[1]) # and date
+            u.append(fields[f]) # and measure type
+            u.append(row[f]) # and value
+            u.append(row[2]) # and experiment
+            u.append(row[3]) # and batch
+            u.append(row[4]) # and details
             units.append(u)
 
     # Now we scan each broken-down row
@@ -728,14 +731,15 @@ def read_measures(elefile, sep=';', solved='N'):
 
         # Check date format
         date = format_date(str(u[2]))
-        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date):
+        if re.search(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", format_date(date)):
             try:
                 u[2] = date
             except ValueError:
-                reject = 1
+                flag = 1
                 w.append("Invalid date " + str(date) + " at line " + str(u[0]))
         elif date is None:
             w.append("Missing date at line " + str(u[0]))
+            flag = 1 ## This added on May 6th 2020 upon proffreading, was there a reason for omitting it?
         else:
             w.append("Format problem with date: " + str(date) + " at line " + str(u[0]))
             flag = 1
@@ -756,7 +760,31 @@ def read_measures(elefile, sep=';', solved='N'):
                 u[4] = float(u[4])
             except ValueError:
                 flag = 1
-                w.append("Format problem with value "+str(u[4])+" at line "+str(i)+".")
+                w.append("Format problem with value "+str(u[7])+" at line "+str(i)+".")
+
+        # Check experiment format
+        if re.search(r"^[a-zA-Z0-9_\- /]{0,128}$", u[5]):
+            if u[5].casefold().strip() in ('', 'na', 'none', 'null', 'n/a', 'unknown', 'ukn'):
+                u[5] = None
+        else:
+            w.append("Format problem with experiment: " + str(u[5]) + " at line " + str(u[0]) + "(max length 128, alphanum, space, dash, slash and underscore only)")
+            flag = 1
+
+        # Check batch format
+        if re.search(r"^[a-zA-Z0-9_\- :.;/()]+$", u[6]):
+            if u[6].casefold().strip() in ('', 'na', 'none', 'null', 'n/a', 'unknown', 'ukn'):
+                u[6] = None
+        else:
+            w.append("Format problem with batch: " + str(u[6]) + " at line " + str(u[0]) + "(alphanum and [.;:-_ /()])")
+            flag = 1
+
+        # Check details format
+        if re.search(r"^[a-zA-Z0-9_\- :.;/()]+$", u[7]):
+            if u[7].casefold().strip() in ('', 'na', 'none', 'null', 'n/a', 'unknown', 'ukn'):
+                u[7] = None
+        else:
+            w.append("Format problem with details: " + str(u[7]) + " at line " + str(u[0]) + "(alphanum and [.;:-_ /()])")
+            flag = 1
 
         if u[4] is not None:
             u.append(flag)
@@ -772,8 +800,9 @@ def read_measures(elefile, sep=';', solved='N'):
         validvalue = 1
         try:
             float(u[4])
-        except:
+        except ValueError:
             validvalue = 0
+
         if solved == 'N' and validvalue == 1:
             # pull out the values of the same measure and get the median
             input_range = []
@@ -790,19 +819,19 @@ def read_measures(elefile, sep=';', solved='N'):
             vm = np.median(v_array)
 
             if u[4] != 0 and (u[4] > 5*vm or u[4] < vm/5):
-                u[5] = 1
-                u[6].append(str(u[3])+": value "+str(u[4])+" seems out of range for elephant "+str(u[1])+" at line "+str(u[0])+" (median = "+str(vm)+").")
+                u[8] = 1
+                u[9].append(str(u[3])+": value "+str(u[4])+" seems out of range for elephant "+str(u[1])+" at line "+str(u[0])+" (median = "+str(vm)+").")
         units.append(u)
 
     for u in units:
-        if u[5] == 0:
-            if u[6] != []:
-                remarks.append(u[6])
-            valid.append(u[0:5])
-        elif u[5] == 1:
-            if u[6] != []:
-                issues.append(u[6])
-            rejected.append(u[0:5])
+        if u[8] == 0:
+            if u[9] != []:
+                remarks.append(u[9])
+            valid.append(u[0:8])
+        elif u[8] == 1:
+            if u[9] != []:
+                issues.append(u[9])
+            rejected.append(u[0:8])
 
     return[fields, valid, remarks, rejected, issues, units]
 
@@ -952,7 +981,7 @@ def read_logbook(elefile, sep=',', solved='N'):
 ##  parse_output() parses the total output into mysql and warings                 ##
 ####################################################################################
 
-def parse_output(stream, db, folder=None, is_elephant=True, conflicts_only=False):
+def parse_output(stream, db, folder=None, is_elephant=True):
 
     stamp = db.get_stamp()
     statements = []
@@ -984,6 +1013,8 @@ def parse_output(stream, db, folder=None, is_elephant=True, conflicts_only=False
                         warnings.append(row)
 
 
+        unique_statements = list(set(statements))
+        unique_statements.sort()
         with open(statement_name,"w") as s:
             for x in list(set(statements)):
                 s.write(str(x)+'\n')
@@ -1017,8 +1048,10 @@ def parse_output(stream, db, folder=None, is_elephant=True, conflicts_only=False
                 else:
                     warnings.append(row)
 
+        unique_statements = list(set(statements))
+        unique_statements.sort()
         with open(statement_name,"w") as s:
-            for x in list(set(statements)):
+            for x in unique_statements:
                 s.write(str(x)+'\n')
 
 

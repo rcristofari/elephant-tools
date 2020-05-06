@@ -418,6 +418,8 @@ CREATE VIEW `censoring` AS
 
 /* A view gathering latest location information */
 
+/*
+THIS WAS WRONG:
 CREATE VIEW `latest_loc` AS
     (SELECT
         elephant_id,
@@ -446,4 +448,22 @@ CREATE VIEW `latest_loc` AS
             loc IS NOT NULL) AS locs
             INNER JOIN
         elephants ON elephants.id = locs.elephant_id
-    GROUP BY elephant_id);
+    GROUP BY elephant_id); */
+
+CREATE VIEW `latest_loc` AS
+(SELECT e.id,
+		e.num,
+        e.calf_num,
+        e.date,
+        CONCAT(location.name, ' ', location.level) AS loc,
+        e.code 
+FROM (SELECT 
+    elephants.id,
+    elephants.num,
+    elephants.calf_num,
+	GET_LATEST_LOC_DATE(elephants.id) as date,
+    GET_LATEST_LOC(elephants.id) as code
+FROM
+    elephants) AS e
+    INNER JOIN
+    location ON e.code = location.code);

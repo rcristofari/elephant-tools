@@ -217,7 +217,7 @@ class mysqlconnect:
             return o
 
 ################################################################################
-## 'get_measure_code' function                                                          ##
+## 'get_measure_code' function                                                ##
 ################################################################################
 
     def get_measure_code(self, measure):
@@ -227,6 +227,18 @@ class mysqlconnect:
         result = self.__cursor.fetchall()
         if result:
             return(result[0][0])
+
+################################################################################
+## 'get_experiment_code' function                                             ##
+################################################################################
+
+    def get_experiment_code(self, experiment):
+        self.__experiment = experiment
+        sql = "SELECT id FROM experiments WHERE experiment = %s" % (quote(self.__experiment))
+        self.__cursor.execute(sql)
+        result = self.__cursor.fetchall()
+        if result:
+            return (result[0][0])
 
 ################################################################################
 ## 'get_measure' function                                                     ##
@@ -264,13 +276,13 @@ class mysqlconnect:
 ## 'get_mean_measure' function                                                ##
 ################################################################################
 
-    def get_mean_measure(self, code):
-        self.__code = code
-        sql = "SELECT ROUND(AVG(value),2) FROM measures WHERE code = %s;" % (self.__code)
-        self.__cursor.execute(sql)
-        result = self.__cursor.fetchall()
-        if result:
-            return(result[0][0])
+ #   def get_mean_measure(self, code):
+ #       self.__code = code
+ #       sql = "SELECT ROUND(AVG(value),2) FROM measures WHERE code = %s;" % (self.__code)
+ #       self.__cursor.execute(sql)
+ #       result = self.__cursor.fetchall()
+ #       if result:
+ #           return(result[0][0])
 
 ################################################################################
 ## 'get_event_code' function                                                          ##
@@ -530,7 +542,7 @@ class mysqlconnect:
 ## 'insert_measure' function                                                 ##
 ################################################################################
 
-    def insert_measure(self, measure_id, elephant_id, date, measure_code_id, value, commits = None):
+    def insert_measure(self, measure_id, elephant_id, date, measure_code_id, value, experiment_code, batch, details, commits=None):
 
         if self.__i is None:
             print("You must generate a time stamp first using mysqlconnect.stamp()")
@@ -539,14 +551,15 @@ class mysqlconnect:
                 newcommits = (quote(str(commits)+','+str(self.__i)))
             else:
                 newcommits = (quote(str(self.__i)))
-            print(measure_id, self.__max_measure_id, elephant_id, date, measure_code_id, value, newcommits)
-            statement = "INSERT INTO measures (measure_id, elephant_id, date, code, value, commits) VALUES (%s, %s, %s, %s, %s, %s);" % (quote(int(measure_id) + int(self.__max_measure_id)), elephant_id, quote(date), measure_code_id, value, newcommits)
+            print(measure_id, self.__max_measure_id, elephant_id, date, measure_code_id, value, experiment_code, batch, details, newcommits)
+            statement = "INSERT INTO measures (measure_id, elephant_id, date, code, value, experiment, batch, details, commits) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);" % (int(measure_id) + int(self.__max_measure_id), elephant_id, quote(date), measure_code_id, value, experiment_code, quote(batch), quote(details), newcommits)
 
             return(statement)
 
 ################################################################################
 ## 'insert_measure_code' function                                             ##
 ################################################################################
+    # I'm not sure where/how/if this is used?!? apparenty nowhere and redundant with the next method.
 
     def insert_measure_code(self, code, unit, descript, commits = None):
 
@@ -561,6 +574,37 @@ class mysqlconnect:
             statement = "INSERT INTO measure_code (type, unit, descript, commits) VALUES (%s, %s, %s, %s);" % (quote(code), quote(unit), quote(descript), newcommits)
 
             return(statement)
+
+################################################################################
+## 'write_new_measure' function                                               ##
+################################################################################
+
+    def write_new_measure(mclass, mtype, unit, details):
+        if mclass and mtype and unit and details:
+            statement = "INSERT INTO measure_code (class, type, unit, descript) VALUES (%s, %s, %s, %s);" % (
+            quote(mclass), quote(mtype), quote(unit), quote(descript))
+        else:
+            statement = None
+        return (statement)
+
+################################################################################
+## 'insert_experiment' function                                               ##
+################################################################################
+
+    def insert_experiment(self, experiment, details, commits=None):
+
+        if self.__i is None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+            if commits is not None:
+                newcommits = (quote(str(commits) + ',' + str(self.__i)))
+            else:
+                newcommits = (quote(str(self.__i)))
+
+            statement = "INSERT INTO experiments (experiment, details, commits) VALUES (%s, %s, %s);" % (
+            quote(experiment), quote(details), newcommits)
+
+            return (statement)
 
 ################################################################################
 ## 'insert_event' function                                                    ##
@@ -896,17 +940,6 @@ class mysqlconnect:
         for r in result:
             line = r[1]
             out.append(line)
-        return(out)
-
-################################################################################
-## 'write_new_measure' function                                               ##
-################################################################################
-
-    def write_new_measure(mclass, mtype, unit, details):
-        if mclass and mtype and unit and details:
-            sql = "INSERT INTO measure_code (class, type, unit, descript) VALUES (%s, %s, %s, %s);" % (quote(mclass), quote(mtype), quote(unit), quote(descript))
-        else:
-            out = None
         return(out)
 
 ################################################################################

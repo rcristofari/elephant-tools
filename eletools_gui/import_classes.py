@@ -484,19 +484,24 @@ class read_measure_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value')
+        self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value', 'experiment', 'batch', 'details')
         self.tv.heading("#0", text='#')
-        self.tv.column("#0", anchor='center', width=80)
+        self.tv.column("#0", anchor='center', width=30)
         for c in self.tv['columns']:
             self.tv.heading(c, text=c)
-            self.tv.column(c, anchor='w', width=100)
+            if c == "set":
+                self.tv.column(c, anchor='w', width=30)
+            elif c in ["elephant", "value"]:
+                self.tv.column(c, anchor='w', width=45)
+            else:
+                self.tv.column(c, anchor='w', width=70)
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
         for i,row in enumerate(rows):
             if int(row[0])%2 == 0:
                 evenodd = 'even'
             else:
                 evenodd = 'odd'
-            self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = (row[5],evenodd))
+            self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = (row[5], evenodd))
         self.tv.tag_configure(1, background='#E08E45')
         self.tv.tag_configure('odd', foreground='gray') #font = 'globalfont 10 bold'
         self.tv.bind("<Double-1>", self.OnDoubleClick)

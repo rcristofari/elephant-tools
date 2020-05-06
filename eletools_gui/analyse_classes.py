@@ -628,11 +628,11 @@ class analyse_measure_file(tk.Frame):
         sV=0
         sC=0
         sK=0
-        self.events = self.master.file_content[5]
-        n_events = self.events.__len__()
+        self.mesures = self.master.file_content[5]
+        n_measures = self.mesures.__len__()
         counter = 0
 
-        for i,row in enumerate(self.events):
+        for i,row in enumerate(self.mesures):
             statenow = "Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=2, highlightbackground=self.master.darkcolour)
             self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
@@ -640,38 +640,38 @@ class analyse_measure_file(tk.Frame):
             if self.break_loop != 0:
                 break
 
-            if row[5] == 1:
+            if row[8] == 1:
                 pass
 
             else:
                 counter += 1
 
-                measure_id, num, date, code, value  = row[0:5]
+                measure_id, num, date, code, value, experiment, batch, details  = row[0:8]
 
                 if re.search(r'[\d]{4}[a-zA-Z]{1}[\w]+', str(num)):
-                    v = measure(calf_num=num, date=date, measure=code, measure_id=measure_id, value=value, replicate=self.repvar, solved=self.solvedvar, flag=row[5])
+                    v = measure(calf_num=num, date=date, measure=code, measure_id=measure_id, value=value, experiment=experiment, batch=batch, details=details, replicate=self.repvar, solved=self.solvedvar, flag=row[8])
                 else:
-                    v = measure(num=num, date=date, measure=code, measure_id=measure_id, value=value, replicate=self.repvar, solved=self.solvedvar, flag=row[5])
+                    v = measure(num=num, date=date, measure=code, measure_id=measure_id, value=value, experiment=experiment, batch=batch, details=details, replicate=self.repvar, solved=self.solvedvar, flag=row[8])
 
                 v.source(self.master.db)
                 v.check(self.master.db)
                 w = v.write(self.master.db)
 
-                row[5] = row[5] + w[5]
-                row[6] = w[6]
+                row[8] = row[8] + w[8]
+                row[9] = w[9]
 
-                if 1 in break_flag(row[5]) or 2 in break_flag(row[5]):
+                if 1 in break_flag(row[8]) or 2 in break_flag(row[8]):
                     say = 'valid'
                     sV += 1
-                elif 3 in break_flag(row[5]):
+                elif 3 in break_flag(row[8]):
                     say = 'known'
                     sK += 1
                 else:
                     say = 'conflicting'
                     sC += 1
 
-                self.master.common_out.append(w[6])
-                self.result.insert(tk.END, ("\tAnalysing measure number "+str(counter)+" of "+str(n_events)+": "+say+"\n"))
+                self.master.common_out.append(w[9])
+                self.result.insert(tk.END, ("\tAnalysing measure number "+str(counter)+" of "+str(n_measures)+": "+say+"\n"))
                 self.result.update()
                 self.result.see(tk.END)
 
@@ -694,33 +694,41 @@ class analyse_measure_file(tk.Frame):
         self.view_window.grid_rowconfigure(0, weight=1)
         self.view_window.grid_rowconfigure(2, weight=1)
         self.tv = ttk.Treeview(self.view_window, height=32)
-        self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value')
+        self.tv['columns'] = ('set', 'elephant', 'date', 'code', 'value', 'experiment', 'batch', 'details')
         self.tv.heading("#0", text='#')
-        self.tv.column("#0", anchor='center', width=80)
+        self.tv.column("#0", anchor='center', width=30)
         for c in self.tv['columns']:
             self.tv.heading(c, text=c)
-            self.tv.column(c, anchor='w', width=100)
+            if c == "set":
+                self.tv.column(c, anchor='w', width=30)
+            elif c in ["elephant", "value"]:
+                self.tv.column(c, anchor='w', width=45)
+            else:
+                self.tv.column(c, anchor='w', width=70)
         self.tv.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
         for i, row in enumerate(rows):
-            if row[5] == 1:
-                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('rejected',))
-            elif 1 in break_flag(row[5]) or 2 in break_flag(row[5]):
-                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('valid',))
-            elif 3 in break_flag(row[5]):
-                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('known',))
-            elif 4 in break_flag(row[5]) or 5 in break_flag(row[5]):
-                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('conflicting',))
-            elif 6 in break_flag(row[5]):
-                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('missing',))
-            elif 7 in break_flag(row[5]):
-                self.tv.insert('','end',text=str(i+1), values=row[0:5], tags = ('measure',))
+            if row[8] == 1:
+                self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = ('rejected',))
+            elif 1 in break_flag(row[8]) or 2 in break_flag(row[8]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = ('valid',))
+            elif 3 in break_flag(row[8]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = ('known',))
+            elif 4 in break_flag(row[8]) or 5 in break_flag(row[8]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = ('conflicting',))
+            elif 6 in break_flag(row[8]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = ('missing',))
+            elif 7 in break_flag(row[8]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = ('measure',))
+            elif 8 in break_flag(row[8]):
+                self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = ('experiment',))
 
         self.tv.tag_configure('rejected', background='#E08E45')
         self.tv.tag_configure('known', background='#D5D0CD')
         self.tv.tag_configure('conflicting', background='#A30B37')
         self.tv.tag_configure('missing', background='#B3B3F1')
         self.tv.tag_configure('measure', background='#CE6A85')
+        self.tv.tag_configure('experiment', background='#CE6A85')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
         self.view_window.focus_set()
@@ -740,8 +748,8 @@ class analyse_measure_file(tk.Frame):
         self.warning_window.title("")
         self.warningbox = tk.Text(self.warning_window, height=10, width=65)
         self.warningbox.grid(row=1, column = 1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
-        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][5]
-        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][6]
+        flag = self.master.file_content[5][int(self.tv.item(item,"text"))-1][8]
+        warning = self.master.file_content[5][int(self.tv.item(item,"text"))-1][9]
         if 7 in break_flag(flag):
             self.addmeasurebutton = tk.Button(self.warning_window, text="Available measures", command=self.call_add_measure)
             self.addmeasurebutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
@@ -784,7 +792,7 @@ class analyse_measure_file(tk.Frame):
 
     def write_sql(self):
         folder = askdirectory(initialdir=self.master.wdir, title='Choose SQL file directory...')
-        parse_output(self.master.common_out, self.master.db, folder)
+        parse_output(stream=self.master.common_out, db=self.master.db, folder=folder, is_elephant=False)
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()
         self.result.see(tk.END)
@@ -1010,7 +1018,7 @@ class analyse_calf_file(tk.Frame):
 
     def write_sql(self):
         folder = askdirectory(title='Choose SQL file directory...')
-        parse_output(self.master.common_out+self.messages, self.master.db, folder, conflicts_only=True)
+        parse_output(stream=self.master.common_out+self.messages, db=self.master.db, folder=folder, is_elephant=True) # had an argument ", conflicts_only=True" that doesn't exist - check that up...
         self.result.insert(tk.END, ("\tFiles written in "+folder))
         self.result.update()
         self.result.see(tk.END)

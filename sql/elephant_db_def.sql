@@ -98,6 +98,9 @@ elephant_id INT(10) NOT NULL,
 date DATE,
 code INT(4) NOT NULL,
 value FLOAT NOT NULL,
+experiment INT(4),
+batch TEXT,
+details TEXT,
 commits TEXT
 );
 
@@ -106,6 +109,13 @@ class ENUM('morphology','physiology','behaviour','parasitology','immunology','ge
 type VARCHAR(12) NOT NULL UNIQUE,
 unit VARCHAR(12) NOT NULL,
 descript TEXT,
+commits TEXT
+);
+
+CREATE TABLE experiments (
+id INT(4) NOT NULL primary key auto_increment,
+experiment VARCHAR(128) NOT NULL,
+details TEXT NOT NULL,
 commits TEXT
 );
 
@@ -153,8 +163,10 @@ ALTER TABLE `event_code` ENGINE = InnoDB ;
 ALTER TABLE `logbooks` ENGINE = InnoDB ;
 ALTER TABLE `pedigree` ENGINE = InnoDB ;
 ALTER TABLE `measures` ENGINE = InnoDB ;
-ALTER TABLE `location` ENGINE = InnoDB ;
 ALTER TABLE `measure_code` ENGINE = InnoDB ;
+ALTER TABLE `experiments` ENGINE = InnoDB ;
+ALTER TABLE `location` ENGINE = InnoDB ;
+
 
 ALTER TABLE elephants ADD INDEX (`id`);
 ALTER TABLE `elephants` ADD INDEX (`camp`);
@@ -167,6 +179,7 @@ ALTER TABLE `pedigree` ADD INDEX (`elephant_1_id`);
 ALTER TABLE `pedigree` ADD INDEX (`elephant_2_id`);
 ALTER TABLE `measures` ADD INDEX (`elephant_id`);
 ALTER TABLE `measures` ADD INDEX (`code`);
+ALTER TABLE `measures` ADD INDEX (`experiment`);
 ALTER TABLE `location` ADD INDEX (`id`);
 
 
@@ -179,4 +192,5 @@ ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_1_id`) REFERENCES `elephants` 
 ALTER TABLE `pedigree` ADD FOREIGN KEY (`elephant_2_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`elephant_id`) REFERENCES `elephants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE `measures` ADD FOREIGN KEY (`code`) REFERENCES `measure_code` (`id`) ON DELETE CASCADE ON UPDATE CASCADE ;
+ALTER TABLE `measures` ADD FOREIGN KEY (`experiment`) REFERENCES `experiments` (`id`) ON UPDATE CASCADE ;
 ALTER TABLE `elephants` ADD FOREIGN KEY (`camp`) REFERENCES `location` (`id`) ON UPDATE CASCADE ;
