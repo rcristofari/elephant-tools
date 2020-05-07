@@ -1,7 +1,7 @@
 //connexion parameters
-username=robin
-password=MRS_43_N
+username=
+password=
 host=193.167.189.61
 database=mtep
 port=3306
-wdir=/home/robin/Elephants/testfiles
+wdir=
