@@ -21,7 +21,7 @@ from eletools.DataClasses import *
 
 class mysqlconnect:
 
-    def __init__(self, usr, pwd, host='localhost', db='mep', port=3306):
+    def __init__(self, usr, pwd, host='localhost', db='mtep', port=3306):
         self.__usr=usr
         self.__pwd=pwd
         self.__host=host
@@ -1097,3 +1097,41 @@ class mysqlconnect:
         except Exception as ex:
             print(ex)
             print("Error: unable to fetch data")
+
+################################################################################
+## 'insert_experiment' function                                               ##
+################################################################################
+
+    def insert_experiment(self, experiment, details, commits=None):
+
+        if self.__i is None:
+            print("You must generate a time stamp first using mysqlconnect.stamp()")
+        else:
+            if commits is not None:
+                newcommits = (quote(str(commits)+','+str(self.__i)))
+            else:
+                newcommits = (quote(str(self.__i)))
+
+            if details in [None, ""]:
+                details = 'null'
+            else:
+                details = quote(details)
+
+            statement = "INSERT INTO experiments (experiment, details, commits) VALUES (%s, %s, %s);" % (quote(experiment), details, newcommits)
+
+            return(statement)
+
+################################################################################
+## 'send_query' function                                                      ##
+################################################################################
+# This generic function applies a query to the database. It's used to insert directly from Python. Use with care.
+# The script must be connected as Admin.
+
+    def send_query(self, query):
+        try:
+            self.__cursor.execute(query)
+            self.__db.commit()
+        except pms.Error as e:
+            error = "Error %d: %s" % (e.args[0], e.args[1])
+            return(error)
+        return(1)

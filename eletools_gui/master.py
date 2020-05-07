@@ -43,7 +43,7 @@ class MainApplication(tk.Frame):
 
     def configure_gui(self):
         self.master.title("Myanmar Elephant Tools")
-        self.master.geometry("500x500")
+        self.master.geometry("800x800")
         self.master.resizable(False, False)
         self.master.background_image = tk.PhotoImage(file='./__resources/background.png')
         self.master.background_label = tk.Label(self.master, image=self.master.background_image)
@@ -51,7 +51,7 @@ class MainApplication(tk.Frame):
 
         # Somehow this doesn't work...
         font = nametofont('TkDefaultFont')
-        font.config(family='Helvetica',size=8)
+        font.config(family='Helvetica',size=18)
         self.master.option_add("*Font", font)
 
     def create_widgets(self):
@@ -97,7 +97,7 @@ class MainApplication(tk.Frame):
         #self.addmenu.add_command(label="Add a measure", command=self.notimplemented)
         self.addmenu.add_separator()
         self.addmenu.add_command(label="Add a measure type", command=self.call_add_measure_type)
-        self.addmenu.add_command(label=">>Add an experiment", command=self.notimplemented)
+        self.addmenu.add_command(label=">>Add an experiment", command=self.call_add_experiment)
         #self.addmenu.add_command(label="Add an event type", command=self.notimplemented)
         #self.addmenu.add_separator()
         #self.addmenu.add_command(label="Update living status", command=self.notimplemented)
@@ -209,6 +209,9 @@ class MainApplication(tk.Frame):
 
     def call_add_measure_type(self):
         add_measure_type(self.master)
+
+    def call_add_experiment(self):
+        add_experiment(self.master)
 
     def notimplemented(self):
         print("Not implemented yet")

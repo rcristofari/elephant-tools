@@ -603,17 +603,17 @@ class analyse_measure_file(tk.Frame):
                 widget.grid_forget()
 
     def create_widgets(self):
-        self.result = tk.Text(self.master, height=25, width=65)
-        self.result.grid(row=2, column = 1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+        self.result = tk.Text(self.master, height=25, width=55)
+        self.result.grid(row=2, column = 2, columnspan=3, sticky=tk.EW, padx=10, pady=5)
 
         self.stopbutton = tk.Button(self.master, text='Stop', width=15, command=self.stop_loop, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.stopbutton.grid(row=3, column=1, sticky=tk.W, padx=0, pady=5)
+        self.stopbutton.grid(row=3, column=2, sticky=tk.W, padx=10, pady=5)
 
         self.showfilebutton = tk.Button(self.master, text='Show', width=15, command=self.show_conflicts, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.showfilebutton.grid(row=3, column=2, sticky=tk.EW, padx=5, pady=5)
+        self.showfilebutton.grid(row=3, column=3, sticky=tk.EW, padx=5, pady=5)
 
         self.writebutton = tk.Button(self.master, text='Write an SQL file', width=15, command=self.write_sql, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
-        self.writebutton.grid(row=3, column=3, sticky=tk.E, padx=0, pady=5)
+        self.writebutton.grid(row=3, column=4, sticky=tk.E, padx=10, pady=5)
         self.writebutton.config(state="disabled")
 
         self.master.focus_set()
@@ -635,7 +635,7 @@ class analyse_measure_file(tk.Frame):
         for i,row in enumerate(self.mesures):
             statenow = "Valid: "+str(sV)+"\t\tConflicting: "+str(sC)+"\tAlready known: "+str(sK)
             self.statelabel = tk.Label(self.master, text=statenow, bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=2, highlightbackground=self.master.darkcolour)
-            self.statelabel.grid(row=1, column=1, columnspan=3, sticky=tk.EW, padx=0, pady=5)
+            self.statelabel.grid(row=1, column=2, columnspan=3, sticky=tk.EW, padx=10, pady=5)
 
             if self.break_loop != 0:
                 break

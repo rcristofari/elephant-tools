@@ -347,3 +347,200 @@ class add_measure_type(tk.Frame):
         if statement is not None:
             self.master.common_out.append(statement)
             print(statement)
+
+
+################################################################################
+## Check (and add) an experiment                                              ##
+################################################################################
+
+class add_experiment(tk.Frame):
+
+    def __init__(self, master, fromAnalyse = False, preselect=None):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.configure_gui()
+        self.clear_frame()
+        self.create_widgets()
+
+        # Clear the common out and stamp it:
+        self.master.common_out = []
+        self.master.common_out.append(self.master.stamp)
+
+        # Create a list for experiments to be inserted:
+        self.experiments = []
+
+    def configure_gui(self):
+        self.master.title("Myanmar Elephant Tools")
+        # self.master.resizable(False, False)
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+                widget.grid_forget()
+
+    def create_widgets(self):
+
+        self.explabel = tk.Label(self.master, text="Experiment: ")
+        self.explabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.explabel.grid(row=2, column=1, sticky=tk.W, pady=5)
+        self.expentry = tk.Entry(self.master, width=10)
+        self.expentry.grid(row=2, column=2, columnspan=3, sticky=tk.EW, pady=5)
+
+        self.detailslabel = tk.Label(self.master, text="Details: ")
+        self.detailslabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.detailslabel.grid(row=3, column=1, sticky=tk.W, pady=5)
+        self.detailsentry = tk.Entry(self.master, width=40)
+        self.detailsentry.grid(row=4, column=1, columnspan=4, sticky=tk.EW, pady=5)
+
+        self.checkbutton = tk.Button(self.master, text="Add", command=self.check_experiment)
+        self.checkbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.checkbutton.grid(row=5, column=1, columnspan=4, sticky=tk.EW, pady=5)
+
+        self.tv = ttk.Treeview(self.master, height=6)
+        self.tv['columns'] = ('Experiment','Details')
+        self.tv.heading("#0", text='#')
+        self.tv.column("#0", anchor='w', width=5)
+        # Create fields
+        self.tv.heading('Experiment', text='Experiment')
+        self.tv.column('Experiment', anchor='w', width=25)
+        self.tv.heading('Details', text='Details')
+        self.tv.column('Details', anchor='w', width=100)
+        self.tv.grid(row=6, column=1, columnspan=4, padx=0, pady=5, sticky=tk.EW)
+        self.tv.bind("<Double-1>", self.OnDoubleClick)
+
+        self.cancelbutton = tk.Button(self.master, text="Clear", command=self.cancel_entry, width=10)
+        self.cancelbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.cancelbutton.grid(row=7, column=1, columnspan=1, sticky=tk.EW, pady=5)
+
+        self.addbutton = tk.Button(self.master, text="Apply", command=self.apply_add_experiment, width=10)
+        self.addbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.addbutton.grid(row=7, column=4, columnspan=1, sticky=tk.EW, pady=5)
+        self.addbutton.config(state='disabled')
+
+        self.master.focus_set()
+        self.master.bind('<Return>', self.check_experiment)
+
+    def OnDoubleClick(self, event): # Add something here to prevent user from selecting the greyed row
+        for item in self.tv.get_children()[1:]:
+            self.tv.item(item, tags=('smalltext',))
+        item = self.tv.selection()[0]
+        self.tv.item(item, tags=('red',))
+        self.tv.tag_configure('smalltext', font=('Helvetica',8))
+        self.tv.tag_configure('grey', font=('Helvetica',8), background='#D5D0CD')
+        self.tv.tag_configure('red', font=('Helvetica',8), background=self.master.darkcolour)
+        self.select_type = self.tv.item(item, 'values')[0]
+
+    def check_experiment(self, *args):
+        m = [self.expentry.get(), self.detailsentry.get()]
+        # Check that the experiment is valid, and not yet in the database:
+        inDB = self.master.db.get_experiment_code(m[0])
+        if inDB:
+            pass
+            self.WarningPopup("This experiment is already registered in the database")
+
+        else:
+            # Check format:
+            if re.search(r"^[a-zA-Z0-9_\- /]{0,128}$", m[0]) and all(x not in ["'", '"', ","] for x in m[1]):
+                self.tv.insert('','end', text='', values=m[0:2], tags = ('grey',))
+                self.tv.tag_configure('smalltext', font=('Helvetica',8))
+                self.tv.tag_configure('grey', font=('Helvetica',8), background='#D5D0CD')
+                self.addbutton.config(state='normal')
+                # Add to the experiment list:
+                self.experiments.append(m)
+
+            else:
+                self.WarningPopup("Format error, please avoid special characters")
+
+    def WarningPopup(self, warning):
+        self.warning_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.warning_window.title("Warning")
+        self.warningbox = tk.Text(self.warning_window, height=5, width=35)
+        self.warningbox.grid(row=1, column=1, columnspan=1, sticky=tk.EW, padx=5, pady=5)
+        self.warningbox.insert(tk.END, warning)
+        self.warningbox.config(state=tk.DISABLED)
+        self.warning_window.focus_set()
+        self.warning_window.bind('<Escape>', self.close_warning)
+
+    def close_warning(self, *args):
+        self.warning_window.destroy()
+
+    def cancel_entry(self):
+        self.disable_addbutton()
+        for item in self.tv.get_children():
+            self.tv.delete(item)
+        # Flush the list of experiments to be inserted:
+        self.experiments = []
+        # Clear the common out and stamp it:
+        self.master.common_out = []
+        self.master.common_out.append(self.master.stamp)
+
+        self.expentry.delete(0, tk.END)
+        self.detailsentry.delete(0, tk.END)
+
+    def disable_addbutton(self):
+        self.addbutton.config(state='disabled')
+
+    def apply_add_experiment(self):
+        for m in self.experiments:
+            print(m)
+            statement = self.master.db.insert_experiment(experiment=m[0], details=m[1], commits=None)
+            if statement is not None:
+                self.master.common_out.append(statement)
+        self.InsertPopup()
+        ## HERE, RESET THE COMMIT NUMBER AND CLEAR THE COMMON OUT !!
+
+    def InsertPopup(self):
+        self.insert_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
+        self.insert_window.title("")
+        self.insertlabel = tk.Label(self.insert_window, text="The following statements will be applied to the database. Are you sure you want to proceed?\t")
+        self.insertlabel.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.insertlabel.grid(row=1, column=1, columnspan=2, sticky=tk.EW, padx=10, pady=5)
+
+        self.queries = list(set(self.master.common_out))
+        self.queries.sort()
+
+        querytext=''
+        for q in self.queries:
+            querytext = querytext + q + '\n'
+
+        self.insertbox = tk.Text(self.insert_window, height=10, width=70)
+        self.insertbox.grid(row=2, column=1, columnspan=2, sticky=tk.EW, padx=10, pady=5)
+        self.insertbox.insert(tk.END, querytext)
+        self.insertbox.config(state=tk.DISABLED)
+
+        self.cancelbutton = tk.Button(self.insert_window, text="Cancel", command=self.close_insert, width=10)
+        self.cancelbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.cancelbutton.grid(row=3, column=1, columnspan=1, sticky=tk.EW, padx=10, pady=5)
+
+        self.addbutton = tk.Button(self.insert_window, text="Apply", command=self.call_send_query, width=10)
+        self.addbutton.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0, activebackground=self.master.darkcolour, activeforeground=self.master.lightcolour)
+        self.addbutton.grid(row=3, column=2, columnspan=1, sticky=tk.EW, padx=10, pady=5)
+
+        self.insert_window.focus_set()
+
+    def close_insert(self):
+       self.insert_window.destroy()
+
+    def call_send_query(self):
+        for q in self.queries:
+            s = self.master.db.send_query(q)
+            if s != 1:
+                self.errorw = tk.Toplevel(self.master, bg=self.master.lightcolour)
+                self.errorw.title("Error")
+                self.errorl = tk.Label(self.errorw, text=s)
+                self.errorl.config(bg=self.master.lightcolour, fg=self.master.darkcolour, highlightthickness=0,
+                                        activebackground=self.master.darkcolour,
+                                        activeforeground=self.master.lightcolour)
+                self.errorl.grid(row=1, column=1, columnspan=1, sticky=tk.EW, padx=10, pady=5)
+                self.errorw.focus_set()
+                break
+
+        # Flush the list of experiments to be inserted:
+        self.experiments = []
+        # Clear the common out and stamp it:
+        self.master.common_out = []
+        self.master.stamp = self.master.db.stamp()
+        self.master.common_out.append(self.master.stamp)
+        print(self.master.stamp)
+
+        self.close_insert()
+        #self.cancel_entry()
