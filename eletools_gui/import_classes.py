@@ -476,7 +476,7 @@ class read_measure_file(tk.Frame):
     def show_file_content(self, *args):
         rows = self.master.file_content[5]
         self.view_window = tk.Toplevel(self.master, bg=self.master.lightcolour)
-        self.view_window.title("Pedigree file "+self.master.shortname)
+        self.view_window.title("Measure file "+self.master.shortname)
         self.view_window.geometry("600x700")
         self.view_window.resizable(False, False)
         self.view_window.grid_columnconfigure(0, weight=1)
@@ -501,9 +501,10 @@ class read_measure_file(tk.Frame):
                 evenodd = 'even'
             else:
                 evenodd = 'odd'
-            self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = (row[5], evenodd))
-        self.tv.tag_configure(1, background='#E08E45')
-        self.tv.tag_configure('odd', foreground='gray') #font = 'globalfont 10 bold'
+            self.tv.insert('','end',text=str(i+1), values=row[0:8], tags = (row[8], evenodd))
+        self.tv.tag_configure(1, background='#E08E45', font = 'globalfont 10')
+        self.tv.tag_configure('odd', foreground='gray', font = 'globalfont 10')
+        self.tv.tag_configure('even', font='globalfont 10')
         self.tv.bind("<Double-1>", self.OnDoubleClick)
 
         vsb = ttk.Scrollbar(self.view_window, orient="vertical", command=self.tv.yview)

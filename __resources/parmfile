@@ -4,4 +4,4 @@ password=
 host=193.167.189.61
 database=mtep
 port=3306
-wdir=
+wdir=/home/robin/Dropbox/MTEPdb/commit/temp
